@@ -1348,10 +1348,9 @@
                 dashContainer.classList.add('dash-blue');
             }
         } else if (latestEvent.type === 'tevilah') {
-    let actualNightDate = new HDate(latestAbs + 1);
-    dashContainer.innerHTML = `<strong>טבילה אחרונה התבצעה בליל ${actualNightDate.renderGematriya()}.</strong>`;
-    dashContainer.classList.add('dash-blue');
-}
+            let actualNightDate = new HDate(latestAbs + 1);
+            dashContainer.innerHTML = `<strong>טבילה אחרונה התבצעה בליל ${actualNightDate.renderGematriya()}.</strong>`;
+            dashContainer.classList.add('dash-blue');
         } else if (latestEvent.note && !latestEvent.type) {
             dashContainer.innerHTML = `<strong>ישנה הערה ביומן לאחרונה.</strong>`;
         }
