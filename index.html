@@ -189,6 +189,9 @@
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: var(--shadow-sm); font-family: inherit;
         }
         .controls button:hover { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25); }
+        
+        #toggle-yearly-btn { background: rgba(79, 70, 229, 0.1); border-color: rgba(79, 70, 229, 0.3); }
+
         .jump-menu { display: flex; gap: 8px; align-items: center; background: var(--surface); padding: 8px 18px; border-radius: 50px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);}
         .jump-menu select { padding: 6px 10px; font-size: 1.05em; border-radius: 10px; border: 1px solid transparent; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text-main); font-weight: 500; cursor: pointer; transition: 0.2s;}
         .jump-menu select:hover { border-color: var(--border-color); }
@@ -198,24 +201,24 @@
         .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 30px; user-select: none; perspective: 1000px; }
         .day-header { text-align: center; font-weight: 600; color: var(--text-muted); font-size: 0.95em; padding: 10px 0; text-transform: uppercase; letter-spacing: 1px;}
         .day {
-            aspect-ratio: 1; border: 1px solid var(--border-color); border-radius: 18px; padding: 8px;
+            min-height: 100px; border: 1px solid var(--border-color); border-radius: 18px; padding: 8px;
             display: flex; flex-direction: column; align-items: center; cursor: pointer; 
             position: relative; background: var(--surface); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 4px 10px rgba(0,0,0,0.02); overflow: hidden;
             animation: staggeredPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
         }
         .day:hover { border-color: var(--primary); transform: translateY(-6px) scale(1.02); box-shadow: var(--shadow); z-index: 2;}
-        .day-num { font-size: 1.4em; font-weight: 700; color: var(--text-main); margin-bottom: auto; transition: 0.3s; }
+        .day-num { font-size: 1.4em; font-weight: 700; color: var(--text-main); margin-bottom: auto; transition: 0.3s; margin: 4px 0;}
         .day:hover .day-num { color: var(--primary); }
-        .day-heb { font-size: 0.8em; color: var(--text-muted); font-weight: 500; }
-        .note-icon { position: absolute; top: 8px; left: 8px; font-size: 1em; cursor: help; opacity: 0.8; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+        .day-heb { font-size: 0.8em; color: var(--text-muted); font-weight: 500; margin-bottom: 4px;}
+        .note-icon { position: absolute; top: 8px; left: 8px; font-size: 1em; cursor: help; opacity: 0.8; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); z-index: 5;}
         
         /* Badges */
         .marker { 
-            width: 96%; padding: 5px 0; border-radius: 8px; margin-top: 4px; 
-            font-size: 0.75em; font-weight: 700; text-align:center; color: white;
+            width: 96%; padding: 5px 2px; border-radius: 8px; margin-top: 4px; 
+            font-size: 0.7em; font-weight: 700; text-align:center; color: white;
             box-shadow: 0 4px 8px rgba(0,0,0,0.15); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
-            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); letter-spacing: 0.5px;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); letter-spacing: 0.3px; line-height: 1.2;
         }
         .bg-red { background: linear-gradient(135deg, #ff595e, #e03e44); }
         .bg-yellow { background: linear-gradient(135deg, #ffca3a, #e5b020); color: #5a4b13 !important; }
@@ -343,7 +346,7 @@
             .email-toggle { top: 15px; left: 115px; width: 42px; height: 42px; font-size: 1.1em;}
             .dashboard { padding: 15px; font-size: 1em; }
             .day-num { font-size: 1.2em; } 
-            .marker { font-size: 0.7em; }
+            .marker { font-size: 0.68em; }
             .controls { flex-direction: column; width: 100%; gap: 15px;} 
             .controls button, .jump-menu { width: 100%; justify-content: center;}
             table { font-size: 0.9em; } 
@@ -478,6 +481,7 @@
         <div id="view-calendar" class="section-container active">
             <div class="controls">
                 <button id="prev-month" class="ripple-target">חודש קודם</button>
+                <button id="toggle-yearly-btn" class="ripple-target" onclick="toggleYearlyView()">תצוגה שנתית 📅</button>
                 <div class="jump-menu">
                     <!-- Ordered Right-to-Left (First is visually rightmost) -->
                     <button id="return-today" class="ripple-target" onclick="returnToToday()" style="display: none; padding: 6px 12px; font-size: 0.95em; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); cursor: pointer; transition: 0.2s;">חזור להיום</button>
@@ -492,6 +496,8 @@
 
             <!-- Swipeable Calendar Grid -->
             <div class="calendar" id="calendar"></div>
+            <!-- Yearly Calendar Wrapper (Hidden by default) -->
+            <div id="yearly-calendar-wrapper" style="display: none;"></div>
         </div>
 
     <!-- VIEW: Table -->
@@ -521,7 +527,13 @@
             <h3><span>📌</span> איך משתמשים ביומן?</h3>
             <ul>
                 <li><strong>הזנת נתונים:</strong> לחצו על כל תאריך בלוח השנה כדי לפתוח את תפריט הפעולות ליום זה.</li>
-                <li><strong>תחילת מחזור (ראייה):</strong> סמנו "תחילת ראייה" ובחרו אם זה קרה בעונת יום או בעונת לילה. המערכת תחשב מיד את ימי הפרישה העתידיים (עונה בינונית, יום החודש והפלגה).</li>
+                <li><strong>תחילת מחזור (ראייה):</strong> סמנו "תחילת ראייה" ובחרו אם זה קרה בעונת יום או בעונת לילה. המערכת תחשב מיד את ימי הפרישה העתידיים.</li>
+                <li><strong>סוגי פרישות (קיצורים בלוח):</strong> 
+                    <br>עו"ב - עונה בינונית (יום ה-30).
+                    <br>עו"ה - עונת הפלגה.
+                    <br>יו"ח - עונת יום החודש.
+                    <br>עוא"ז - עונת אור זרוע (ניתן להפעיל בהגדרות).
+                </li>
                 <li><strong>תהליך הטהרה:</strong> ביום ביצוע "הפסק טהרה" סמנו זאת בלוח. המערכת תציג אוטומטית את שבעת הנקיים (בירוק) ותסמן את צפי הטבילה.</li>
                 <li><strong>הערות אישיות:</strong> ניתן להוסיף הערת טקסט חופשית לכל יום (תופיע כסמל 📝 בלוח).</li>
             </ul>
@@ -557,6 +569,17 @@
     <div id="view-settings" class="section-container">
         <h2 style="text-align: center; color: var(--text-main); margin-bottom: 20px;">הגדרות מתקדמות</h2>
         
+        <div class="about-card" style="text-align: right; padding: 25px;">
+            <h4 style="margin-top:0; color: var(--text-main); font-size: 1.2em;">מנהג עונת "אור זרוע"</h4>
+            <p style="font-size: 0.95em; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+                הוספת פרישה של עונה אחת קודם לעונת הפרישה המקורית (מנהג חב"ד וחלק מקהילות אשכנז).
+            </p>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-main); font-size: 1.05em;">
+                <input type="checkbox" id="setting-or-zarua" style="width: 20px; height: 20px; accent-color: var(--primary);" onchange="saveOrZaruaSetting()">
+                <span>הפעל חישוב פרישת 'אור זרוע' אוטומטי</span>
+            </label>
+        </div>
+
         <div class="about-card" style="text-align: right; padding: 25px;">
             <h4 style="margin-top:0; color: var(--text-main); font-size: 1.2em;">שינוי קוד אפליקציה</h4>
             <p style="font-size: 0.95em; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
@@ -771,12 +794,16 @@
     let selectedAbsDate = null;
     let pendingEventParams = null;
     let swipeDirection = null; 
+    let isYearlyView = false;
     let db = JSON.parse(localStorage.getItem('taharahDB')) || {};
 
     // Load saved settings
     document.addEventListener("DOMContentLoaded", () => {
         const savedEmail = localStorage.getItem('taharahEmail');
         if (savedEmail) document.getElementById('setting-email').value = savedEmail;
+        
+        const isOrZarua = localStorage.getItem('taharahOrZarua') === 'true';
+        document.getElementById('setting-or-zarua').checked = isOrZarua;
     });
 
     // --- Theme (Dark Mode) Logic ---
@@ -1091,6 +1118,13 @@
         document.getElementById('setting-email').value = '';
         showToast("כתובת הדוא״ל השמורה הוסרה.");
     }
+    
+    window.saveOrZaruaSetting = function() {
+        const isChecked = document.getElementById('setting-or-zarua').checked;
+        localStorage.setItem('taharahOrZarua', isChecked);
+        showToast("הגדרות עונת אור זרוע התעדכנו בהצלחה.");
+        renderScreenCalendar();
+    }
 
     window.executeDeleteAll = function() {
         db = {};
@@ -1156,11 +1190,38 @@
         document.getElementById('jump-year').value = today.getFullYear();
         renderScreenCalendar();
     }
+    
+    window.toggleYearlyView = function() {
+        isYearlyView = !isYearlyView;
+        const btn = document.getElementById('toggle-yearly-btn');
+        if (isYearlyView) {
+            btn.innerText = "תצוגה חודשית 🔽";
+            document.getElementById('jump-month').disabled = true;
+        } else {
+            btn.innerText = "תצוגה שנתית 📅";
+            document.getElementById('jump-month').disabled = false;
+        }
+        renderScreenCalendar();
+    }
+
+    function addPrishah(prishotObj, absDay, reason, onaType, codeAbbr) {
+        if (!prishotObj[absDay]) prishotObj[absDay] = [];
+        prishotObj[absDay].push({ reason: reason, ona: onaType, code: codeAbbr });
+    }
+    
+    function applyOrZarua(prishotObj, baseAbs, baseOna, reasonDesc) {
+        if (baseOna === 'day') {
+            addPrishah(prishotObj, baseAbs, reasonDesc, 'night', 'עוא"ז');
+        } else {
+            addPrishah(prishotObj, baseAbs - 1, reasonDesc, 'day', 'עוא"ז');
+        }
+    }
 
     function calculateEngine() {
         let computed = { nekiim: [], tevilot: [], prishot: {} };
         let absDays = Object.keys(db).map(Number).sort((a, b) => a - b);
         let reiyot = [];
+        let isOrZaruaEnabled = localStorage.getItem('taharahOrZarua') === 'true';
         
         absDays.forEach(day => {
             if (db[day] && db[day].type === 'reiyah') reiyot.push({ abs: day, ona: db[day].ona, hdate: new HDate(day) });
@@ -1170,21 +1231,35 @@
             let current = reiyot[i];
             let onaText = current.ona === 'day' ? 'עונת יום' : 'עונת לילה';
             
-            addPrishah(computed.prishot, current.abs + 29, `עונה בינונית (${onaText})`, current.ona);
+            // עונה בינונית
+            addPrishah(computed.prishot, current.abs + 29, `עונה בינונית (${onaText})`, current.ona, 'עו"ב');
+            if(isOrZaruaEnabled) {
+                applyOrZarua(computed.prishot, current.abs + 29, current.ona, `אור זרוע לעונה בינונית`);
+            }
 
+            // יום החודש
             let maxMonths = getMonthsInYear(current.hdate.getFullYear());
             let nextMonth = current.hdate.getMonth() === maxMonths ? 1 : current.hdate.getMonth() + 1;
             let nextYear = current.hdate.getMonth() === maxMonths ? current.hdate.getFullYear() + 1 : current.hdate.getFullYear();
             try {
                 let yomHachodesh = new HDate(current.hdate.getDate(), nextMonth, nextYear);
-                addPrishah(computed.prishot, yomHachodesh.abs(), `יום החודש (${onaText})`, current.ona);
+                addPrishah(computed.prishot, yomHachodesh.abs(), `יום החודש (${onaText})`, current.ona, 'יו"ח');
+                if(isOrZaruaEnabled) {
+                    applyOrZarua(computed.prishot, yomHachodesh.abs(), current.ona, `אור זרוע ליום החודש`);
+                }
             } catch (e) {}
 
+            // הפלגה
             if (i > 0) {
                 let prev = reiyot[i-1];
                 let diff = current.abs - prev.abs;
                 let nextHaflagahAbs = current.abs + diff;
-                addPrishah(computed.prishot, nextHaflagahAbs, `הפלגה (${diff} ימים, ${onaText})`, current.ona);
+                
+                addPrishah(computed.prishot, nextHaflagahAbs, `הפלגה (${diff} ימים, ${onaText})`, current.ona, 'עו"ה');
+                if(isOrZaruaEnabled) {
+                    applyOrZarua(computed.prishot, nextHaflagahAbs, current.ona, `אור זרוע לעונת הפלגה`);
+                }
+                
                 current.haflagahDiff = diff;
                 current.nextHaflagahDate = new HDate(nextHaflagahAbs);
             }
@@ -1211,19 +1286,13 @@
         return { computed, reiyot };
     }
 
-    function addPrishah(prishotObj, absDay, reason, onaType) {
-        if (!prishotObj[absDay]) prishotObj[absDay] = [];
-        prishotObj[absDay].push({ reason: reason, ona: onaType });
-    }
-
     function updateDashboard(engineData) {
         const todayAbs = new HDate().abs();
         const dashContainer = document.getElementById('dashboard-container');
         dashContainer.className = 'dashboard'; 
 
         if (engineData.computed.prishot[todayAbs]) {
-            let reasonsList = engineData.computed.prishot[todayAbs].map(p => p.reason).join(' | ');
-            dashContainer.innerHTML = `<strong>היום עונת פרישה: ${reasonsList}</strong>`;
+            dashContainer.innerHTML = `<strong>היום עונת פרישה! נא להתעדכן בלוח למטה.</strong>`;
             dashContainer.classList.add('dash-orange');
             return;
         }
@@ -1290,36 +1359,39 @@
             let greg = hd.greg();
             
             let bgStyle = "";
-            let markers = "";
+            let topMarkers = "";
+            let bottomMarkers = "";
             let noteHTML = "";
 
             if (db[abs]) {
                 if(db[abs].note) noteHTML = `<span class="note-icon" title="${db[abs].note}">📝</span>`;
-                if (db[abs].type === 'reiyah') markers += `<div class="marker bg-red">ראייה (${db[abs].ona === 'day' ? 'יום' : 'לילה'})</div>`;
-                if (db[abs].type === 'hefsek') markers += `<div class="marker bg-yellow">הפסק</div>`;
-                if (db[abs].type === 'tevilah') markers += `<div class="marker bg-blue">טבילה</div>`;
+                if (db[abs].type === 'reiyah') bottomMarkers += `<div class="marker bg-red">ראייה (${db[abs].ona === 'day' ? 'יום' : 'לילה'})</div>`;
+                if (db[abs].type === 'hefsek') bottomMarkers += `<div class="marker bg-yellow">הפסק</div>`;
+                if (db[abs].type === 'tevilah') bottomMarkers += `<div class="marker bg-blue">טבילה</div>`;
             }
 
-            if (computed.nekiim.includes(abs)) markers += `<div class="marker bg-green">נקיים</div>`;
+            if (computed.nekiim.includes(abs)) bottomMarkers += `<div class="marker bg-green">נקיים</div>`;
 
             if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
-                markers += `<div class="marker bg-blue" style="opacity:0.7; border: 1px dashed white;">צפי טבילה</div>`;
+                bottomMarkers += `<div class="marker bg-blue" style="opacity:0.7; border: 1px dashed white;">צפי טבילה</div>`;
                 bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
             }
 
             if (computed.prishot[abs]) {
-                let prishotList = computed.prishot[abs];
-                let hasDay = prishotList.some(p => p.ona === 'day');
-                let hasNight = prishotList.some(p => p.ona === 'night');
-                let tooltipText = prishotList.map(p => p.reason).join('\n');
+                let nList = computed.prishot[abs].filter(p => p.ona === 'night');
+                let dList = computed.prishot[abs].filter(p => p.ona === 'day');
                 
-                let markerText = "";
-                if (hasDay && hasNight) markerText = "פרישה (יום ולילה)";
-                else if (hasDay) markerText = "פרישה (יום)";
-                else if (hasNight) markerText = "פרישה (לילה)";
-                else markerText = "פרישה";
-
-                markers += `<div class="marker bg-orange" title="${tooltipText}">${markerText}</div>`;
+                if (nList.length > 0) {
+                    let codeList = [...new Set(nList.map(p => p.code))].join(', ');
+                    let tooltipText = nList.map(p => p.reason).join('\n');
+                    topMarkers += `<div class="marker bg-orange" style="margin-top:0;" title="${tooltipText}">פרישת לילה (${codeList})</div>`;
+                }
+                
+                if (dList.length > 0) {
+                    let codeList = [...new Set(dList.map(p => p.code))].join(', ');
+                    let tooltipText = dList.map(p => p.reason).join('\n');
+                    bottomMarkers += `<div class="marker bg-orange" title="${tooltipText}">פרישת יום (${codeList})</div>`;
+                }
             }
 
             if (abs === new HDate().abs()) {
@@ -1329,10 +1401,13 @@
             html += `
                 <div class="day ripple-target" style="${bgStyle} animation-delay: ${day * 0.015}s;" onclick="window.openDayModal(new window.HDateLocal(${abs}))">
                     ${noteHTML}
+                    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 4px;">
+                        ${topMarkers}
+                    </div>
                     <span class="day-num">${hebDays[day]}</span>
                     <span class="day-heb">${greg.getDate()}/${greg.getMonth()+1}</span>
                     <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: auto;">
-                        ${markers}
+                        ${bottomMarkers}
                     </div>
                 </div>
             `;
@@ -1345,26 +1420,47 @@
 
     function renderScreenCalendar() {
         const engineData = calculateEngine();
-        const html = buildMonthGridHTML(currentHDate.getMonth(), currentHDate.getFullYear(), engineData);
-        
-        let tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        let titleDiv = tempDiv.querySelector('.month-title-display');
-        document.getElementById('month-title').innerText = titleDiv.innerText;
-        titleDiv.remove();
+        const singleCal = document.getElementById('calendar');
+        const yearlyWrapper = document.getElementById('yearly-calendar-wrapper');
+        const monthTitle = document.getElementById('month-title');
 
-        const calElement = document.getElementById('calendar');
-        calElement.innerHTML = tempDiv.querySelector('.calendar').innerHTML;
-        
-        calElement.classList.remove('slide-left-anim', 'slide-right-anim');
-        void calElement.offsetWidth; 
-        if (swipeDirection === 'left') calElement.classList.add('slide-left-anim');
-        else if (swipeDirection === 'right') calElement.classList.add('slide-right-anim');
+        if (isYearlyView) {
+            singleCal.style.display = 'none';
+            yearlyWrapper.style.display = 'block';
+            yearlyWrapper.innerHTML = '';
+            
+            const currentYearStr = new HDate(1, 1, currentHDate.getFullYear()).renderGematriya().split(' ').pop();
+            monthTitle.innerText = `תצוגה שנתית: שנת ${currentYearStr}`;
+            
+            const maxMonths = getMonthsInYear(currentHDate.getFullYear());
+            for (let m = 1; m <= maxMonths; m++) {
+                yearlyWrapper.innerHTML += `<div style="margin-bottom: 50px;">${buildMonthGridHTML(m, currentHDate.getFullYear(), engineData)}</div>`;
+            }
+        } else {
+            yearlyWrapper.style.display = 'none';
+            singleCal.style.display = 'grid';
+            
+            const html = buildMonthGridHTML(currentHDate.getMonth(), currentHDate.getFullYear(), engineData);
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            monthTitle.innerText = tempDiv.querySelector('.month-title-display').innerText;
+            singleCal.innerHTML = tempDiv.querySelector('.calendar').innerHTML;
+            
+            singleCal.classList.remove('slide-left-anim', 'slide-right-anim');
+            void singleCal.offsetWidth; 
+            if (swipeDirection === 'left') singleCal.classList.add('slide-left-anim');
+            else if (swipeDirection === 'right') singleCal.classList.add('slide-right-anim');
+        }
+
         swipeDirection = null; 
 
         renderTable(engineData.reiyot);
         updateDashboard(engineData);
-        attachSwipeListeners();
+        
+        if (!isYearlyView) {
+            attachSwipeListeners();
+        }
         
         const todayHDate = new HDate();
         const returnBtn = document.getElementById('return-today');
@@ -1548,22 +1644,36 @@
 
     document.getElementById('next-month').addEventListener('click', () => {
         swipeDirection = 'left';
-        let year = currentHDate.getFullYear();
-        let maxMonths = getMonthsInYear(year);
-        let nextMonth = currentHDate.getMonth() + 1;
-        if (nextMonth > maxMonths) { nextMonth = 1; year++; }
-        currentHDate = new HDate(1, nextMonth, year);
-        updateMonthList(year); document.getElementById('jump-month').value = nextMonth;
+        
+        if (isYearlyView) {
+            currentHDate = new HDate(1, 1, currentHDate.getFullYear() + 1);
+        } else {
+            let year = currentHDate.getFullYear();
+            let maxMonths = getMonthsInYear(year);
+            let nextMonth = currentHDate.getMonth() + 1;
+            if (nextMonth > maxMonths) { nextMonth = 1; year++; }
+            currentHDate = new HDate(1, nextMonth, year);
+        }
+        
+        updateMonthList(currentHDate.getFullYear()); 
+        document.getElementById('jump-month').value = currentHDate.getMonth();
         renderScreenCalendar();
     });
 
     document.getElementById('prev-month').addEventListener('click', () => {
         swipeDirection = 'right';
-        let prevMonth = currentHDate.getMonth() - 1;
-        let year = currentHDate.getFullYear();
-        if (prevMonth < 1) { year--; prevMonth = getMonthsInYear(year); }
-        currentHDate = new HDate(1, prevMonth, year);
-        updateMonthList(year); document.getElementById('jump-month').value = prevMonth;
+        
+        if (isYearlyView) {
+            currentHDate = new HDate(1, 1, currentHDate.getFullYear() - 1);
+        } else {
+            let prevMonth = currentHDate.getMonth() - 1;
+            let year = currentHDate.getFullYear();
+            if (prevMonth < 1) { year--; prevMonth = getMonthsInYear(year); }
+            currentHDate = new HDate(1, prevMonth, year);
+        }
+        
+        updateMonthList(currentHDate.getFullYear()); 
+        document.getElementById('jump-month').value = currentHDate.getMonth();
         renderScreenCalendar();
     });
 
