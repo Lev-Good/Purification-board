@@ -1390,13 +1390,17 @@
                     else topMarkers += `<div class="marker bg-red">ראיית לילה</div>`;
                 }
                 if (db[abs].type === 'hefsek') bottomMarkers += `<div class="marker bg-yellow">הפסק טהרה</div>`;
-                if (db[abs].type === 'tevilah') bottomMarkers += `<div class="marker bg-blue">טבילה הלילה</div>`;
+                if (db[abs].type === 'tevilah') {
+    let nextDayHebrew = hebDays[new HDate(abs + 1).getDate()];
+    bottomMarkers += `<div class="marker bg-blue">הלילה (${nextDayHebrew}) טבילה</div>`;
+}
             }
 
             if (computed.nekiim.includes(abs)) bottomMarkers += `<div class="marker bg-green">נקיים</div>`;
 
             if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
-    bottomMarkers += `<div class="marker bg-blue" style="opacity:0.9; border: 1px dashed white;">צפי טבילה הלילה</div>`;
+    let nextDayHebrew = hebDays[new HDate(abs + 1).getDate()];
+    bottomMarkers += `<div class="marker bg-blue" style="opacity:0.9; border: 1px dashed white;">הלילה (${nextDayHebrew}) צפי טבילה</div>`;
     bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
 }
 
