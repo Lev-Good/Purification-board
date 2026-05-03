@@ -1295,7 +1295,7 @@
                 computed.nekiim.push(nakiAbs);
             }
 
-            let expectedTevilah = hefsekAbs + 8;
+            let expectedTevilah = hefsekAbs + 7;
             if (!nextReiyah || expectedTevilah <= nextReiyah) {
                 let manualTevilah = absDays.find(day => db[day] && db[day].type === 'tevilah' && day > hefsekAbs && (!nextReiyah || day <= nextReiyah));
                 computed.tevilot.push(manualTevilah ? manualTevilah : expectedTevilah);
@@ -1348,8 +1348,10 @@
                 dashContainer.classList.add('dash-blue');
             }
         } else if (latestEvent.type === 'tevilah') {
-            dashContainer.innerHTML = `<strong>טבילה אחרונה ב-${new HDate(latestAbs).renderGematriya()}.</strong>`;
-            dashContainer.classList.add('dash-blue');
+    let actualNightDate = new HDate(latestAbs + 1);
+    dashContainer.innerHTML = `<strong>טבילה אחרונה התבצעה בליל ${actualNightDate.renderGematriya()}.</strong>`;
+    dashContainer.classList.add('dash-blue');
+}
         } else if (latestEvent.note && !latestEvent.type) {
             dashContainer.innerHTML = `<strong>ישנה הערה ביומן לאחרונה.</strong>`;
         }
@@ -1389,15 +1391,15 @@
                     else topMarkers += `<div class="marker bg-red">ראיית לילה</div>`;
                 }
                 if (db[abs].type === 'hefsek') bottomMarkers += `<div class="marker bg-yellow">הפסק טהרה</div>`;
-                if (db[abs].type === 'tevilah') topMarkers += `<div class="marker bg-blue">ליל טבילה</div>`;
+                if (db[abs].type === 'tevilah') bottomMarkers += `<div class="marker bg-blue">טבילה הלילה</div>`;
             }
 
             if (computed.nekiim.includes(abs)) bottomMarkers += `<div class="marker bg-green">נקיים</div>`;
 
             if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
-                topMarkers += `<div class="marker bg-blue" style="opacity:0.8; border: 1px dashed white;">צפי טבילה (בלילה)</div>`;
-                bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
-            }
+    bottomMarkers += `<div class="marker bg-blue" style="opacity:0.9; border: 1px dashed white;">צפי טבילה הלילה</div>`;
+    bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
+}
 
             if (computed.prishot[abs]) {
                 let nList = computed.prishot[abs].filter(p => p.ona === 'night');
