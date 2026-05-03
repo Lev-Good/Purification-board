@@ -197,29 +197,45 @@
         .jump-menu select:hover { border-color: var(--border-color); }
         .month-title-display { font-size: 2em; font-weight: 800; text-align: center; margin-bottom: 20px; color: var(--text-main); letter-spacing: -0.5px;}
 
-        /* Premium Calendar Grid */
-        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 30px; user-select: none; perspective: 1000px; }
+        /* Premium Calendar Grid - Auto Expanding Rows! */
+        .calendar { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 8px; 
+            margin-bottom: 30px; 
+            user-select: none; 
+            perspective: 1000px; 
+            /* הפתרון לבעיית המקום: השורות מתרחבות אוטומטית אם יש הרבה טקסט */
+            grid-auto-rows: minmax(95px, auto);
+        }
         .day-header { text-align: center; font-weight: 600; color: var(--text-muted); font-size: 0.95em; padding: 10px 0; text-transform: uppercase; letter-spacing: 1px;}
         .day {
-            min-height: 100px; border: 1px solid var(--border-color); border-radius: 18px; padding: 8px;
-            display: flex; flex-direction: column; align-items: center; cursor: pointer; 
+            border: 1px solid var(--border-color); border-radius: 16px; padding: 6px;
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; 
             position: relative; background: var(--surface); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 4px 10px rgba(0,0,0,0.02); overflow: hidden;
             animation: staggeredPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
         }
-        .day:hover { border-color: var(--primary); transform: translateY(-6px) scale(1.02); box-shadow: var(--shadow); z-index: 2;}
-        .day-num { font-size: 1.4em; font-weight: 700; color: var(--text-main); margin-bottom: auto; transition: 0.3s; margin: 4px 0;}
-        .day:hover .day-num { color: var(--primary); }
-        .day-heb { font-size: 0.8em; color: var(--text-muted); font-weight: 500; margin-bottom: 4px;}
-        .note-icon { position: absolute; top: 8px; left: 8px; font-size: 1em; cursor: help; opacity: 0.8; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); z-index: 5;}
+        .day:hover { border-color: var(--primary); transform: translateY(-4px) scale(1.02); box-shadow: var(--shadow); z-index: 2;}
         
-        /* Badges */
+        .day-dates { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 4px 0; flex: 1; }
+        .day-num { font-size: 1.3em; font-weight: 700; color: var(--text-main); line-height: 1.1; transition: 0.3s; margin: 0;}
+        .day:hover .day-num { color: var(--primary); }
+        .day-heb { font-size: 0.75em; color: var(--text-muted); font-weight: 500; line-height: 1.2; margin-top: 2px;}
+        
+        .note-icon { position: absolute; top: 6px; left: 6px; font-size: 1.1em; cursor: help; opacity: 0.9; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); z-index: 5;}
+        
+        /* Badges - Allow Text Wrap */
         .marker { 
-            width: 96%; padding: 5px 2px; border-radius: 8px; margin-top: 4px; 
+            width: 100%; box-sizing: border-box; padding: 4px 2px; border-radius: 6px; margin-top: 3px; 
             font-size: 0.7em; font-weight: 700; text-align:center; color: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
-            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); letter-spacing: 0.3px; line-height: 1.2;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15); 
+            white-space: normal; /* מאפשר שבירת שורה כדי למנוע חיתוך טקסט */
+            word-wrap: break-word;
+            line-height: 1.25;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); letter-spacing: 0.2px;
         }
+        .marker:first-child { margin-top: 0; }
         .bg-red { background: linear-gradient(135deg, #ff595e, #e03e44); }
         .bg-yellow { background: linear-gradient(135deg, #ffca3a, #e5b020); color: #5a4b13 !important; }
         .bg-green { background: linear-gradient(135deg, #8ac926, #6da318); color: #1e3f05 !important;}
@@ -346,7 +362,7 @@
             .email-toggle { top: 15px; left: 115px; width: 42px; height: 42px; font-size: 1.1em;}
             .dashboard { padding: 15px; font-size: 1em; }
             .day-num { font-size: 1.2em; } 
-            .marker { font-size: 0.68em; }
+            .marker { font-size: 0.65em; }
             .controls { flex-direction: column; width: 100%; gap: 15px;} 
             .controls button, .jump-menu { width: 100%; justify-content: center;}
             table { font-size: 0.9em; } 
@@ -528,14 +544,17 @@
             <ul>
                 <li><strong>הזנת נתונים:</strong> לחצו על כל תאריך בלוח השנה כדי לפתוח את תפריט הפעולות ליום זה.</li>
                 <li><strong>תחילת מחזור (ראייה):</strong> סמנו "תחילת ראייה" ובחרו אם זה קרה בעונת יום או בעונת לילה. המערכת תחשב מיד את ימי הפרישה העתידיים.</li>
+                <li><strong>הבנת התצוגה בלוח (יום מול לילה):</strong> 
+                    <br>ביהדות, הלילה קודם ליום. לכן, כל האירועים המתרחשים <strong>בלילה שלפני היום עצמו</strong> (כגון פרישת לילה או טבילה) יופיעו בחלק <strong>העליון</strong> של המשבצת (מעל המספר).
+                    <br>אירועים המתרחשים במהלך היום (פרישת יום, הפסק טהרה) יופיעו בחלק ה<strong>תחתון</strong>.
+                </li>
                 <li><strong>סוגי פרישות (קיצורים בלוח):</strong> 
                     <br>עו"ב - עונה בינונית (יום ה-30).
                     <br>עו"ה - עונת הפלגה.
                     <br>יו"ח - עונת יום החודש.
                     <br>עוא"ז - עונת אור זרוע (ניתן להפעיל בהגדרות).
                 </li>
-                <li><strong>תהליך הטהרה:</strong> ביום ביצוע "הפסק טהרה" סמנו זאת בלוח. המערכת תציג אוטומטית את שבעת הנקיים (בירוק) ותסמן את צפי הטבילה.</li>
-                <li><strong>הערות אישיות:</strong> ניתן להוסיף הערת טקסט חופשית לכל יום (תופיע כסמל 📝 בלוח).</li>
+                <li><strong>תהליך הטהרה:</strong> ביום ביצוע "הפסק טהרה" סמנו זאת בלוח. המערכת תציג אוטומטית את שבעת הנקיים (בירוק) ותסמן את צפי הטבילה ללילה הנכון.</li>
             </ul>
         </div>
 
@@ -1365,15 +1384,18 @@
 
             if (db[abs]) {
                 if(db[abs].note) noteHTML = `<span class="note-icon" title="${db[abs].note}">📝</span>`;
-                if (db[abs].type === 'reiyah') bottomMarkers += `<div class="marker bg-red">ראייה (${db[abs].ona === 'day' ? 'יום' : 'לילה'})</div>`;
-                if (db[abs].type === 'hefsek') bottomMarkers += `<div class="marker bg-yellow">הפסק</div>`;
-                if (db[abs].type === 'tevilah') bottomMarkers += `<div class="marker bg-blue">טבילה</div>`;
+                if (db[abs].type === 'reiyah') {
+                    if(db[abs].ona === 'day') bottomMarkers += `<div class="marker bg-red">ראיית יום</div>`;
+                    else topMarkers += `<div class="marker bg-red">ראיית לילה</div>`;
+                }
+                if (db[abs].type === 'hefsek') bottomMarkers += `<div class="marker bg-yellow">הפסק טהרה</div>`;
+                if (db[abs].type === 'tevilah') topMarkers += `<div class="marker bg-blue">ליל טבילה</div>`;
             }
 
             if (computed.nekiim.includes(abs)) bottomMarkers += `<div class="marker bg-green">נקיים</div>`;
 
             if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
-                bottomMarkers += `<div class="marker bg-blue" style="opacity:0.7; border: 1px dashed white;">צפי טבילה</div>`;
+                topMarkers += `<div class="marker bg-blue" style="opacity:0.8; border: 1px dashed white;">צפי טבילה (בלילה)</div>`;
                 bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
             }
 
@@ -1395,18 +1417,22 @@
             }
 
             if (abs === new HDate().abs()) {
-                bgStyle += 'border: 2px solid var(--primary); background: var(--input-bg); box-shadow: 0 0 15px rgba(79, 70, 229, 0.2); z-index: 1; animation: staggeredPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, pulseGlow 2.5s infinite;';
+                bgStyle += 'border: 2px solid var(--primary); background: var(--input-bg); box-shadow: inset 0 0 0 2px var(--primary); z-index: 1; animation: staggeredPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, pulseGlow 2.5s infinite;';
             }
 
             html += `
                 <div class="day ripple-target" style="${bgStyle} animation-delay: ${day * 0.015}s;" onclick="window.openDayModal(new window.HDateLocal(${abs}))">
                     ${noteHTML}
-                    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 4px;">
+                    <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                         ${topMarkers}
                     </div>
-                    <span class="day-num">${hebDays[day]}</span>
-                    <span class="day-heb">${greg.getDate()}/${greg.getMonth()+1}</span>
-                    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: auto;">
+                    
+                    <div class="day-dates">
+                        <span class="day-num">${hebDays[day]}</span>
+                        <span class="day-heb">${greg.getDate()}/${greg.getMonth()+1}</span>
+                    </div>
+                    
+                    <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                         ${bottomMarkers}
                     </div>
                 </div>
