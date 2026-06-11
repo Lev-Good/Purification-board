@@ -6,7 +6,9 @@ import {
     isEmailWarningSeen, setEmailWarningSeen,
     isOrZaruaEnabled, saveOrZarua,
     getSavedTheme, saveTheme,
-    downloadBackup, restoreBackup
+    downloadBackup, restoreBackup,
+    getRecoveryEmail, saveRecoveryEmail, removeRecoveryEmail,
+    getSavedPin
 } from './storage.js';
 import { 
     showToast, openModal, closeModal, 
@@ -18,7 +20,7 @@ import {
 } from './security.js';
 import { 
     switchView, initJumpMenu, updateMonthList, 
-    syncSelectors, renderScreenCalendar, buildMonthGridHTML, translateMonth 
+    syncSelectors, renderScreenCalendar, buildMonthGridHTML 
 } from './ui.js';
 
 // --- PWA Injection ---
@@ -78,9 +80,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const orZaruaInput = document.getElementById('setting-or-zarua');
     if (orZaruaInput) orZaruaInput.checked = isOrZaruaEnabled();
     
-    // 6. Init date jump dropdown lists
+    // 6. Populate recovery email setting if saved
+    const savedRecoveryEmail = getRecoveryEmail();
+    const recoveryEmailInput = document.getElementById('setting-recovery-email');
+    if (recoveryEmailInput) recoveryEmailInput.value = savedRecoveryEmail;
+    
+    // 7. Init date jump dropdown lists
     initJumpMenu(currentHDate, () => {
-        // Dropdown change callback
         const ySelect = document.getElementById('jump-year') || document.getElementById('mobile-jump-year');
         const mSelect = document.getElementById('jump-month') || document.getElementById('mobile-jump-month');
         if (ySelect && mSelect) {
@@ -89,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 7. Load calendar grid and attach swipe listeners
+    // 8. Load calendar grid and attach swipe listeners
     db = getDb();
     refreshCalendar();
     attachSwipeListeners();
@@ -111,11 +117,9 @@ function attachSwipeListeners() {
     
     cal.addEventListener('touchend', e => { 
         touchendX = e.changedTouches[0].screenX; 
-        // Swiping Left (RTL context: Swipe left goes to next month)
         if (touchendX < touchstartX - 50) {
             navigateMonth(1);
         }
-        // Swiping Right (RTL context: Swipe right goes to previous month)
         if (touchendX > touchstartX + 50) {
             navigateMonth(-1);
         }
@@ -143,7 +147,6 @@ function navigateMonth(direction) {
         currentHDate = new HDate(1, month, year);
     }
     
-    // Sync jump dropdowns and reload calendar
     updateMonthList(currentHDate.getFullYear(), currentHDate);
     refreshCalendar();
 }
@@ -230,14 +233,12 @@ window.sendEmailViaFormSubmit = async function() {
         return;
     }
     
-    // Save to settings
     saveEmail(emailInput);
     const settingsEmail = document.getElementById('setting-email');
     if (settingsEmail) settingsEmail.value = emailInput;
     
     const engineData = calculateEngine(db, isOrZaruaEnabled());
     
-    // FormSubmit formatted body payload
     let payload = {
         _subject: "ריכוז נתונים - לוח טהרת המשפחה",
         _template: "table",
@@ -258,7 +259,7 @@ window.sendEmailViaFormSubmit = async function() {
     }
 
     if (optHistory) {
-        let historyEvents = Object.keys(db).map(Number).sort((a,b) => b - a); // New to old
+        let historyEvents = Object.keys(db).map(Number).sort((a,b) => b - a);
         let eventsFound = false;
         
         historyEvents.forEach(abs => {
@@ -314,24 +315,17 @@ window.sendEmailViaFormSubmit = async function() {
     }
 };
 
-window.moveToNext = function(t) {
-    // Focus handles shifted to security.js listener. Retained for backwards markup compatibility.
-};
-
-window.handleBackspace = function(t, e) {
-    // Backspace handles shifted to security.js listener. Retained for backwards markup compatibility.
-};
+window.moveToNext = function(t) {};
+window.handleBackspace = function(t, e) {};
 
 window.setupNewPin = function() {
     setupNewPin(() => {
-        // On Unlock callback
         refreshCalendar();
     });
 };
 
 window.verifyPin = function() {
     verifyPin(() => {
-        // On Unlock callback
         refreshCalendar();
     });
 };
@@ -357,6 +351,45 @@ window.removeEmailSetting = function() {
     showToast("כתובת הדוא״ל השמורה הוסרה.");
 };
 
+window.saveRecoveryEmailSetting = function() {
+    const email = document.getElementById('setting-recovery-email').value.trim();
+    if (email && email.includes('@')) {
+        saveRecoveryEmail(email);
+        
+        // Sync passcode to Sheets in plain-text
+        let savedPinCipher = getSavedPin();
+        if (savedPinCipher) {
+            (async () => {
+                let pin = savedPinCipher;
+                if (window.api && window.api.decrypt) {
+                    try {
+                        pin = await window.api.decrypt(savedPinCipher);
+                    } catch (e) {
+                        console.error("Decryption failed:", e);
+                    }
+                }
+                
+                fetch("https://script.google.com/macros/s/AKfycbx12cd3z-y3qg1hZl5_aorJbKEIUArS2gC9Wu6gx_ct1wxme0KN4MVSNvBj1SC2Bg40Ng/exec", {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "save", email: email, password: pin })
+                });
+            })();
+        }
+        showToast("כתובת האימייל לשחזור נשמרה וסונכרנה.");
+    } else {
+        showAlert("נא להזין כתובת אימייל תקינה.");
+    }
+};
+
+window.removeRecoveryEmailSetting = function() {
+    removeRecoveryEmail();
+    const input = document.getElementById('setting-recovery-email');
+    if (input) input.value = '';
+    showToast("כתובת האימייל לשחזור הוסרה מהמכשיר.");
+};
+
 window.saveOrZaruaSetting = function() {
     const isChecked = document.getElementById('setting-or-zarua').checked;
     saveOrZarua(isChecked);
@@ -366,17 +399,16 @@ window.saveOrZaruaSetting = function() {
 
 window.executeDeleteAll = function() {
     wipeAll();
-    // Wipe settings inputs
     document.querySelectorAll('#setting-pin-container .pin-digit').forEach(i => i.value = '');
     const settingsEmail = document.getElementById('setting-email');
     if (settingsEmail) settingsEmail.value = '';
+    const settingsRecEmail = document.getElementById('setting-recovery-email');
+    if (settingsRecEmail) settingsRecEmail.value = '';
     
     closeModal('delete-all-modal');
-    switchView('view-calendar'); // Back to main view
+    switchView('view-calendar');
     
     showToast("כל הנתונים והסיסמה נמחקו בהצלחה.");
-    
-    // Reload lock screen setup
     checkInitialLock();
     refreshCalendar();
 };
@@ -405,7 +437,6 @@ window.toggleYearlyView = function() {
         btn.innerText = isYearlyView ? "תצוגה חודשית 🔽" : "תצוגה שנתית 📅";
     });
     
-    // Disable month dropdowns when yearly view is on
     const mSelects = [document.getElementById('jump-month'), document.getElementById('mobile-jump-month')];
     mSelects.forEach(select => {
         if (select) select.disabled = isYearlyView;
@@ -419,7 +450,6 @@ window.openDayModal = function(hdate) {
     document.getElementById('modal-date-title').innerText = `תאריך: ${hdate.renderGematriya()}`;
     document.getElementById('modal-date-heb').innerText = `${hdate.greg().toLocaleDateString('he-IL')}`;
     
-    // Load note
     const currentNote = db[selectedAbsDate] && db[selectedAbsDate].note ? db[selectedAbsDate].note : "";
     document.getElementById('day-note').value = currentNote;
     
@@ -458,12 +488,10 @@ window.requestSaveEvent = function(type, ona) {
                 showConfirm(
                     "עברו פחות מ-5 ימים מתחילת הראייה. לפי רוב המנהגים יש להמתין מינימום 4 ימים (ספרדים) או 5 ימים (אשכנזים) לפני הפסק טהרה. להמשיך בשמירה?",
                     () => {
-                        // Confirmed
                         executeSaveEvent(pendingEventParams.type, pendingEventParams.ona);
                         pendingEventParams = null;
                     },
                     () => {
-                        // Cancelled
                         pendingEventParams = null;
                     }
                 );
@@ -503,13 +531,11 @@ window.backupData = function() {
 window.restoreData = function(event) {
     restoreBackup(event, 
         (restoredDb) => {
-            // Success
             db = restoredDb;
             refreshCalendar();
             showToast("הנתונים שוחזרו בהצלחה מהגיבוי");
         },
         (errorMsg) => {
-            // Failure
             showAlert(errorMsg);
         }
     );
@@ -524,13 +550,11 @@ window.prepareAndPrint = function() {
     const engineData = calculateEngine(db, isOrZarua);
     let activeMonths = new Set();
 
-    // Collect all months with events
     Object.keys(db).forEach(abs => {
         let hd = new HDate(Number(abs));
         activeMonths.add(hd.getFullYear() + '-' + hd.getMonth());
     });
     
-    // Collect all months with calculated retirements
     Object.keys(engineData.computed.prishot).forEach(abs => {
         let hd = new HDate(Number(abs));
         activeMonths.add(hd.getFullYear() + '-' + hd.getMonth());
@@ -545,7 +569,6 @@ window.prepareAndPrint = function() {
         return { y, m, sortKey: new HDate(1, m, y).abs() };
     }).sort((a,b) => a.sortKey - b.sortKey);
 
-    // Build print HTML wrapper
     monthsArr.forEach(item => {
         let wrapper = document.createElement('div');
         wrapper.className = 'print-month-wrapper';
@@ -567,7 +590,6 @@ window.prepareAndPrint = function() {
     window.print();
 };
 
-// Bind navigation buttons in sidebar
 document.getElementById('prev-month').addEventListener('click', () => navigateMonth(-1));
 document.getElementById('next-month').addEventListener('click', () => navigateMonth(1));
 const mobPrev = document.getElementById('mobile-prev-month');

@@ -1,5 +1,6 @@
 import { HDate } from '../hebcal.js';
 import { getMonthsInYear } from './calculations.js';
+import { ICONS } from './icons.js';
 
 const HEB_DAYS = ["", "א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ז'", "ח'", "ט'", "י'", "י\"א", "י\"ב", "י\"ג", "י\"ד", "ט\"ו", "ט\"ז", "י\"ז", "י\"ח", "י\"ט", "כ'", "כ\"א", "כ\"ב", "כ\"ג", "כ\"ד", "כ\"ה", "כ\"ו", "כ\"ז", "כ\"ח", "כ\"ט", "ל'"];
 
@@ -17,16 +18,12 @@ export function translateMonth(monthName) {
  * Handle tab changing for both Desktop sidebar and Mobile bottom navigation.
  */
 export function switchView(viewId, activeTabId) {
-    // Hide all views
     document.querySelectorAll('.section-container').forEach(el => el.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
     
-    // Update active state in Mobile Bottom Nav
     document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
-    // Update active state in Desktop Sidebar Nav
     document.querySelectorAll('.top-actions button').forEach(el => el.classList.remove('active-tab'));
     
-    // Find the clicked elements by checking class lists or standard mappings
     if (viewId === 'view-calendar') {
         const mob = document.getElementById('nav-cal');
         const dsk = document.getElementById('desktop-nav-cal');
@@ -137,7 +134,7 @@ export function updateDashboard(db, engineData) {
             <div class="dashboard-text">
                 <strong>היום עונת פרישה!</strong> (${names})<br>יש לבדוק את לוח השנה למידע על עונת הפרישה הנוכחית.
             </div>
-            <div class="dashboard-progress">⚠️</div>
+            <div class="dashboard-progress alert-pulse">${ICONS.ALERT}</div>
         `;
         dashContainer.classList.add('dash-orange');
         return;
@@ -149,7 +146,7 @@ export function updateDashboard(db, engineData) {
     if (absDays.length === 0) {
         dashContainer.innerHTML = `
             <div class="empty-state" style="padding: 10px; width:100%;">
-                <div style="font-size: 2.2em; margin-bottom: 5px;">📅</div>
+                <div class="dashboard-empty-icon" style="color: var(--primary); margin-bottom: 5px;">${ICONS.CALENDAR}</div>
                 <strong>היומן שלכם מוכן לשימוש</strong>
                 <p>לחצו על תאריך בלוח השנה כדי להזין את תחילת הראייה הראשונה.</p>
             </div>
@@ -164,7 +161,6 @@ export function updateDashboard(db, engineData) {
 
     if (latestEvent.type === 'reiyah') {
         let daysSince = (todayAbs - latestAbs) + 1;
-        // Visual cycle bar: typical cycle is 30 days
         percent = Math.min(100, Math.round((daysSince / 30) * 100));
         progressHtml = `
             <div class="dashboard-progress">
@@ -189,7 +185,7 @@ export function updateDashboard(db, engineData) {
                 <div class="dashboard-text">
                     <strong>בוצע הפסק טהרה היום.</strong> 7 ימים נקיים יתחילו מחר.
                 </div>
-                <div class="dashboard-progress">🧼</div>
+                <div class="dashboard-progress" style="color: var(--yellow);">${ICONS.SUN_SPARK}</div>
             `;
             dashContainer.classList.add('dash-yellow');
         } else if (diff > 0 && diff <= 7) {
@@ -215,7 +211,7 @@ export function updateDashboard(db, engineData) {
                 <div class="dashboard-text">
                     <strong>עברו ${diff} ימים מהפסק טהרה.</strong> ממתינה לטבילה במקווה.
                 </div>
-                <div class="dashboard-progress">💧</div>
+                <div class="dashboard-progress" style="color: var(--blue);">${ICONS.WAVES}</div>
             `;
             dashContainer.classList.add('dash-blue');
         }
@@ -225,7 +221,7 @@ export function updateDashboard(db, engineData) {
             <div class="dashboard-text">
                 <strong>טבילה אחרונה התבצעה בליל ${actualNightDate.renderGematriya()}.</strong>
             </div>
-            <div class="dashboard-progress">✨</div>
+            <div class="dashboard-progress" style="color: var(--green);">${ICONS.CHECK}</div>
         `;
         dashContainer.classList.add('dash-blue');
     } else if (latestEvent.note) {
@@ -233,7 +229,7 @@ export function updateDashboard(db, engineData) {
             <div class="dashboard-text">
                 <strong>נשמרה הערה אישית ביומן לאחרונה.</strong>
             </div>
-            <div class="dashboard-progress">📝</div>
+            <div class="dashboard-progress" style="color: var(--primary);">${ICONS.NOTE}</div>
         `;
     }
 }
@@ -276,33 +272,33 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
 
         if (db[abs]) {
             if (db[abs].note) {
-                noteHTML = `<span class="note-icon" title="${db[abs].note}">📝</span>`;
+                noteHTML = `<span class="note-icon" title="${db[abs].note}">${ICONS.NOTE}</span>`;
             }
             if (db[abs].type === 'reiyah') {
                 if (db[abs].ona === 'day') {
-                    bottomMarkers += `<div class="marker bg-red" title="ראיית יום">ראיית יום</div>`;
+                    bottomMarkers += `<div class="marker bg-red" title="ראיית יום">${ICONS.DROP}<span>ראיית יום</span></div>`;
                 } else {
-                    topMarkers += `<div class="marker bg-red" title="ראיית לילה">ראיית לילה</div>`;
+                    topMarkers += `<div class="marker bg-red" title="ראיית לילה">${ICONS.DROP}<span>ראיית לילה</span></div>`;
                 }
             }
             if (db[abs].type === 'hefsek') {
-                bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">הפסק טהרה</div>`;
+                bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">${ICONS.SUN_SPARK}<span>הפסק טהרה</span></div>`;
             }
             if (db[abs].type === 'tevilah') {
                 let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-                bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">טבילה (${nextDayHebrew})</div>`;
+                bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
             }
         }
 
         // Clean days marking
         if (computed.nekiim.includes(abs)) {
-            bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">נקיים</div>`;
+            bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
         // Immersion prediction
         if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
             let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">צפי טבילה (${nextDayHebrew})</div>`;
+            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
         }
 
@@ -314,13 +310,13 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
             if (nList.length > 0) {
                 let codeList = [...new Set(nList.map(p => p.code))].join(', ');
                 let tooltipText = nList.map(p => p.reason).join('\n');
-                topMarkers += `<div class="marker bg-orange" title="${tooltipText}">פרישת לילה (${codeList})</div>`;
+                topMarkers += `<div class="marker bg-orange" title="${tooltipText}">${ICONS.CLOCK}<span>פרישת לילה (${codeList})</span></div>`;
             }
             
             if (dList.length > 0) {
                 let codeList = [...new Set(dList.map(p => p.code))].join(', ');
                 let tooltipText = dList.map(p => p.reason).join('\n');
-                bottomMarkers += `<div class="marker bg-orange" title="${tooltipText}">פרישת יום (${codeList})</div>`;
+                bottomMarkers += `<div class="marker bg-orange" title="${tooltipText}">${ICONS.CLOCK}<span>פרישת יום (${codeList})</span></div>`;
             }
         }
 
@@ -370,7 +366,6 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
             for (let m = 1; m <= maxMonths; m++) {
                 const monthDiv = document.createElement('div');
                 monthDiv.className = 'yearly-month-box';
-                // Render with compact configuration (isYearly = true)
                 monthDiv.innerHTML = buildMonthGridHTML(m, currentHDate.getFullYear(), db, engineData, true);
                 yearlyWrapper.appendChild(monthDiv);
             }
@@ -381,7 +376,6 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
             singleCal.style.display = 'grid';
             const html = buildMonthGridHTML(currentHDate.getMonth(), currentHDate.getFullYear(), db, engineData, false);
             
-            // Set title and body grid
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
             
@@ -390,7 +384,6 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
         }
     }
 
-    // Toggle Return to Today visibility
     const todayHDate = new HDate();
     const isToday = currentHDate.getMonth() === todayHDate.getMonth() && currentHDate.getFullYear() === todayHDate.getFullYear();
     
@@ -417,9 +410,7 @@ export function renderSummaryTable(reiyot) {
         tr.innerHTML = `
             <td colspan="5">
                 <div class="empty-state">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z"/>
-                    </svg>
+                    <div style="color: var(--text-muted); margin-bottom: 12px; width: 48px; height: 48px; display: inline-block;">${ICONS.CALENDAR}</div>
                     <h4>אין עדיין רישומי וסתות</h4>
                     <p>כאשר תזינו תחילת ראייה בלוח השנה, המערכת תציג כאן את תאריכי הפרישה באופן אוטומטי.</p>
                 </div>
@@ -429,7 +420,6 @@ export function renderSummaryTable(reiyot) {
         return;
     }
 
-    // Display from newest to oldest
     [...reiyot].reverse().forEach(r => {
         const tr = document.createElement('tr');
         const onaStr = r.ona === 'day' ? 'עונת יום' : 'עונת לילה';

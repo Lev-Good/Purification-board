@@ -7,7 +7,8 @@ const KEYS = {
     EMAIL: 'taharahEmail',
     OR_ZARUA: 'taharahOrZarua',
     THEME: 'taharahTheme',
-    EMAIL_SEEN: 'taharahEmailWarningSeen'
+    EMAIL_SEEN: 'taharahEmailWarningSeen',
+    RECOVERY_EMAIL: 'taharahRecoveryEmail'
 };
 
 /**
@@ -33,6 +34,7 @@ export function wipeAll() {
     localStorage.removeItem(KEYS.EMAIL);
     localStorage.removeItem(KEYS.OR_ZARUA);
     localStorage.removeItem(KEYS.EMAIL_SEEN);
+    localStorage.removeItem(KEYS.RECOVERY_EMAIL);
 }
 
 /**
@@ -48,6 +50,21 @@ export function savePin(pin) {
 
 export function hasSavedPin() {
     return !!getSavedPin();
+}
+
+/**
+ * Recovery email helpers
+ */
+export function getRecoveryEmail() {
+    return localStorage.getItem(KEYS.RECOVERY_EMAIL) || '';
+}
+
+export function saveRecoveryEmail(email) {
+    localStorage.setItem(KEYS.RECOVERY_EMAIL, email);
+}
+
+export function removeRecoveryEmail() {
+    localStorage.removeItem(KEYS.RECOVERY_EMAIL);
 }
 
 /**

@@ -1,0 +1,53 @@
+{
+  "name": "purification-board",
+  "version": "1.1.0",
+  "description": "אפליקציית חישוב ימי הטהרה ולוח שנה עברי",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "Lev Good",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "electron": "^25.3.0",
+    "electron-builder": "^24.6.3"
+  },
+  "build": {
+    "appId": "com.taharah.board",
+    "productName": "לוח טהרה",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "לוח טהרה"
+    },
+    "files": [
+      "index.html",
+      "hebcal.js",
+      "main.js",
+      "preload.js",
+      "css/**/*",
+      "js/**/*"
+    ]
+  }
+}
