@@ -4,6 +4,8 @@ import { ICONS } from './icons.js';
 
 const HEB_DAYS = ["", "א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ז'", "ח'", "ט'", "י'", "י\"א", "י\"ב", "י\"ג", "י\"ד", "ט\"ו", "ט\"ז", "י\"ז", "י\"ח", "י\"ט", "כ'", "כ\"א", "כ\"ב", "כ\"ג", "כ\"ד", "כ\"ה", "כ\"ו", "כ\"ז", "כ\"ח", "כ\"ט", "ל'"];
 
+const HEB_DAYS_CLEAN = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "יא", "יב", "יג", "יד", "טו", "טז", "יז", "יח", "יט", "כ", "כא", "כב", "כג", "כד", "כה", "כו", "כז", "כח", "כט", "ל"];
+
 const HEBREW_MONTHS_NAMES = {
     'Nisan': 'ניסן', 'Iyyar': 'אייר', 'Sivan': 'סיוון', 'Tamuz': 'תמוז', 'Av': 'אב', 'Elul': 'אלול', 
     'Tishrei': 'תשרי', 'Cheshvan': 'חשוון', 'Kislev': 'כסלו', 'Tevet': 'טבת', 'Shvat': 'שבט', 'Sh\'vat': 'שבט',
@@ -344,6 +346,116 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
 }
 
 /**
+ * Builds HTML grid content for a single Hebrew month rendered as a horizontal row (Yearly View).
+ */
+export function buildYearlyRowHTML(month, year, db, engineData) {
+    const computed = engineData.computed;
+    const daysInMonth = HDate.daysInMonth(month, year);
+    const firstDayOfMonth = new HDate(1, month, year);
+    const monthName = translateMonth(firstDayOfMonth.getMonthName());
+    const isFullMonth = (daysInMonth === 30);
+    const statusText = isFullMonth ? "חודש מלא" : "חודש חסר";
+
+    let html = `
+        <div class="yearly-month-info">
+            <span class="m-name">${monthName}</span>
+            <span class="m-status ${isFullMonth ? 'full' : 'deficient'}">${statusText}</span>
+        </div>
+        <div class="yearly-row-labels">
+            <div class="row-label week-label">ימי השבוע</div>
+            <div class="row-label date-label">תאריך</div>
+        </div>
+    `;
+
+    for (let day = 1; day <= 30; day++) {
+        if (day > daysInMonth) {
+            html += `<div class="yearly-day-cell empty"></div>`;
+            continue;
+        }
+
+        const hd = new HDate(day, month, year);
+        const abs = hd.abs();
+        const dayOfWeek = hd.greg().getDay();
+        const weekdayHeb = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][dayOfWeek];
+        const dateHeb = HEB_DAYS_CLEAN[day];
+
+        let cellClasses = ["yearly-day-cell"];
+        if (abs === new HDate().abs()) {
+            cellClasses.push("day-today");
+        }
+
+        let bgStyle = "";
+        let topMarkers = "";
+        let bottomMarkers = "";
+        let noteHTML = "";
+
+        if (db[abs]) {
+            if (db[abs].note) {
+                noteHTML = `<span class="note-icon" title="${db[abs].note}">${ICONS.NOTE}</span>`;
+            }
+            if (db[abs].type === 'reiyah') {
+                if (db[abs].ona === 'day') {
+                    bottomMarkers += `<div class="marker bg-red" title="ראיית יום">${ICONS.FLAG}<span>ראיית יום</span></div>`;
+                } else {
+                    topMarkers += `<div class="marker bg-red" title="ראיית לילה">${ICONS.FLAG}<span>ראיית לילה</span></div>`;
+                }
+            }
+            if (db[abs].type === 'hefsek') {
+                bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">${ICONS.SUN_SPARK}<span>הפסק טהרה</span></div>`;
+            }
+            if (db[abs].type === 'tevilah') {
+                let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
+                bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
+            }
+        }
+
+        // Clean days marking
+        if (computed.nekiim.includes(abs)) {
+            bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
+        }
+
+        // Immersion prediction
+        if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
+            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
+            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
+            bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
+        }
+
+        // Separation dates (prishot)
+        if (computed.prishot[abs]) {
+            let nList = computed.prishot[abs].filter(p => p.ona === 'night');
+            let dList = computed.prishot[abs].filter(p => p.ona === 'day');
+            
+            if (nList.length > 0) {
+                let codeList = [...new Set(nList.map(p => p.code))].join(', ');
+                let tooltipText = nList.map(p => p.reason).join('\n');
+                topMarkers += `<div class="marker bg-orange" title="${tooltipText}">${ICONS.CLOCK}<span>פרישת לילה (${codeList})</span></div>`;
+            }
+            
+            if (dList.length > 0) {
+                let codeList = [...new Set(dList.map(p => p.code))].join(', ');
+                let tooltipText = dList.map(p => p.reason).join('\n');
+                bottomMarkers += `<div class="marker bg-orange" title="${tooltipText}">${ICONS.CLOCK}<span>פרישת יום (${codeList})</span></div>`;
+            }
+        }
+
+        html += `
+            <div class="${cellClasses.join(' ')}" style="${bgStyle}" onclick="window.openDayModal(new window.HDateLocal(${abs}))">
+                ${noteHTML}
+                <div class="marker-wrapper">${topMarkers}</div>
+                <div class="day-dates">
+                    <span class="day-weekday">${weekdayHeb}</span>
+                    <span class="day-num">${dateHeb}</span>
+                </div>
+                <div class="marker-wrapper">${bottomMarkers}</div>
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+/**
  * Render the monthly/yearly calendar.
  */
 export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView) {
@@ -356,7 +468,7 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
     if (isYearlyView) {
         if (singleCal) singleCal.style.display = 'none';
         if (yearlyWrapper) {
-            yearlyWrapper.style.display = 'grid';
+            yearlyWrapper.style.display = 'block';
             yearlyWrapper.innerHTML = '';
             
             const currentYearStr = new HDate(1, 1, currentHDate.getFullYear()).renderGematriya().split(' ').pop();
@@ -365,8 +477,8 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
             const maxMonths = getMonthsInYear(currentHDate.getFullYear());
             for (let m = 1; m <= maxMonths; m++) {
                 const monthDiv = document.createElement('div');
-                monthDiv.className = 'yearly-month-box';
-                monthDiv.innerHTML = buildMonthGridHTML(m, currentHDate.getFullYear(), db, engineData, true);
+                monthDiv.className = 'yearly-row';
+                monthDiv.innerHTML = buildYearlyRowHTML(m, currentHDate.getFullYear(), db, engineData);
                 yearlyWrapper.appendChild(monthDiv);
             }
         }

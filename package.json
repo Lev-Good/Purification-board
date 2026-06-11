@@ -18,6 +18,7 @@
   "build": {
     "appId": "com.taharah.board",
     "productName": "לוח טהרה",
+    "icon": "icon.png",
     "win": {
       "target": [
         {

@@ -8,6 +8,7 @@ function createWindow () {
     minWidth: 800,
     minHeight: 600,
     title: "לוח טהרת המשפחה",
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -17,6 +18,15 @@ function createWindow () {
 
   win.loadFile('index.html');
   
+  // Open external links (http/https) in the default web browser
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      require('electron').shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
   // Hide the default browser-like menu bar for a native app feel
   win.setMenuBarVisibility(false);
 }
