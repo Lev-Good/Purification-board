@@ -276,9 +276,9 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
             }
             if (db[abs].type === 'reiyah') {
                 if (db[abs].ona === 'day') {
-                    bottomMarkers += `<div class="marker bg-red" title="ראיית יום">${ICONS.DROP}<span>ראיית יום</span></div>`;
+                    bottomMarkers += `<div class="marker bg-red" title="ראיית יום">${ICONS.FLAG}<span>ראיית יום</span></div>`;
                 } else {
-                    topMarkers += `<div class="marker bg-red" title="ראיית לילה">${ICONS.DROP}<span>ראיית לילה</span></div>`;
+                    topMarkers += `<div class="marker bg-red" title="ראיית לילה">${ICONS.FLAG}<span>ראיית לילה</span></div>`;
                 }
             }
             if (db[abs].type === 'hefsek') {
