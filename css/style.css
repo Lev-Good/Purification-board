@@ -926,18 +926,43 @@ tr:hover {
 }
 
 .yearly-day-cell {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     border-left: 1px solid var(--border-color);
     cursor: pointer;
-    transition: background-color 0.2s;
-    justify-content: space-between;
-    padding: 3px 1px;
     min-height: 52px;
 }
 
+.yearly-cell-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3px 1px;
+    background: transparent;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
 .yearly-day-cell:hover {
-    background: var(--surface-hover);
+    z-index: 10;
+}
+
+.yearly-day-cell:hover .yearly-cell-inner {
+    top: -8px;
+    left: -45px;
+    right: -45px;
+    bottom: -60px;
+    height: max-content;
+    background: var(--surface) !important;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    padding: 8px 6px;
 }
 
 .yearly-day-cell.empty {
@@ -950,12 +975,24 @@ tr:hover {
     background: var(--input-bg);
 }
 
+.yearly-day-cell.day-today .yearly-cell-inner {
+    outline: 2px solid var(--primary) !important;
+    outline-offset: -2px !important;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+.yearly-day-cell:hover.day-today .yearly-cell-inner {
+    outline: none !important;
+}
+
 .yearly-day-cell .day-dates {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     flex-grow: 1;
+    width: 100%;
 }
 
 .yearly-day-cell .day-weekday {
@@ -978,6 +1015,7 @@ tr:hover {
     justify-content: center;
     gap: 2px;
     min-height: 4px;
+    width: 100%;
 }
 
 .yearly-day-cell .marker {
@@ -997,6 +1035,57 @@ tr:hover {
 
 .yearly-day-cell .note-icon {
     display: none;
+}
+
+/* Expansion of markers and text on hover */
+.yearly-day-cell:hover .marker-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    margin: 4px 0;
+}
+
+.yearly-day-cell:hover .marker {
+    height: auto;
+    width: auto;
+    border-radius: 4px;
+    font-size: 0.72em;
+    padding: 3px 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.yearly-day-cell:hover .marker svg,
+.yearly-day-cell:hover .marker span {
+    display: inline-block !important;
+}
+
+.yearly-day-cell:hover .day-dates {
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 4px 0;
+    margin: 4px 0;
+}
+
+.yearly-day-cell:hover .day-weekday {
+    font-size: 0.75em;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.yearly-day-cell:hover .day-num {
+    font-size: 1.1em;
+}
+
+.yearly-day-cell:hover .note-icon {
+    display: inline-block !important;
+    position: absolute;
+    top: 6px;
+    left: 6px;
 }
 
 /* Empty states */

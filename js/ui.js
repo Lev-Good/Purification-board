@@ -286,10 +286,6 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
             if (db[abs].type === 'hefsek') {
                 bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">${ICONS.SUN_SPARK}<span>הפסק טהרה</span></div>`;
             }
-            if (db[abs].type === 'tevilah') {
-                let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-                bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
-            }
         }
 
         // Clean days marking
@@ -297,8 +293,11 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
-        // Immersion prediction
-        if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
+        // Immersion actual or prediction (tevilah)
+        if (db[abs] && db[abs].type === 'tevilah') {
+            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
+            bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
+        } else if (computed.tevilot.includes(abs)) {
             let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
             bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
@@ -403,10 +402,6 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
             if (db[abs].type === 'hefsek') {
                 bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">${ICONS.SUN_SPARK}<span>הפסק טהרה</span></div>`;
             }
-            if (db[abs].type === 'tevilah') {
-                let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-                bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
-            }
         }
 
         // Clean days marking
@@ -414,8 +409,11 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
-        // Immersion prediction
-        if (computed.tevilot.includes(abs) && (!db[abs] || db[abs].type !== 'tevilah')) {
+        // Immersion actual or prediction (tevilah)
+        if (db[abs] && db[abs].type === 'tevilah') {
+            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
+            bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
+        } else if (computed.tevilot.includes(abs)) {
             let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
             bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
@@ -441,13 +439,15 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
 
         html += `
             <div class="${cellClasses.join(' ')}" style="${bgStyle}" onclick="window.openDayModal(new window.HDateLocal(${abs}))">
-                ${noteHTML}
-                <div class="marker-wrapper">${topMarkers}</div>
-                <div class="day-dates">
-                    <span class="day-weekday">${weekdayHeb}</span>
-                    <span class="day-num">${dateHeb}</span>
+                <div class="yearly-cell-inner">
+                    ${noteHTML}
+                    <div class="marker-wrapper">${topMarkers}</div>
+                    <div class="day-dates">
+                        <span class="day-weekday">${weekdayHeb}</span>
+                        <span class="day-num">${dateHeb}</span>
+                    </div>
+                    <div class="marker-wrapper">${bottomMarkers}</div>
                 </div>
-                <div class="marker-wrapper">${bottomMarkers}</div>
             </div>
         `;
     }

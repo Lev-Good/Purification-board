@@ -103,31 +103,42 @@ export function calculateEngine(db, isOrZaruaEnabled) {
     let hefsekim = absDays.filter(day => db[day] && db[day].type === 'hefsek');
 
     hefsekim.forEach(hefsekAbs => {
-        // Find the next bleeding event after this hefsek, if any
-        let nextReiyah = absDays.find(day => db[day] && db[day].type === 'reiyah' && day > hefsekAbs);
+        // Check if there is any interrupting event (reiyah or another hefsek) during the 7 clean days (hefsekAbs < day <= hefsekAbs + 7)
+        let isInterrupted = absDays.some(day => 
+            db[day] && 
+            (db[day].type === 'reiyah' || db[day].type === 'hefsek') && 
+            day > hefsekAbs && 
+            day <= hefsekAbs + 7
+        );
+
+        if (isInterrupted) {
+            return; // Skip this hefsek entirely as it was canceled/invalidated
+        }
 
         // Mark 7 Clean Days (Nekiim)
         for (let i = 1; i <= 7; i++) {
-            let nakiAbs = hefsekAbs + i;
-            if (nextReiyah && nakiAbs >= nextReiyah) {
-                break; // Stop clean days if bleeding occurs
-            }
-            computed.nekiim.push(nakiAbs);
+            computed.nekiim.push(hefsekAbs + i);
         }
 
         // 3. Expected Mikvah Immersion Date (7 days after Hefsek)
         let expectedTevilah = hefsekAbs + 7;
-        if (!nextReiyah || expectedTevilah <= nextReiyah) {
-            // Check if there is a manually recorded tevilah (immersion) in this interval
-            let manualTevilah = absDays.find(day => 
-                db[day] && db[day].type === 'tevilah' && 
-                day > hefsekAbs && 
-                (!nextReiyah || day <= nextReiyah)
-            );
-            
-            // Expected tevilah is marked unless there is a manual record
-            computed.tevilot.push(manualTevilah ? manualTevilah : expectedTevilah);
-        }
+        
+        // Find if there is a manually recorded tevilah (immersion) on or after the expected day (before any subsequent reiyah/hefsek)
+        let nextInterrupt = absDays.find(day => 
+            db[day] && 
+            (db[day].type === 'reiyah' || db[day].type === 'hefsek') && 
+            day > hefsekAbs + 7
+        );
+        
+        let manualTevilah = absDays.find(day => 
+            db[day] && 
+            db[day].type === 'tevilah' && 
+            day > hefsekAbs && 
+            (!nextInterrupt || day < nextInterrupt)
+        );
+        
+        // Expected tevilah is marked unless there is a manual record
+        computed.tevilot.push(manualTevilah ? manualTevilah : expectedTevilah);
     });
 
     return { computed, reiyot };

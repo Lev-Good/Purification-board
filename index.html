@@ -93,8 +93,14 @@
         <div class="sidebar-controls" id="sidebar-cal-controls">
             <div class="sidebar-controls-title">ניווט בלוח</div>
             <div class="sidebar-nav-row">
-                <button id="prev-month" class="sidebar-nav-btn">◀ חודש קודם</button>
-                <button id="next-month" class="sidebar-nav-btn">חודש הבא ▶</button>
+                <button id="prev-month" class="sidebar-nav-btn" style="flex-direction: column; padding: 6px 4px; line-height: 1.2; font-size: 0.85em;">
+                    <span style="font-size: 1.1em; font-weight: bold;">▶</span>
+                    <span>חודש<br>קודם</span>
+                </button>
+                <button id="next-month" class="sidebar-nav-btn" style="flex-direction: column; padding: 6px 4px; line-height: 1.2; font-size: 0.85em;">
+                    <span style="font-size: 1.1em; font-weight: bold;">◀</span>
+                    <span>חודש<br>הבא</span>
+                </button>
             </div>
             <button id="toggle-yearly-btn" class="sidebar-nav-btn" onclick="toggleYearlyView()">תצוגה שנתית</button>
             
@@ -128,13 +134,13 @@
         <!-- Unified Compact Mobile Navigation controls (Hidden on Desktop) -->
         <div class="mobile-controls-header">
             <div class="mobile-controls-row">
-                <button id="mobile-prev-month" class="action-btn btn-outline" style="padding: 6px 10px;">◀</button>
+                <button id="mobile-prev-month" class="action-btn btn-outline" style="padding: 6px 10px;">▶</button>
                 <div style="display: flex; gap: 4px;">
                     <select id="mobile-jump-month"></select>
                     <select id="mobile-jump-year"></select>
                     <button class="action-btn btn-primary" style="padding: 6px 8px; font-size: 0.85em;" onclick="jumpToDate()">עבור</button>
                 </div>
-                <button id="mobile-next-month" class="action-btn btn-outline" style="padding: 6px 10px;">▶</button>
+                <button id="mobile-next-month" class="action-btn btn-outline" style="padding: 6px 10px;">◀</button>
             </div>
             <div class="mobile-controls-row" style="margin-top: 4px; justify-content: center; gap: 8px;">
                 <button id="mobile-toggle-yearly-btn" class="action-btn btn-outline" style="padding: 6px 12px; font-size: 0.8em;" onclick="toggleYearlyView()">תצוגה שנתית</button>
