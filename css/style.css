@@ -345,6 +345,19 @@ h1 {
 .dashboard.dash-blue { background: var(--dash-blue-bg); border-right-color: var(--blue); }
 .dashboard.dash-orange { background: var(--dash-orange-bg); border-right-color: var(--orange); }
 
+/* תזכורת וסת הגוף (B2) בכרטיס היום: בלוק שני — ולכן הכרטיס נאלץ להיתפס לשורה
+   נפרדת, שאחרת שני הבלוקים היו נדחסים זה לצד זה (הכרטיס הוא flex-row). */
+.dashboard.dash-body {
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.dashboard-body-reminder {
+    flex-basis: 100%;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
+}
+
 .dashboard.dash-red .progress-bar-fill { background: var(--red); }
 .dashboard.dash-yellow .progress-bar-fill { background: var(--yellow); }
 .dashboard.dash-green .progress-bar-fill { background: var(--green); }
@@ -527,6 +540,8 @@ h1 {
 .bg-green { background: linear-gradient(135deg, #10b981, #059669); }
 .bg-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .bg-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+/* וסת הגוף — המיחוש שתועד על הראייה (B2). */
+.bg-purple { background: linear-gradient(135deg, #a855f7, #7e22ce); }
 
 [data-theme="dark"] .bg-yellow, 
 [data-theme="dark"] .bg-green {
@@ -1244,6 +1259,7 @@ tr:hover {
     .bg-green { background-color: #ccffcc !important; }
     .bg-blue { background-color: #cceeff !important; }
     .bg-orange { background-color: #ffe6cc !important; }
+    .bg-purple { background-color: #f0e0ff !important; }
 }
 
 /* Modern SVG Vector Icons Sizing & Colors */
@@ -1297,4 +1313,149 @@ tr:hover {
 
 #forgot-pin-link:hover {
     text-decoration: underline !important;
+}
+
+/* ===== Halachic help: info bubbles + guide tab ===== */
+
+/* Small "?" bubble shown next to a value or a setting. */
+.help-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    padding: 0;
+    margin-inline-start: 6px;
+    border-radius: 50%;
+    border: 1px solid var(--primary);
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.help-dot:hover {
+    background: var(--primary);
+    color: #fff;
+    transform: scale(1.08);
+}
+
+/* Board legend (מקרא הסימונים): one line per marking, each with its own bubble. */
+.board-legend {
+    margin-top: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-sm);
+    line-height: 1.7;
+}
+
+.board-legend > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.95em;
+}
+
+.board-legend h4 {
+    font-size: 0.95em;
+    margin: 16px 0 8px;
+    color: var(--text-main);
+}
+
+.legend-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.legend-list li {
+    font-size: 0.86em;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+}
+
+.legend-list li b {
+    color: var(--text-main);
+}
+
+.legend-note {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    margin: 14px 0 4px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+}
+
+/* Guide tab: one card per topic, grouped by category. */
+.guide-category {
+    margin-bottom: 22px;
+}
+
+.guide-category > h3 {
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--primary);
+    font-size: 1.05em;
+}
+
+.guide-topic {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.guide-topic h4 {
+    margin: 0 0 4px 0;
+    font-size: 1em;
+}
+
+.guide-topic .guide-summary {
+    color: var(--text-muted, #6b7280);
+    font-size: 0.88em;
+    margin-bottom: 8px;
+}
+
+.guide-topic p {
+    margin: 0 0 8px 0;
+    line-height: 1.65;
+    font-size: 0.92em;
+}
+
+.guide-topic ul {
+    margin: 0 0 8px 0;
+    padding-inline-start: 20px;
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+.guide-sources {
+    font-size: 0.82em;
+    color: var(--text-muted, #6b7280);
+    border-top: 1px dashed var(--border-color);
+    padding-top: 8px;
+    margin-top: 6px;
+}
+
+.guide-sources b {
+    color: var(--text-main);
+}
+
+.guide-intro {
+    background: rgba(79, 70, 229, 0.06);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+    line-height: 1.6;
 }

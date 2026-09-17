@@ -84,16 +84,18 @@ export function showConfirm(msg, onConfirm, onCancel = null) {
 }
 
 // Bind the confirm button in window scope for the HTML button trigger
-window.executeConfirm = function() {
-    closeModal('custom-confirm');
-    if (currentConfirmCallback) {
-        currentConfirmCallback();
-        currentConfirmCallback = null;
-    }
-};
+if (typeof window !== 'undefined') {
+    window.executeConfirm = function() {
+        closeModal('custom-confirm');
+        if (currentConfirmCallback) {
+            currentConfirmCallback();
+            currentConfirmCallback = null;
+        }
+    };
+}
 
 // Listen to modal overlay backdrop clicks
-document.addEventListener('DOMContentLoaded', () => {
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', function(e) {
             if (e.target === this) {

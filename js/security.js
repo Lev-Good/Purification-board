@@ -1,5 +1,6 @@
-import { getSavedPin, savePin, hasSavedPin, saveRecoveryEmail, getRecoveryEmail } from './storage.js';
+import { getSavedPin, savePin, hasSavedPin, saveRecoveryEmail, getRecoveryEmail, saveDb } from './storage.js';
 import { showToast } from './notifications.js';
+import { refreshConnectionState, fetchBackup } from './googleBackup.js';
 
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx12cd3z-y3qg1hZl5_aorJbKEIUArS2gC9Wu6gx_ct1wxme0KN4MVSNvBj1SC2Bg40Ng/exec";
 
@@ -35,7 +36,37 @@ export function setupPinInputListeners() {
 /**
  * Checks if the application should be locked or open for setup.
  */
-export function checkInitialLock() {
+export async function checkInitialLock() {
+    if (hasSavedPin()) {
+        const savedPinCipher = getSavedPin();
+        let savedPin = savedPinCipher;
+        if (window.api && window.api.decrypt && savedPinCipher) {
+            try {
+                savedPin = await window.api.decrypt(savedPinCipher);
+            } catch (err) {
+                console.error("Initial decryption check failed:", err);
+            }
+        }
+        
+        // If the decrypted PIN is not a valid 6-digit number, it is corrupted or legacy.
+        // Automatically clear it so the user can set a new one.
+        const isValidPin = /^\d{6}$/.test(savedPin);
+        if (!isValidPin) {
+            console.warn("Detected invalid/corrupted PIN format. Resetting PIN storage.");
+            localStorage.removeItem('taharahPIN');
+        }
+    }
+
+    // Desktop only: if a Google account is already connected on this machine,
+    // offer restoring data straight from the setup screen.
+    if (hasApiBackup()) {
+        const status = await refreshConnectionState();
+        const restoreLink = document.getElementById('setup-restore-link');
+        if (status.connected && restoreLink) {
+            restoreLink.style.display = 'inline-block';
+        }
+    }
+
     if (hasSavedPin()) {
         document.getElementById('lock-screen').style.display = 'flex';
         document.getElementById('setup-screen').style.display = 'none';
@@ -207,6 +238,7 @@ export function toggleForgotPasswordView(show) {
     const recoverContainer = document.getElementById('lock-recovery-container');
     const unlockBtn = document.getElementById('unlock-submit-btn');
     const recoverBtn = document.getElementById('recover-submit-btn');
+    const restoreGoogleBtn = document.getElementById('restore-google-btn');
     const errorEl = document.getElementById('pin-error');
     const promptText = document.getElementById('lock-prompt');
     const forgotLink = document.getElementById('forgot-pin-link');
@@ -218,8 +250,15 @@ export function toggleForgotPasswordView(show) {
         if (recoverContainer) recoverContainer.style.display = 'flex';
         if (unlockBtn) unlockBtn.style.display = 'none';
         if (recoverBtn) recoverBtn.style.display = 'block';
+        // Desktop only: show Google restore option when an account is connected
+        if (restoreGoogleBtn && hasApiBackup()) {
+            refreshConnectionState().then(status => {
+                if (restoreGoogleBtn) restoreGoogleBtn.style.display = status.connected ? 'block' : 'none';
+            }).catch(() => {});
+        }
         if (promptText) promptText.innerText = "הזינו את כתובת האימייל לשחזור הקוד";
         if (forgotLink) forgotLink.innerText = "חזרה להקלדת קוד גישה";
+        if (forgotLink) forgotLink.style.display = 'none';
         if (errorEl) errorEl.innerText = "";
     } else {
         if (pinContainer) pinContainer.style.display = 'flex';
@@ -228,6 +267,7 @@ export function toggleForgotPasswordView(show) {
         if (recoverBtn) recoverBtn.style.display = 'none';
         if (promptText) promptText.innerText = "הזינו את קוד הגישה האישי (6 ספרות) לפתיחה";
         if (forgotLink) forgotLink.innerText = "שכחתי קוד גישה";
+        if (forgotLink) forgotLink.style.display = 'inline';
         if (errorEl) errorEl.innerText = "";
         
         // Auto focus first PIN digit
@@ -269,11 +309,55 @@ export async function triggerPasswordRecovery() {
     }
 }
 
+// ---------- Google restore from lock/setup screens ----------
+
+function hasApiBackup() {
+    return typeof window !== 'undefined' && window.api && window.api.oauthStatus;
+}
+
+/**
+ * Restore from the connected Google account and reload the app.
+ * Used from the setup screen (fresh install, previous Google connection found)
+ * and from the lock screen ("forgot PIN" alternative).
+ */
+export async function restoreFromGoogleAndEnter() {
+    const errorEl = document.getElementById('pin-error');
+    try {
+        const status = await refreshConnectionState();
+        if (!status.connected) {
+            if (errorEl) errorEl.innerText = "לא מחובר חשבון גוגל במחשב זה.";
+            return;
+        }
+        showToast('שולף גיבוי מגוגל...');
+        const { db, pin, recoveryEmail } = await fetchBackup();
+
+        if (db && Object.keys(db).length > 0) saveDb(db);
+        if (pin && /^\d{6}$/.test(pin)) savePin(pin);
+        if (recoveryEmail) saveRecoveryEmail(recoveryEmail);
+
+        showToast('הנתונים שוחזרו מהגיבוי בהצלחה!');
+        // Reload: the app will now open on the lock screen with the restored PIN,
+        // or straight to setup if no PIN was stored in the backup.
+        setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+        console.error('Google restore failed:', err);
+        if (errorEl) errorEl.innerText = "שחזור מגוגל נכשל. נסה שוב או השתמש בקוד הגישה.";
+    }
+}
+
+window.restoreFromGoogleUnlock = function() {
+    restoreFromGoogleAndEnter();
+};
+
+window.restoreFromGoogleFromSetup = function() {
+    restoreFromGoogleAndEnter();
+};
+
 // Global scope bindings for window actions
 window.toggleForgotPassword = function() {
     toggleForgotPasswordView(!isRecoveryViewActive);
 };
 
-window.recoverPinSubmit = function() {
+window.recoverPinSubmit = function() { 
     triggerPasswordRecovery();
 };
