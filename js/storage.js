@@ -8,7 +8,12 @@ const KEYS = {
     OR_ZARUA: 'taharahOrZarua',
     THEME: 'taharahTheme',
     EMAIL_SEEN: 'taharahEmailWarningSeen',
-    RECOVERY_EMAIL: 'taharahRecoveryEmail'
+    RECOVERY_EMAIL: 'taharahRecoveryEmail',
+    LOCATION: 'taharahLocation',
+    ZOOM: 'taharahZoom',
+    NOTIFICATIONS: 'taharahNotifications',
+    NOTIFIED_MARKER: 'taharahLastNotified',
+    AUTO_LAUNCH: 'taharahAutoLaunch'
 };
 
 /**
@@ -35,6 +40,11 @@ export function wipeAll() {
     localStorage.removeItem(KEYS.OR_ZARUA);
     localStorage.removeItem(KEYS.EMAIL_SEEN);
     localStorage.removeItem(KEYS.RECOVERY_EMAIL);
+    localStorage.removeItem(KEYS.LOCATION);
+    localStorage.removeItem(KEYS.NOTIFICATIONS);
+    localStorage.removeItem(KEYS.NOTIFIED_MARKER);
+    localStorage.removeItem(KEYS.AUTO_LAUNCH);
+    // Note: ZOOM (display preference, not personal data) intentionally survives a data wipe.
 }
 
 /**
@@ -99,6 +109,68 @@ export function isOrZaruaEnabled() {
 
 export function saveOrZarua(enabled) {
     localStorage.setItem(KEYS.OR_ZARUA, enabled);
+}
+
+/**
+ * Location (city) setting — used for sunset-aware halachic day calculation.
+ */
+export function getLocation() {
+    return localStorage.getItem(KEYS.LOCATION) || '';
+}
+
+export function saveLocation(cityKey) {
+    localStorage.setItem(KEYS.LOCATION, cityKey);
+}
+
+export function removeLocation() {
+    localStorage.removeItem(KEYS.LOCATION);
+}
+
+/**
+ * Global zoom level setting (percentage, e.g. 100 = default).
+ */
+export function getZoomLevel() {
+    const raw = localStorage.getItem(KEYS.ZOOM);
+    const val = raw ? parseInt(raw, 10) : 100;
+    return isNaN(val) ? 100 : val;
+}
+
+export function saveZoomLevel(percent) {
+    localStorage.setItem(KEYS.ZOOM, String(percent));
+}
+
+/**
+ * Desktop notification preference: 'off' | 'daily' | 'events'
+ */
+export function getNotificationSetting() {
+    return localStorage.getItem(KEYS.NOTIFICATIONS) || 'off';
+}
+
+export function saveNotificationSetting(value) {
+    localStorage.setItem(KEYS.NOTIFICATIONS, value);
+}
+
+/**
+ * Tracks the last halachic-day marker a notification was already shown for,
+ * to avoid repeating the same notification multiple times in one halachic day.
+ */
+export function getLastNotifiedMarker() {
+    return localStorage.getItem(KEYS.NOTIFIED_MARKER) || '';
+}
+
+export function saveLastNotifiedMarker(marker) {
+    localStorage.setItem(KEYS.NOTIFIED_MARKER, marker);
+}
+
+/**
+ * Auto-launch-at-login preference (Electron desktop app only).
+ */
+export function getAutoLaunchSetting() {
+    return localStorage.getItem(KEYS.AUTO_LAUNCH) === 'true';
+}
+
+export function saveAutoLaunchSetting(enabled) {
+    localStorage.setItem(KEYS.AUTO_LAUNCH, enabled ? 'true' : 'false');
 }
 
 /**

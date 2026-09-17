@@ -18,7 +18,9 @@
 │   ├── icons.js                # מאגר אייקוני SVG כ-template strings
 │   ├── notifications.js        # Toast / מודלים גנריים (alert/confirm)
 │   ├── security.js             # מסכי נעילה/הגדרה, PIN, שחזור קוד גישה
-│   └── storage.js              # שכבת גישה יחידה ל-localStorage + גיבוי/שחזור JSON
+│   ├── storage.js              # שכבת גישה יחידה ל-localStorage + גיבוי/שחזור JSON
+│   └── zmanim.js               # רשימת ערים (Hebcal classic cities) + חישוב שקיעה/יום הלכתי
+├── LICENSE                  # GPL-2.0-or-later (טקסט רשמי מ-SPDX)
 └── docs/                    # תיעוד הפרויקט (מסמך זה ואחרים)
 ```
 
@@ -43,7 +45,32 @@
 ## אריזת דסקטופ (Electron)
 - `electron-builder` עם קונפיגורציה ב-`package.json` (`build` key).
 - Target: Windows בלבד כרגע (NSIS מתקין + גרסה Portable), ארכיטקטורת x64.
-- `files` בקונפיגורציה קובע אילו קבצים נכנסים ל-`app.asar` הארוז. **תוקן בסבב עבודה זה**: `icon.png` היה חסר מרשימה זו על אף ש-`main.js` טוען אותו ב-runtime (`path.join(__dirname, 'icon.png')` עבור אייקון החלון) — ראו [DECISIONS.md](DECISIONS.md).
+- `files` בקונפיגורציה קובע אילו קבצים נכנסים ל-`app.asar` הארוז, כולל `icon.png` (תוקן בעבר — היה חסר).
+- `publish` בקונפיגורציה מצביע על `provider: github, owner: Lev-Good, repo: Purification-board` — נדרש כדי ש-`electron-updater` ידע איפה לבדוק גרסאות. **לא בוצע כל פרסום (publish) בפועל** — זו קונפיגורציה בלבד.
+- `icon.png` תוקן: הקובץ היה בפועל JPEG (חתימת `FFD8FF`) עם סיומת `.png` שגויה. הומר בפועל לקובץ PNG תקין (1024x1024) באמצעות `nativeImage` של Electron.
+
+## היום ההלכתי (שקיעה) — `js/zmanim.js`
+- `CITIES`: רשימה קבועה של כ-65 ערים (מתוך "classic cities" המוטמעות ב-Hebcal), עם תוויות בעברית.
+- `getSunset(cityKey, date)`: עוטף את `Zmanim` של Hebcal לחישוב שקיעה לפי קו רוחב/אורך של העיר.
+- `getHalachicTodayAbs(cityKey)`: אם הוגדרה עיר וכעת אחרי השקיעה — מחזיר abs+1 (היום ההלכתי כבר התחלף); אחרת מתנהג כמו `new HDate().abs()` הרגיל (ללא עיר — תלוי חצות לועזי, כמקודם).
+- כל מקום ב-`ui.js`/`app.js` שהתייחס בעבר ל"היום" via `new HDate().abs()` מקבל כעת פרמטר `todayAbs` שמחושב פעם אחת ב-`refreshCalendar()` ומוזרם דרך `renderScreenCalendar`, `buildMonthGridHTML`, `buildYearlyRowHTML`, `updateDashboard`.
+
+## התראות (Notification API) — `js/app.js`
+- הגדרה ב-`localStorage` (`taharahNotifications`): `off` / `daily` / `events`.
+- לפני הפעלה, מתבקשת הרשאת `Notification.requestPermission()` (רק אם `default`; אין ניסיון חוזר אם `denied`, כפי שדפדפנים אוסרים).
+- `checkAndFireNotification()` נקרא בסוף כל `refreshCalendar()`: קובע האם היום "יום אירוע" (פרישה/יום 1 של נקיים/הפסק/צפי טבילה הלילה), ומשתמש בטקסט שכבר מוצג בדשבורד (`#dashboard-container .dashboard-text`) כגוף ההתראה — כדי למנוע כפילות לוגיקה מול `updateDashboard`. נשמר "מרקר" (`abs:mode`) כדי לא לשלוח התראה כפולה לאותו יום הלכתי.
+- **מגבלה מתועדת**: התראות פועלות רק כאשר האפליקציה פתוחה/רצה (כולל במגש המערכת ב-Electron אם "הפעלה אוטומטית" מופעלת) — אין שירות רקע נפרד מחוץ לתהליך ה-Renderer.
+
+## מגש מערכת + הפעלה אוטומטית (Electron בלבד) — `main.js`
+- הגדרת "הפעל אוטומטית עם המחשב" (`taharahAutoLaunch` ב-`localStorage`, מסונכרנת דרך `window.api.setAutoLaunch` ל-IPC `set-auto-launch`) שולטת בו-זמנית ב:
+  1. `app.setLoginItemSettings({openAtLogin})`.
+  2. יצירת `Tray` עם תפריט (פתח / יציאה), ומניעת סגירת החלון בפועל (`win.on('close')` מבצע `hide()` במקום לתת לחלון להיסגר) — כך שהתהליך (וממנו ההתראות) ממשיך לרוץ ברקע.
+- כאשר ההגדרה כבויה, ההתנהגות זהה לגמרי לקודם (סגירה = יציאה).
+
+## עדכוני תוכנה (Electron בלבד) — `main.js` + `electron-updater`
+- `autoUpdater.autoDownload = false` — הבדיקה/הורדה/התקנה יזומות רק דרך כפתור בהגדרות ("בדוק אם יש עדכון חדש"), לא אוטומטי ברקע.
+- אירועי autoUpdater (`checking-for-update`, `update-available`, `update-not-available`, `download-progress`, `update-downloaded`, `error`) משודרים ל-Renderer דרך `win.webContents.send('update-status', ...)` ומוצגים כטקסט/כפתור בהגדרות.
+- לפני התקנה (`quitAndInstall`), ה-Renderer מפעיל הורדת גיבוי אוטומטית (`downloadBackup`) כרשת ביטחון נוספת שהמשתמש ביקש — למרות שנתוני `localStorage` ממילא נשמרים אוטומטית בין עדכוני גרסה (אותה תיקיית `userData`), כל עוד ה-`appId` לא משתנה.
 
 ## אינטגרציות חיצוניות
 | שירות | תפקיד | היכן בקוד |
@@ -51,6 +78,7 @@
 | FormSubmit.co | שליחת ריכוז נתונים למייל שבחר המשתמש | `js/app.js` — `sendEmailViaFormSubmit()` |
 | Google Apps Script Web App | שמירה/שחזור (אימייל, PIN) | `js/security.js`, `js/app.js` — `WEB_APP_URL` |
 | Google Fonts | פונט Rubik | `index.html` (`<link>`) |
+| GitHub Releases | בדיקת עדכוני תוכנה (Electron) | `main.js` — `autoUpdater`, `package.json` — `build.publish` |
 
 ## תהליכי רקע
-אין Service Worker בפועל (המניפסט מוזרק ב-runtime לצורך "הוסף למסך הבית", אך אין קובץ `sw.js` הרשום). אין polling או טיימרים ברקע.
+אין Service Worker בפועל (המניפסט מוזרק ב-runtime לצורך "הוסף למסך הבית", אך אין קובץ `sw.js` הרשום). אין polling כללי — למעט בדיקת ההתראות שרצה כחלק מ-`refreshCalendar()` (נקרא בכל אינטראקציה/ניווט, לא בטיימר קבוע).

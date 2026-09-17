@@ -1,27 +1,34 @@
 import { HDate } from '../hebcal.js';
 import { calculateEngine, getMonthsInYear } from './calculations.js';
-import { 
-    getDb, saveDb, wipeAll, 
-    getSavedEmail, saveEmail, removeSavedEmail, 
+import {
+    getDb, saveDb, wipeAll,
+    getSavedEmail, saveEmail, removeSavedEmail,
     isEmailWarningSeen, setEmailWarningSeen,
     isOrZaruaEnabled, saveOrZarua,
     getSavedTheme, saveTheme,
     downloadBackup, restoreBackup,
     getRecoveryEmail, saveRecoveryEmail, removeRecoveryEmail,
-    getSavedPin
+    getSavedPin,
+    getLocation, saveLocation,
+    getZoomLevel, saveZoomLevel,
+    getNotificationSetting, saveNotificationSetting,
+    getAutoLaunchSetting, saveAutoLaunchSetting,
+    getLastNotifiedMarker, saveLastNotifiedMarker
 } from './storage.js';
-import { 
-    showToast, openModal, closeModal, 
-    showAlert, showConfirm 
+import {
+    showToast, openModal, closeModal,
+    showAlert, showConfirm
 } from './notifications.js';
-import { 
-    setupPinInputListeners, checkInitialLock, 
-    setupNewPin, verifyPin, updatePinSetting 
+import {
+    setupPinInputListeners, checkInitialLock,
+    setupNewPin, verifyPin, updatePinSetting
 } from './security.js';
-import { 
-    switchView, initJumpMenu, updateMonthList, 
-    syncSelectors, renderScreenCalendar, buildMonthGridHTML 
+import {
+    switchView, initJumpMenu, updateMonthList,
+    syncSelectors, renderScreenCalendar, buildMonthGridHTML
 } from './ui.js';
+import { CITIES, getHalachicTodayAbs, getSunset, formatSunsetTime } from './zmanim.js';
+import { ICONS } from './icons.js';
 
 // --- PWA Injection ---
 const manifestJSON = {
@@ -29,7 +36,7 @@ const manifestJSON = {
     "start_url": ".", "display": "standalone",
     "background_color": "#f8f9fc", "theme_color": "#4361ee",
     "icons": [{
-        "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%234361ee' rx='20'/><text x='50' y='65' font-size='50' font-family='sans-serif' text-anchor='middle' fill='white'>📅</text></svg>",
+        "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%234361ee' rx='20'/><g transform='translate(20,22)' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'><rect x='0' y='8' width='60' height='52' rx='6'/><line x1='44' y1='0' x2='44' y2='16'/><line x1='16' y1='0' x2='16' y2='16'/><line x1='0' y1='26' x2='60' y2='26'/></g></svg>",
         "sizes": "192x192", "type": "image/svg+xml"
     }]
 };
@@ -49,13 +56,49 @@ let db = {};
 window.HDateLocal = HDate;
 
 /**
+ * Desktop/browser notification check. Declared as a mutable reference (assigned below) so
+ * refreshCalendar() can call it before this full definition runs during module evaluation.
+ */
+let checkAndFireNotification = function(db, engineData, todayAbs) {
+    const mode = getNotificationSetting();
+    if (mode === 'off') return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    // "Event day": a separation reminder, the first of the 7 clean days, a hefsek recorded today,
+    // or mikvah night predicted for tonight.
+    const isEventDay = !!engineData.computed.prishot[todayAbs]
+        || engineData.computed.nekiimFirstDay.includes(todayAbs)
+        || (db[todayAbs] && db[todayAbs].type === 'hefsek')
+        || engineData.computed.tevilot.includes(todayAbs - 1);
+
+    if (mode === 'events' && !isEventDay) return;
+
+    // Only notify once per halachic day (per mode), to avoid repeat spam on every refresh.
+    const marker = `${todayAbs}:${mode}`;
+    if (getLastNotifiedMarker() === marker) return;
+
+    const dashText = document.querySelector('#dashboard-container .dashboard-text');
+    const body = dashText ? dashText.innerText.trim() : '';
+    if (!body) return;
+
+    try {
+        new Notification('לוח טהרת המשפחה', { body, tag: 'taharah-status' });
+        saveLastNotifiedMarker(marker);
+    } catch (e) {
+        console.error('Notification failed:', e);
+    }
+};
+
+/**
  * Update the viewed calendar state.
  */
 function refreshCalendar() {
     db = getDb();
     const isOrZarua = isOrZaruaEnabled();
     const engineData = calculateEngine(db, isOrZarua);
-    renderScreenCalendar(currentHDate, db, engineData, isYearlyView);
+    const todayAbs = getHalachicTodayAbs(getLocation());
+    renderScreenCalendar(currentHDate, db, engineData, isYearlyView, todayAbs);
+    checkAndFireNotification(db, engineData, todayAbs);
 }
 
 // --- INITIALIZATION ---
@@ -84,8 +127,53 @@ document.addEventListener("DOMContentLoaded", () => {
     const savedRecoveryEmail = getRecoveryEmail();
     const recoveryEmailInput = document.getElementById('setting-recovery-email');
     if (recoveryEmailInput) recoveryEmailInput.value = savedRecoveryEmail;
-    
-    // 7. Init date jump dropdown lists
+
+    // 7. Populate location (sunset) setting
+    const locationSelect = document.getElementById('setting-location');
+    if (locationSelect) {
+        CITIES.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city.key;
+            opt.text = city.label;
+            locationSelect.appendChild(opt);
+        });
+        locationSelect.value = getLocation();
+        updateSunsetInfo();
+    }
+
+    // 8. Populate notifications setting
+    const notifSelect = document.getElementById('setting-notifications');
+    if (notifSelect) notifSelect.value = getNotificationSetting();
+    const autoLaunchRow = document.getElementById('auto-launch-row');
+    const autoLaunchInput = document.getElementById('setting-auto-launch');
+    if (autoLaunchRow && window.api) {
+        autoLaunchRow.style.display = 'flex';
+        const autoLaunchEnabled = getAutoLaunchSetting();
+        if (autoLaunchInput) autoLaunchInput.checked = autoLaunchEnabled;
+        // Re-sync the main process's background/tray + OS login-item state on every launch,
+        // since it is not persisted on that side.
+        if (window.api.setAutoLaunch) window.api.setAutoLaunch(autoLaunchEnabled);
+    }
+
+    // 9. Apply saved zoom level
+    applyZoom(getZoomLevel());
+
+    // 10. Show the update-check settings group only inside the Electron desktop app
+    const updateGroup = document.getElementById('update-settings-group');
+    if (updateGroup && window.api) {
+        updateGroup.style.display = 'block';
+        if (window.api.getAppVersion) {
+            window.api.getAppVersion().then(v => {
+                const statusEl = document.getElementById('update-status-text');
+                if (statusEl) statusEl.innerText = `גרסה מותקנת: ${v}`;
+            });
+        }
+        if (window.api.onUpdateStatus) {
+            window.api.onUpdateStatus(handleUpdateStatus);
+        }
+    }
+
+    // 11. Init date jump dropdown lists
     initJumpMenu(currentHDate, () => {
         const ySelect = document.getElementById('jump-year') || document.getElementById('mobile-jump-year');
         const mSelect = document.getElementById('jump-month') || document.getElementById('mobile-jump-month');
@@ -95,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 8. Load calendar grid and attach swipe listeners
+    // 12. Load calendar grid and attach swipe listeners
     db = getDb();
     refreshCalendar();
     attachSwipeListeners();
@@ -157,7 +245,61 @@ function navigateMonth(direction) {
 function updateThemeIcon(theme) {
     const btn = document.getElementById('theme-btn');
     if (btn) {
-        btn.innerText = theme === 'dark' ? '☀️' : '🌙';
+        btn.innerHTML = theme === 'dark' ? ICONS.SUN : ICONS.MOON;
+    }
+}
+
+/**
+ * Refresh the sunset-time hint shown under the location selector in settings.
+ */
+function updateSunsetInfo() {
+    const infoEl = document.getElementById('location-sunset-info');
+    if (!infoEl) return;
+    const cityKey = getLocation();
+    if (!cityKey) {
+        infoEl.innerText = '';
+        return;
+    }
+    const sunset = getSunset(cityKey);
+    infoEl.innerText = `שקיעה היום: ${formatSunsetTime(sunset)}`;
+}
+
+/**
+ * Apply a zoom percentage to the whole app UI and persist it.
+ */
+function applyZoom(percent) {
+    document.body.style.zoom = percent / 100;
+    const resetBtn = document.getElementById('zoom-reset-btn');
+    if (resetBtn) resetBtn.innerText = `איפוס זום (${percent}%)`;
+}
+
+/**
+ * Handle status updates pushed from the Electron main process about app-update checks
+ * (see main.js autoUpdater wiring). Renders the relevant action button per stage.
+ */
+function handleUpdateStatus(data) {
+    const statusEl = document.getElementById('update-status-text');
+    if (!statusEl) return;
+
+    switch (data.status) {
+        case 'checking':
+            statusEl.innerText = 'בודק אם יש עדכון...';
+            break;
+        case 'not-available':
+            statusEl.innerText = 'אתם משתמשים בגרסה העדכנית ביותר.';
+            break;
+        case 'available':
+            statusEl.innerHTML = `נמצאה גרסה חדשה (${data.version}).<br><button class="action-btn btn-blue btn-with-icon" style="margin-top:8px;width:100%;" onclick="downloadAppUpdate()">${ICONS.SEND} הורד עדכון</button>`;
+            break;
+        case 'downloading':
+            statusEl.innerText = `מוריד עדכון... ${data.percent || 0}%`;
+            break;
+        case 'downloaded':
+            statusEl.innerHTML = `העדכון הורד בהצלחה.<br><button class="action-btn btn-green" style="margin-top:8px;width:100%;" onclick="installAppUpdate()">גבה נתונים והתקן עכשיו (התוכנה תיסגר ותיפתח מחדש)</button>`;
+            break;
+        case 'error':
+            statusEl.innerText = 'שגיאה בבדיקת עדכונים: ' + (data.message || '');
+            break;
     }
 }
 
@@ -251,7 +393,7 @@ window.sendEmailViaFormSubmit = async function() {
         } else {
             [...engineData.reiyot].reverse().forEach((r, idx) => {
                 let onaStr = r.ona === 'day' ? 'עונת יום' : 'עונת לילה';
-                let keyName = `📌 וסת ${engineData.reiyot.length - idx} (${r.hdate.renderGematriya()})`;
+                let keyName = `וסת ${engineData.reiyot.length - idx} (${r.hdate.renderGematriya()})`;
                 let valStr = `עונה: ${onaStr} | הפלגה קודמת: ${r.haflagahDiff ? r.haflagahDiff + ' ימים' : '-'} | יום 30: ${new HDate(r.abs + 29).renderGematriya()} | הפלגה עתידית: ${r.nextHaflagahDate ? r.nextHaflagahDate.renderGematriya() : '-'}`;
                 payload[keyName] = valStr;
             });
@@ -277,7 +419,7 @@ window.sendEmailViaFormSubmit = async function() {
 
             if (finalStr) {
                 eventsFound = true;
-                payload[`📅 אירוע ב-${hd.renderGematriya()}`] = finalStr;
+                payload[`אירוע ב-${hd.renderGematriya()}`] = finalStr;
             }
         });
         
@@ -394,6 +536,80 @@ window.saveOrZaruaSetting = function() {
     refreshCalendar();
 };
 
+window.saveLocationSetting = function() {
+    const cityKey = document.getElementById('setting-location').value;
+    saveLocation(cityKey);
+    updateSunsetInfo();
+    showToast(cityKey ? "המיקום נשמר. היום ההלכתי יחושב לפי השקיעה." : "המיקום הוסר. היום יחושב לפי חצות לועזי.");
+    refreshCalendar();
+};
+
+window.saveNotificationsSetting = async function() {
+    const value = document.getElementById('setting-notifications').value;
+    if (value !== 'off' && 'Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            showAlert("לא ניתנה הרשאה להתראות. ניתן לאשר זאת בהגדרות הדפדפן/המערכת בכל שלב.");
+            document.getElementById('setting-notifications').value = 'off';
+            saveNotificationSetting('off');
+            return;
+        }
+    }
+    saveNotificationSetting(value);
+    showToast("הגדרות ההתראות עודכנו.");
+    refreshCalendar();
+};
+
+window.saveAutoLaunchSetting = function() {
+    const isChecked = document.getElementById('setting-auto-launch').checked;
+    saveAutoLaunchSetting(isChecked);
+    if (window.api && window.api.setAutoLaunch) {
+        window.api.setAutoLaunch(isChecked);
+    }
+    showToast(isChecked ? "התוכנה תופעל אוטומטית עם המחשב." : "הפעלה אוטומטית בוטלה.");
+};
+
+window.zoomIn = function() {
+    const level = Math.min(150, getZoomLevel() + 10);
+    saveZoomLevel(level);
+    applyZoom(level);
+};
+
+window.zoomOut = function() {
+    const level = Math.max(70, getZoomLevel() - 10);
+    saveZoomLevel(level);
+    applyZoom(level);
+};
+
+window.zoomReset = function() {
+    saveZoomLevel(100);
+    applyZoom(100);
+};
+
+window.checkForAppUpdate = async function() {
+    if (!window.api || !window.api.checkForUpdate) {
+        showAlert("בדיקת עדכונים זמינה רק בתוכנת הדסקטופ.");
+        return;
+    }
+    const statusEl = document.getElementById('update-status-text');
+    if (statusEl) statusEl.innerText = "בודק אם יש עדכון...";
+    await window.api.checkForUpdate();
+};
+
+window.downloadAppUpdate = async function() {
+    const statusEl = document.getElementById('update-status-text');
+    if (statusEl) statusEl.innerText = "מוריד עדכון...";
+    await window.api.downloadUpdate();
+};
+
+window.installAppUpdate = function() {
+    // Safety-net backup before restarting to install (data itself already persists
+    // automatically across app updates in the same userData folder).
+    downloadBackup(db);
+    showToast("גיבוי הורד. התוכנה תיסגר ותתעדכן כעת...");
+    setTimeout(() => window.api.quitAndInstall(), 800);
+};
+
 window.executeDeleteAll = function() {
     wipeAll();
     document.querySelectorAll('#setting-pin-container .pin-digit').forEach(i => i.value = '');
@@ -420,7 +636,7 @@ window.jumpToDate = function() {
 };
 
 window.returnToToday = function() {
-    const today = new HDate();
+    const today = new HDate(getHalachicTodayAbs(getLocation()));
     currentHDate = new HDate(1, today.getMonth(), today.getFullYear());
     refreshCalendar();
 };
@@ -431,7 +647,9 @@ window.toggleYearlyView = function() {
     
     btns.forEach(btn => {
         if (!btn) return;
-        btn.innerText = isYearlyView ? "תצוגה חודשית 🔽" : "תצוגה שנתית 📅";
+        btn.innerHTML = isYearlyView
+            ? `${ICONS.CHEVRON_DOWN} תצוגה חודשית`
+            : `${ICONS.CALENDAR} תצוגה שנתית`;
     });
     
     const mSelects = [document.getElementById('jump-month'), document.getElementById('mobile-jump-month')];
@@ -542,9 +760,10 @@ window.prepareAndPrint = function() {
     const printContainer = document.getElementById('print-container');
     if (!printContainer) return;
     
-    printContainer.innerHTML = ''; 
+    printContainer.innerHTML = '';
     const isOrZarua = isOrZaruaEnabled();
     const engineData = calculateEngine(db, isOrZarua);
+    const todayAbs = getHalachicTodayAbs(getLocation());
     let activeMonths = new Set();
 
     Object.keys(db).forEach(abs => {
@@ -569,7 +788,7 @@ window.prepareAndPrint = function() {
     monthsArr.forEach(item => {
         let wrapper = document.createElement('div');
         wrapper.className = 'print-month-wrapper';
-        wrapper.innerHTML = buildMonthGridHTML(item.m, item.y, db, engineData, false);
+        wrapper.innerHTML = buildMonthGridHTML(item.m, item.y, db, engineData, false, todayAbs);
         printContainer.appendChild(wrapper);
     });
 

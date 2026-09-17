@@ -41,7 +41,9 @@ function applyOrZarua(prishotObj, baseAbs, baseOna, reasonDesc) {
  * @returns {Object} An object containing the computed dates (nekiim, tevilot, prishot) and the list of reiyot.
  */
 export function calculateEngine(db, isOrZaruaEnabled) {
-    let computed = { nekiim: [], tevilot: [], prishot: {} };
+    // nekiimFirstDay: the first of the 7 clean days begins the night right after a daytime hefsek
+    // (the Jewish day starts at nightfall), so it belongs at the TOP (night) of its box, not the bottom.
+    let computed = { nekiim: [], nekiimFirstDay: [], tevilot: [], prishot: {} };
     let absDays = Object.keys(db).map(Number).sort((a, b) => a - b);
     let reiyot = [];
 
@@ -119,6 +121,7 @@ export function calculateEngine(db, isOrZaruaEnabled) {
         for (let i = 1; i <= 7; i++) {
             computed.nekiim.push(hefsekAbs + i);
         }
+        computed.nekiimFirstDay.push(hefsekAbs + 1);
 
         // 3. Expected Mikvah Immersion Date (7 days after Hefsek)
         let expectedTevilah = hefsekAbs + 7;
