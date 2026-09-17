@@ -315,9 +315,6 @@ window.sendEmailViaFormSubmit = async function() {
     }
 };
 
-window.moveToNext = function(t) {};
-window.handleBackspace = function(t, e) {};
-
 window.setupNewPin = function() {
     setupNewPin(() => {
         refreshCalendar();
