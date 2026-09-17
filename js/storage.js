@@ -6,14 +6,16 @@ const KEYS = {
     PIN: 'taharahPIN',
     EMAIL: 'taharahEmail',
     OR_ZARUA: 'taharahOrZarua',
+    CHAZAKA: 'taharahChazaka',
+    AKIROT: 'taharahAkirot',
+    LIFE: 'taharahLifeState',
     THEME: 'taharahTheme',
     EMAIL_SEEN: 'taharahEmailWarningSeen',
     RECOVERY_EMAIL: 'taharahRecoveryEmail',
-    LOCATION: 'taharahLocation',
-    ZOOM: 'taharahZoom',
-    NOTIFICATIONS: 'taharahNotifications',
-    NOTIFIED_MARKER: 'taharahLastNotified',
-    AUTO_LAUNCH: 'taharahAutoLaunch'
+    HISTORY_STATE: 'taharahHistoryState',
+    BODY_REMINDER_SEEN: 'taharahBodyReminderSeen',
+    STRINGENCIES: 'taharahStringencies',
+    LOCATION: 'taharahLocation'
 };
 
 /**
@@ -31,6 +33,26 @@ export function saveDb(db) {
 }
 
 /**
+ * The database snapshot that was last written to the Google backup's history
+ * tab. The next backup diffs against it, so only real changes are logged.
+ */
+export function getHistoryState() {
+    try {
+        return JSON.parse(localStorage.getItem(KEYS.HISTORY_STATE)) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+export function saveHistoryState(state) {
+    try {
+        localStorage.setItem(KEYS.HISTORY_STATE, JSON.stringify(state || {}));
+    } catch (e) {
+        // quota exceeded - history diffing falls back to "everything is new"
+    }
+}
+
+/**
  * Wipe all data from storage (except theme and warning checks if desired, but we'll wipe all user credentials).
  */
 export function wipeAll() {
@@ -38,13 +60,35 @@ export function wipeAll() {
     localStorage.removeItem(KEYS.PIN);
     localStorage.removeItem(KEYS.EMAIL);
     localStorage.removeItem(KEYS.OR_ZARUA);
+    localStorage.removeItem(KEYS.CHAZAKA);
+    localStorage.removeItem(KEYS.AKIROT);
+    localStorage.removeItem(KEYS.LIFE);
     localStorage.removeItem(KEYS.EMAIL_SEEN);
     localStorage.removeItem(KEYS.RECOVERY_EMAIL);
+    localStorage.removeItem(KEYS.HISTORY_STATE);
+    localStorage.removeItem(KEYS.BODY_REMINDER_SEEN);
+    localStorage.removeItem(KEYS.STRINGENCIES);
     localStorage.removeItem(KEYS.LOCATION);
-    localStorage.removeItem(KEYS.NOTIFICATIONS);
-    localStorage.removeItem(KEYS.NOTIFIED_MARKER);
-    localStorage.removeItem(KEYS.AUTO_LAUNCH);
-    // Note: ZOOM (display preference, not personal data) intentionally survives a data wipe.
+}
+
+/**
+ * היום (abs) שבו הוצגה לאחרונה ההתראה היומית של וסת הגוף, אם הוצגה.
+ *
+ * התזכורת עצמה מוצגת תדיר בכרטיס שבראש המסך; ההתראה הקופצת היא **יומית** בלבד
+ * (ולא בכל פתיחה של האפליקציה) — שהרי מיחוש שתועד ועומד אינו דחוף יותר ברגע זה
+ * מאשר אתמול, ואילו חובת הבדיקה עצמה מוצגת בכרטיס תמיד.
+ */
+export function getBodyReminderSeen() {
+    const raw = Number(localStorage.getItem(KEYS.BODY_REMINDER_SEEN));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+}
+
+export function setBodyReminderSeen(abs) {
+    try {
+        localStorage.setItem(KEYS.BODY_REMINDER_SEEN, String(abs));
+    } catch (e) {
+        // quota exceeded - ההתראה תוצג שוב; אין בכך נזק
+    }
 }
 
 /**
@@ -112,65 +156,102 @@ export function saveOrZarua(enabled) {
 }
 
 /**
- * Location (city) setting — used for sunset-aware halachic day calculation.
+ * Chazaka engine settings (fixed-veset detection).
+ *
+ * ON by default: without it the app would show every concern for every sighting,
+ * which is a needless stringency for a woman who has a fixed veset. The switch
+ * exists so the engine can be turned off and the old behaviour restored.
  */
-export function getLocation() {
+export function isChazakaEnabled() {
+    return localStorage.getItem(KEYS.CHAZAKA) !== 'false';
+}
+
+export function saveChazaka(enabled) {
+    localStorage.setItem(KEYS.CHAZAKA, enabled);
+}
+
+/**
+ * Uprooting engine settings (a veset time that passed is no longer a concern).
+ *
+ * ON by default: without it the app keeps presenting concerns whose time has
+ * passed `[שט ל"ג | עמ' 111]`, and - worse - never asks for the check that the
+ * din requires, or reports that the woman is forbidden until she checks
+ * `[שט כ"ד | עמ' 7]`.
+ */
+export function isAkirotEnabled() {
+    return localStorage.getItem(KEYS.AKIROT) !== 'false';
+}
+
+export function saveAkirot(enabled) {
+    localStorage.setItem(KEYS.AKIROT, enabled);
+}
+
+/**
+ * Life state (מצב חיים): pregnancy, birth and nursing, age, and pills.
+ *
+ * Unlike the events database, this is a SETTING and not a record: it is not part
+ * of the Google backup, like the chazaka and uprooting switches. It is read by
+ * the engine on every calculation, and its absence simply means "no known state".
+ */
+export function getLifeState() {
+    try {
+        return JSON.parse(localStorage.getItem(KEYS.LIFE)) || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+export function saveLifeState(state) {
+    try {
+        if (state === null || state === undefined) {
+            localStorage.removeItem(KEYS.LIFE);
+            return;
+        }
+        localStorage.setItem(KEYS.LIFE, JSON.stringify(state));
+    } catch (e) {
+        // quota exceeded - the state simply is not persisted
+    }
+}
+
+/**
+ * מתגי החומרא (`js/stringencies.js`).
+ *
+ * אלו **הגדרות** ולא רשומות: אינן נשמרות בגיבוי גוגל, כמו מתגי המנועים וסביבת
+ * החיים, וברירת המחדל שלהן מתקבלת מן המודול (פירושו: מתג חסר = ברירת המחדל,
+ * ולכן הוספת מתג אינה דורשת הגירת נתונים).
+ */
+export function getStringencies() {
+    try {
+        return JSON.parse(localStorage.getItem(KEYS.STRINGENCIES)) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+export function saveStringencies(state) {
+    try {
+        localStorage.setItem(KEYS.STRINGENCIES, JSON.stringify(state || {}));
+    } catch (e) {
+        // quota exceeded - המתגים יישארו כברירת המחדל שלהם
+    }
+}
+
+/**
+ * המיקום שנבחר לזמני הנץ והשקיעה (`js/zmanim.js`, ספק עונה — B6).
+ *
+ * הגדרה ולא רשומה: אינה נשמרת בגיבוי גוגל, כמו מתגי המנועים ומצב החיים.
+ * מחרוזת ריקה פירושה "לא נבחר מיקום", ואז אין זמנים מוצגים — ואין בכך שינוי דין.
+ */
+export function getSavedLocation() {
     return localStorage.getItem(KEYS.LOCATION) || '';
 }
 
-export function saveLocation(cityKey) {
-    localStorage.setItem(KEYS.LOCATION, cityKey);
-}
-
-export function removeLocation() {
-    localStorage.removeItem(KEYS.LOCATION);
-}
-
-/**
- * Global zoom level setting (percentage, e.g. 100 = default).
- */
-export function getZoomLevel() {
-    const raw = localStorage.getItem(KEYS.ZOOM);
-    const val = raw ? parseInt(raw, 10) : 100;
-    return isNaN(val) ? 100 : val;
-}
-
-export function saveZoomLevel(percent) {
-    localStorage.setItem(KEYS.ZOOM, String(percent));
-}
-
-/**
- * Desktop notification preference: 'off' | 'daily' | 'events'
- */
-export function getNotificationSetting() {
-    return localStorage.getItem(KEYS.NOTIFICATIONS) || 'off';
-}
-
-export function saveNotificationSetting(value) {
-    localStorage.setItem(KEYS.NOTIFICATIONS, value);
-}
-
-/**
- * Tracks the last halachic-day marker a notification was already shown for,
- * to avoid repeating the same notification multiple times in one halachic day.
- */
-export function getLastNotifiedMarker() {
-    return localStorage.getItem(KEYS.NOTIFIED_MARKER) || '';
-}
-
-export function saveLastNotifiedMarker(marker) {
-    localStorage.setItem(KEYS.NOTIFIED_MARKER, marker);
-}
-
-/**
- * Auto-launch-at-login preference (Electron desktop app only).
- */
-export function getAutoLaunchSetting() {
-    return localStorage.getItem(KEYS.AUTO_LAUNCH) === 'true';
-}
-
-export function saveAutoLaunchSetting(enabled) {
-    localStorage.setItem(KEYS.AUTO_LAUNCH, enabled ? 'true' : 'false');
+export function saveLocation(id) {
+    try {
+        localStorage.setItem(KEYS.LOCATION, String(id || ''));
+    } catch (e) {
+        // quota exceeded - המיקום יישאר כפי שהיה
+    }
 }
 
 /**

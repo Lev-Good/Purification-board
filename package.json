@@ -1,10 +1,12 @@
 {
   "name": "purification-board",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "אפליקציית חישוב ימי הטהרה ולוח שנה עברי",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node tests/engine.test.js && node tests/chazaka.test.js && node tests/chiburLemafrea.test.js && node tests/vesetWeek.test.js && node tests/vesetMevucha.test.js && node tests/vesetDilug.test.js && node tests/reiyaDuration.test.js && node tests/onotMeuravot.test.js && node tests/akira.test.js && node tests/dayMarks.test.js && node tests/lifeState.test.js && node tests/silekReturn.test.js && node tests/pillPause.test.js && node tests/vesetGuf.test.js && node tests/signOnly.test.js && node tests/checkTwice.test.js && node tests/zmanim.test.js && node tests/googleBackup.test.js && node tests/integrity.test.js",
+    "verify:sources": "node tools/verify_citations.mjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -47,20 +49,9 @@
       "hebcal.js",
       "main.js",
       "preload.js",
-      "icon.png",
       "css/**/*",
-      "js/**/*"
-    ],
-    "publish": {
-      "provider": "github",
-      "owner": "Lev-Good",
-      "repo": "Purification-board"
-    }
-  },
-  "allowScripts": {
-    "electron@25.9.8": true
-  },
-  "dependencies": {
-    "electron-updater": "^6.8.9"
+      "js/**/*",
+      "icon.png"
+    ]
   }
 }

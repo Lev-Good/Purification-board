@@ -1,15 +1,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose safe storage + native app integration methods securely to the frontend
+// Expose safe storage methods securely to the frontend
 contextBridge.exposeInMainWorld('api', {
   encrypt: (plainText) => ipcRenderer.invoke('encrypt-string', plainText),
   decrypt: (base64Cipher) => ipcRenderer.invoke('decrypt-string', base64Cipher),
-  setAutoLaunch: (enabled) => ipcRenderer.invoke('set-auto-launch', enabled),
-  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
-  downloadUpdate: () => ipcRenderer.invoke('download-update'),
-  quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),
-  onUpdateStatus: (callback) => {
-    ipcRenderer.on('update-status', (event, data) => callback(data));
-  }
+  oauthStart: (loginHint) => ipcRenderer.invoke('oauth-start', loginHint),
+  oauthStatus: () => ipcRenderer.invoke('oauth-status'),
+  oauthEnsureToken: () => ipcRenderer.invoke('oauth-ensure-token'),
+  oauthSetMeta: (patch) => ipcRenderer.invoke('oauth-set-meta', patch),
+  oauthDisconnect: () => ipcRenderer.invoke('oauth-disconnect'),
+  oauthOpenSheet: () => ipcRenderer.invoke('oauth-open-sheet'),
+  onOAuthLog: (cb) => ipcRenderer.on('oauth-log', (event, msg) => cb(msg)),
+  onAutoBackupTick: (cb) => ipcRenderer.on('oauth-auto-backup-tick', (event, ts) => cb(ts))
 });

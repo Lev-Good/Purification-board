@@ -26,7 +26,8 @@
         <input type="text" class="pin-digit" maxlength="1" pattern="[0-9]*" inputmode="numeric">
         <input type="text" class="pin-digit" maxlength="1" pattern="[0-9]*" inputmode="numeric">
     </div>
-    <input type="email" id="setup-recovery-email" placeholder="אימייל לשחזור (אופציונלי)" class="text-input" style="max-width: 280px; margin-bottom: 20px; text-align: center;">
+    <input type="email" id="setup-recovery-email" placeholder="אימייל לשחזור (אופציונלי)" class="text-input" style="max-width: 280px; margin-bottom: 12px; text-align: center;">
+    <button id="setup-restore-link" style="display: none; background: none; border: none; color: var(--primary); font-weight: 500; cursor: pointer; margin-bottom: 20px; font-size: 0.9em; text-decoration: underline;" onclick="restoreFromGoogleFromSetup()">שחזור נתונים מחשבון גוגל מחובר</button>
     
     <div class="error-msg" id="setup-pin-error"></div>
     <button class="action-btn btn-primary" style="width: 200px;" onclick="setupNewPin()">שמור והיכנס</button>
@@ -55,6 +56,7 @@
     
     <button class="action-btn btn-primary" style="width: 200px;" id="unlock-submit-btn" onclick="verifyPin()">כניסה ליומן</button>
     <button class="action-btn btn-primary" style="width: 200px; display: none;" id="recover-submit-btn" onclick="recoverPinSubmit()">שלח קוד לשחזור</button>
+    <button class="action-btn btn-blue" style="width: 200px; display: none; margin-top: 15px;" id="restore-google-btn" onclick="restoreFromGoogleUnlock()">☁️ שחזר מחשבון גוגל</button>
     
     <a href="#" id="forgot-pin-link" onclick="toggleForgotPassword(); return false;" style="color: var(--primary); font-weight: 500; font-size: 0.9em; margin-top: 15px; text-decoration: none;">שכחתי קוד גישה</a>
 </div>
@@ -76,12 +78,16 @@
                 לוח שנה
             </button>
             <button id="desktop-nav-table" onclick="switchView('view-table', 'nav-table', 'desktop-nav-table')">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></path></svg>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></svg>
                 ריכוז וסתות
             </button>
             <button id="desktop-nav-about" onclick="switchView('view-about', 'nav-about', 'desktop-nav-about')">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 אודות
+            </button>
+            <button id="desktop-nav-guide" onclick="switchView('view-guide', 'nav-guide', 'desktop-nav-guide')">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                מדריך הלכתי
             </button>
             <button id="desktop-nav-settings" onclick="switchView('view-settings', 'nav-settings', 'desktop-nav-settings')">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -125,20 +131,6 @@
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             </div>
         </div>
-
-        <!-- Global zoom controls -->
-        <div class="sidebar-controls" style="padding-top: 12px; border-top: 1px solid var(--border-color);">
-            <div class="sidebar-controls-title">זום תצוגה</div>
-            <div class="sidebar-nav-row">
-                <button class="sidebar-nav-btn" onclick="zoomOut()" title="הקטן תצוגה" aria-label="הקטן תצוגה">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                </button>
-                <button class="sidebar-nav-btn" onclick="zoomIn()" title="הגדל תצוגה" aria-label="הגדל תצוגה">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                </button>
-            </div>
-            <button class="sidebar-nav-btn" id="zoom-reset-btn" onclick="zoomReset()" style="margin-top: 4px;">איפוס זום (100%)</button>
-        </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -157,7 +149,7 @@
                 <button id="mobile-next-month" class="action-btn btn-outline" style="padding: 6px 10px;">◀</button>
             </div>
             <div class="mobile-controls-row" style="margin-top: 4px; justify-content: center; gap: 8px;">
-                <button id="mobile-toggle-yearly-btn" class="action-btn btn-outline btn-with-icon" style="padding: 6px 12px; font-size: 0.8em;" onclick="toggleYearlyView()">תצוגה שנתית</button>
+                <button id="mobile-toggle-yearly-btn" class="action-btn btn-outline" style="padding: 6px 12px; font-size: 0.8em;" onclick="toggleYearlyView()">תצוגה שנתית</button>
                 <button id="mobile-return-today" class="action-btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="returnToToday()">חזור להיום</button>
             </div>
         </div>
@@ -167,6 +159,12 @@
             טוען נתונים...
         </div>
 
+        <!-- Chazaka status: what was established from the recorded sightings -->
+        <div id="life-container" class="dashboard" style="display: none;"></div>
+        <div id="chazaka-container" class="dashboard" style="display: none;"></div>
+        <!-- סימוני היום והדינים התלויים בהם: פטורי אור זרוע, פחד פתאום, חרדה -->
+        <div id="day-state-container" class="dashboard" style="display: none;"></div>
+
         <!-- SECTION 1: Calendar View -->
         <section id="view-calendar" class="section-container active">
             <div id="month-title" class="month-title-display">טוען לוח...</div>
@@ -174,25 +172,96 @@
                 <div class="calendar" id="calendar"></div>
                 <div id="yearly-calendar-wrapper" style="display: none;"></div>
             </div>
+
+            <!-- מקרא הסימונים: לכל סימון בלוח יש הסבר ומראה מקום משלו -->
+            <details class="board-legend">
+                <summary>מקרא הסימונים בלוח (לחצו על ? שלצד כל סימון להסבר ולמראה מקום)</summary>
+
+                <h4>סימוני היום</h4>
+                <ul class="legend-list">
+                    <li><b>ראיית יום / ראיית לילה</b> <button class="help-dot" data-help="mark_reiyah" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — יום שבו נרשמה ראייה. הלילה מוצג במעל למספר היום, והיום בתחתיתו.</li>
+                    <li><b>בועת היום עצמו</b> — סימן שאותו יום הוא היום הנוכחי, ואינו מדין.</li>
+                    <li><b>פרישת יום / פרישת לילה</b> <button class="help-dot" data-help="prisha" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — העונה שבה יש לפרוש. הסימון נושא בקוד שלו את טעם החשש (להלן), ובריחוף מוצגים כל טעמיו.</li>
+                    <li><b>בדיקה</b> <button class="help-dot" data-help="bedikot" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — נבדקה באותה עונה. בדיקה כדין (בעומק ובחו"ס) יכולה לעקור וסת; קינוח בלבד אינו מועיל.
+                        ואילו <b>בדיקה ב'</b> היא הבדיקה השנייה שבעונה — לכתחילה, ובלא שינוי בעיקר הדין.</li>
+                    <li><b>הפסק טהרה</b> <button class="help-dot" data-help="mark_hefsek" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — היום שבו נעשתה בדיקת ההפסק.
+                    </li>
+                    <li><b>נקיים</b> <button class="help-dot" data-help="mark_nekiim" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — משבעת הימים הנקיים, שנספרים ממחרת יום ההפסק.</li>
+                    <li><b>טבילה / צפי טבילה</b> <button class="help-dot" data-help="mark_tevilah" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — הטבילה בלילה שלאחר היום המסומן; "צפי" הוא חישוב של המערכת, עד שתרשם טבילה בפועל.</li>
+                    <li><b>מיחוש</b> <button class="help-dot" data-help="veset_haguf" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — מיחוש גופני משונה שתועד על גבי יום הראייה, לחישוב וסת הגוף והווסת המורכב.</li>
+                    <li><b>הערה אישית</b> <button class="help-dot" data-help="mark_note" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — הערה שלך, ואינה מדיני הוסתות.</li>
+                    <li><b>סימוני היום</b> <button class="help-dot" data-help="day_marks" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — סימונים שאינם אירוע של ממש, והם נוספים לכל סוג רשומה שבאותו יום:
+                        <b>כתם</b> (אינו קובע וסת), <b>פחד פתאום</b> (מביא לדם — ולמעשה אסורה עד שישאלנה אם הרגישה),
+                        <b>חרדה מתמשכת</b> (מסלקת את הדמים, ואינה מבטלת חששות שתועדו),
+                        <b>יציאה לדרך</b> ו<b>ליל חופה</b> (פטורי עונת "אור זרוע").</li>
+                    <li><b>פרישה מעומעמת (מסגרת מקווקוות)</b> <button class="help-dot" data-help="akira" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — זמן וסת שעבר ונעקר. הוא נשאר בלוח כתיעוד, ואינו חובה החלה עוד.
+                    </li>
+                    <li><b>"אסורה עד שתבדוק"</b> <button class="help-dot" data-help="akira" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        — מצב זה אינו מסומן במשבצת אלא מוצג בפאנל שבראש המסך: עבר זמן הוסת ולא נבדקה — אסורה עד שתבדוק.</li>
+                </ul>
+
+                <h4>קודי הפרישה בלוח</h4>
+                <ul class="legend-list">
+                    <li><b>עו"ב</b> — עונה בינונית, יום ל' מן הראייה.<button class="help-dot" data-help="beinonit" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>עו"ל</b> — עונה בינונית של יום ל"א (מנהג המקובל בימינו).<button class="help-dot" data-help="beinonit" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>יו"ח</b> — וסת החודש: אותו יום בחודש העברי.<button class="help-dot" data-help="yom_hachodesh" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>יו"ח*</b> — יום החודש במחלוקת (חודש חסר): שלושה תאריכים, ויש לשאול רב.<button class="help-dot" data-help="yom_hachodesh" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>עו"ה</b> — עונת ההפלגה, במניין הימים שלמדה מראייתה.<button class="help-dot" data-help="haflega" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>עוא"ז</b> — עונת "אור זרוע": העונה שלפני זמן הוסת (מנהג, ובהפעלה בהגדרות).<button class="help-dot" data-help="or_zarua" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>עוא"ז שנסתלק</b> — עונת אור זרוע שהיתה מונחת ונסתלקה מחמת אחד מהפטורים
+                        (ליל טבילה · ליל חופה · יוצא לדרך); היא מוצגת בפאנל עם מראה מקומה, ולא נעלמת בשקט.
+                        <button class="help-dot" data-help="or_zarua_exempt" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>עו"מ</b> — עונות מעורבות: שלש ראיות בעונה אחת והרביעית בשכנגדה — חוששת ליום וללילה.<button class="help-dot" data-help="onot_meuravot" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>מש"ר</b> — משיכת הראייה: הדימום נמשך לעונה הסמוכה, וחוששת גם לה.<button class="help-dot" data-help="reiya_duration" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>פה"כ</b> — חשש יום ההפסקה בכדורים: ימים ב'–ה' שאחרי הפסקת הנטילה.<button class="help-dot" data-help="kadurim_pause" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>וק"ח</b> — זמן הוסת הקבועה של יום החודש.<button class="help-dot" data-help="kviut" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>וק"ה</b> — זמן הוסת הקבועה של ההפלגה.<button class="help-dot" data-help="kviut" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>וק"ש</b> — וסת השבוע: אותו יום בשבוע, בהפלגה של שבוע בדיוק.<button class="help-dot" data-help="veset_week" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>וק"מ</b> — וסת לימים המתחלפים ("ימי המבוכה"): שני ימי חודש, והיום המפסיק ביניהם אינו נחשש.<button class="help-dot" data-help="yamim_mitchalfim" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>וק"ד</b> — וסת הדילוג: מחזור ימים החוזר ונדבק בכל חודש; מוצג לבירור עם רב.<button class="help-dot" data-help="mishalvim" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>וק"ב</b> — חשש שבוטל: מחמת מסולקת דמים, או מכוח וסת קבוע או חזרה מן הסילוק.<button class="help-dot" data-help="silek_suppressed" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                    <li><b>ומ"ח</b> / <b>ומ"ה</b> — וסת מורכב: אותו יום בחודש או אותה הפלגה יחד עם אותו מיחוש.<button class="help-dot" data-help="veset_haguf" type="button" aria-label="הסבר הלכתי ומקורות">?</button></li>
+                </ul>
+                <p class="legend-note">מפתח המקורות: <b>שט</b> — "שיעורי טהרה" להגר"מ גרוס (<b>שיעור</b> ועמוד) ·
+                    <b>ד"ט</b> — "דעת טהרה — רק וסתות" (עמוד) · <b>שו"ע</b> — שולחן ערוך.<br>
+                    עמודיו של כל מראה מקום אומתו בגוף הספר; מספרי השיעורים שבציטוטים טעונים אימות
+                    מול הספר המודפס — ראו <code>tools/verify_citations.mjs</code>.</p>
+            </details>
         </section>
 
         <!-- SECTION 2: Table Summary View -->
         <section id="view-table" class="section-container">
-            <h2 style="margin-bottom: 16px; color: var(--text-main);">ריכוז חישוב וסתות ותאריכי פרישה</h2>
+            <h2 style="margin-bottom: 16px; color: var(--text-main);">ריכוז חישוב וסתות ותאריכי פרישה<button class="help-dot" data-help="ikaron" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h2>
             <div class="table-wrapper">
                 <table id="veset-table">
                     <thead>
                         <tr>
-                            <th>תאריך ראייה</th>
-                            <th>הפלגה (ימים)</th>
-                            <th>עונה בינונית (יום 30)</th>
-                            <th>יום החודש</th>
-                            <th>הפלגה עתידית</th>
+                            <th>תאריך ראייה<button class="help-dot" data-help="mark_reiyah" type="button" aria-label="הסבר הלכתי ומקורות">?</button></th>
+                            <th>הפלגה (ימים)<button class="help-dot" data-help="haflega" type="button" aria-label="הסבר הלכתי ומקורות">?</button></th>
+                            <th>עונה בינונית (יום ל' + ל"א)<button class="help-dot" data-help="beinonit" type="button" aria-label="הסבר הלכתי ומקורות">?</button></th>
+                            <th>יום החודש<button class="help-dot" data-help="yom_hachodesh" type="button" aria-label="הסבר הלכתי ומקורות">?</button></th>
+                            <th>הפלגה עתידית<button class="help-dot" data-help="haflega" type="button" aria-label="הסבר הלכתי ומקורות">?</button></th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
+        </section>
+
+        <!-- SECTION 3b: Halachic guide (why we calculate what we calculate) -->
+        <section id="view-guide" class="section-container">
+            <h2 style="margin-bottom: 16px; color: var(--text-main);">מדריך הלכתי — המקורות והחישובים</h2>
+            <div id="guide-content"></div>
         </section>
 
         <!-- SECTION 3: About & Instructions Guide -->
@@ -212,10 +281,14 @@
                         <br>אירועים המתרחשים במהלך היום (פרישת יום, הפסק טהרה) יופיעו בחלק ה<strong>תחתון</strong>.
                     </li>
                     <li><strong>סוגי פרישות (קיצורים בלוח):</strong> 
-                        <br>עו"ב - עונה בינונית (יום ה-30).
+                        <br>עו"ב - עונה בינונית (יום ה-30).<br>עו"ל - עונה בינונית של יום ה-31.
+                        <br><span style="color: var(--orange);">יו"ח* - יום החודש במחלוקת ( ראוי לבירור עם רב):</span> אם היתה הראייה ביום ל' של החודש, והחודש שלאחריו הוא חסר (29 יום) ואין בו יום ל' — נחלקו הפוסקים: יש אומרים שתחוש ביום כ"ט של אותו חודש חסר (היום האחרון שבו), יש אומרים שתחוש ביום ל' של חודש מאוחר יותר, ויש אומרים שתחוש בא' בחודש הבא בתורת ראש חודש. המערכת תסמן את שלושת התאריכים בלוח, ויש לשאול רב מהי שיטתכם.
                         <br>עו"ה - עונת הפלגה.
                         <br>יו"ח - עונת יום החודש.
                         <br>עוא"ז - עונת אור זרוע (ניתן להפעיל בהגדרות).
+                        <br><span style="color: var(--orange);">עו"מ - עונות מעורבות:</span> אם שלש ראיות היו בעונה אחת והרביעית בעונה שכנגד (ביום מול לילה) — חוששת <b>ליום וללילה</b>, מפני חשש הוסת הראשון ומפני חשש השינוי שהוא האחרון; ומכוח שינוי העונה אין התבנית נקבעת כוסת קבועה.
+                        <br>וק"ח (וסת קבועה של יום החודש), וק"ה (של הפלגה), וק"ש (של יום בשבוע = וסת השבוע), וק"מ (וסת לימים המתחלפים — שני ימי חודש קבועים, כגון כ"ז וכ"ט, ויום המפסיק ביניהם אינו נחשש).<br>מש"ר - משיכת הראייה: אם הדימום נמשך לתוך העונה הסמוכה (עד ג' ימים נוספים), חוששת גם לעונה הסמוכה; ואם נמשכה ד' ימים נוספים ומעלה — די לה בעונת התחלת הראייה.
+                        <br><span style="color: var(--orange);">פה"כ - חשש יום ההפסקה בכדורים:</span> אחרי הפסקת נטילת כדורים יש להחמיר לפרוש בימים השני עד החמישי שאחרי ההפסקה (וביום שקבעה לעצמה, אם קבעה) — "שטבעם שאחר שמפסיקה ליטול הכדורים רואה מיד אחר שני ימים עד חמשה ימים". ביום הראשון מותרת. חשש זה אינו מוסיף את עונת אור זרוע שלפניו.
                     </li>
                     <li><strong>תהליך הטהרה:</strong> ביום ביצוע "הפסק טהרה" סמנו זאת בלוח. המערכת תציג אוטומטית את שבעת הנקיים (בירוק) ותסמן את צפי הטבילה ללילה הנכון.</li>
                 </ul>
@@ -240,7 +313,7 @@
                 </h3>
                 <ul>
                     <li><strong>אבטחה מקסימלית:</strong> כל הנתונים שלכם נשמרים <strong>אך ורק על המכשיר האישי שלכם</strong> (בדפדפן או בתוכנה). אף נתון לא נשלח לשרת חיצוני.</li>
-                    <li><strong>קוד נעילה (PIN):</strong> כדי להגן על היומן מעיניים סקרניות, היכנסו לתפריט ההגדרות והגדירו קוד בן 6 תווים שיידרש בכל פתיחה של האפליקציה.</li>
+                    <li><strong>קוד נעילה (PIN):</strong> כדי להגן על היומן מעיניים סקרניות, היכנסו לתפריט ההגדרות (⚙️) והגדירו קוד בן 6 תווים שיידרש בכל פתיחה של האפליקציה.</li>
                     <li><strong>גיבוי חובה:</strong> מאחר והנתונים נשמרים בדפדפן, ניקוי היסטוריה עמוק עלול למחוק אותם. <strong>אנו ממליצים בחום להוריד קובץ גיבוי לעיתים קרובות</strong> מתוך תפריט ההגדרות. את הקובץ תוכלו לטעון מחדש בכל מכשיר.</li>
                 </ul>
             </div>
@@ -252,14 +325,8 @@
                 <p style="font-size: 1.1em; color: var(--primary); font-weight: 600;">פותח באהבה ובמחשבה רבה על ידי לב טוב</p>
                 <p style="font-size: 0.9em; color: var(--text-muted);">לשאלות, הצעות לשיפור או תמיכה טכנית:</p>
                 <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px;">
-                    <a href="mailto:myylbwt@gmail.com" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 6px;">
-                        <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                        myylbwt@gmail.com
-                    </a>
-                    <a href="https://lev-good.github.io/Good-heart/" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 6px;">
-                        <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                        אתר הבית
-                    </a>
+                    <a href="mailto:myylbwt@gmail.com" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">myylbwt@gmail.com ✉️</a>
+                    <a href="https://lev-good.github.io/Good-heart/" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">אתר הבית 🌐</a>
                 </div>
             </div>
         </section>
@@ -275,14 +342,9 @@
                     <h4>פעולות מהירות</h4>
                     <p>גישה מהירה לפעולות המערכת הנפוצות.</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="action-btn btn-outline" onclick="toggleTheme()" style="flex: 1;">החלף עיצוב</button>
-                        <button class="action-btn btn-outline" onclick="prepareAndPrint()" style="flex: 1;">הדפס לוח</button>
-                        <button class="action-btn btn-outline" onclick="openEmailModal()" style="flex: 1;">שלח למייל</button>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                        <button class="action-btn btn-outline" onclick="zoomOut()" style="flex: 1;">הקטן זום</button>
-                        <button class="action-btn btn-outline" onclick="zoomIn()" style="flex: 1;">הגדל זום</button>
-                        <button class="action-btn btn-outline" onclick="zoomReset()" style="flex: 1;">איפוס זום</button>
+                        <button class="action-btn btn-outline" onclick="toggleTheme()" style="flex: 1;">החלף עיצוב 🌙</button>
+                        <button class="action-btn btn-outline" onclick="prepareAndPrint()" style="flex: 1;">הדפס לוח 🖨️</button>
+                        <button class="action-btn btn-outline" onclick="openEmailModal()" style="flex: 1;">שלח למייל ✉️</button>
                     </div>
                 </div>
 
@@ -292,46 +354,123 @@
                     }
                 </style>
 
+                <!-- Chazaka engine: fixed-veset detection -->
+                <div class="settings-group">
+                    <h4>זיהוי וסת קבוע (מנוע חזקה)<button class="help-dot" data-help="kviut" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h4>
+                    <p>המערכת מזהה מתי נקבעה וסת קבועה — ג' ראיות באותו יום ובאותה עונה, או ד' ראיות בהפלגות שוות — וממילא אינה מציגה עוד חששות שאינם נוהגים למי שיש לה וסת קבוע.</p>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em;">
+                        <input type="checkbox" id="setting-chazaka" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="saveChazakaSetting()">
+                        <span>הפעל זיהוי וסת קבוע</span>
+                    </label>
+                </div>
+
+                <!-- Uprooting engine -->
+                <div class="settings-group">
+                    <h4>עקירת וסתות<button class="help-dot" data-help="akira" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h4>
+                    <p>וסת שעבר זמנו ולא ראתה בו — נעקר, ואינו מוצג עוד כחשש. וסת קבוע נעקר רק בג' זמנים רצופים <b>ובצירוף בדיקה כדין</b>, וכן בהפלגה שעבר עליה מניין הימים.</p>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em;">
+                        <input type="checkbox" id="setting-akirot" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="saveAkirotSetting()">
+                        <span>הפעל עקירת וסתות (וסימון זמני בדיקה)</span>
+                    </label>
+                </div>
+
+                <!-- מיקום — זמני הנץ והשקיעה לבירור ספק עונה (B6) -->
+                <div class="settings-group">
+                    <h4>מיקום — זמני הנץ והשקיעה<button class="help-dot" data-help="safek_ona" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h4>
+                    <p>הספר תולה את דין ספק העונה בנץ ובשקיעה ("ואם ראתה סמוך לנץ החמה או שקיעתה ומסופקת מתי התחילה ראייתה"). כדי שתוכלי לברר את הספק, האפליקציה מציגה את זמני הנץ והשקיעה של אותו יום. הזמנים מחושבים לפי המיקום שתבחרי; בלא בחירה — לא יוצגו זמנים, ואין בכך שינוי בדין.</p>
+                    <select id="setting-location" class="text-input" style="width: 100%;" onchange="saveLocationSetting()"></select>
+                    <div id="setting-location-note" style="font-size: 0.82em; color: var(--text-muted); margin-top: 8px; line-height: 1.5;"></div>
+                </div>
+
+                <!-- מתגי חומרא (§5ב): מחלוקות שהספר מציג ואינן ננעלות בקוד -->
+                <div class="settings-group">
+                    <h4>מתגי חומרא (מחלוקות הפוסקים)</h4>
+                    <p>בכל מקום שבו הספר מביא שתי שיטות — המערכת נוהגת כברירת מחדל כשיטה הפשוטה, וכל חומרא מופעלת כאן ביודעין. כל מתג מצוין במקורותיו, וכל שינוי מחיל מחדש את כל החישובים.</p>
+                    <div id="stringency-list"></div>
+                </div>
+
+                <!-- Life state (מצב חיים): מסולקת דמים -->
+                <div class="settings-group">
+                    <h4>מצב חיים (מסולקת דמים)<button class="help-dot" data-help="life_state" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h4>
+                    <p>מעוברת אחר תשעים יום מתחילת ההריון, מניקה, זקנה וקטנה — דינן שונה: הן אינן חוששות לוסתות שהיו להן קודם, ומסולקת דמים פטורה מבדיקה. וכן: בזמן נטילת כדורים אין הוסת נעקרת מעצמה. מלאו רק את מה שרלוונטי.</p>
+
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; margin-bottom: 12px;">
+                        <input type="checkbox" id="setting-life-enabled" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>הפעל חישוב מצב חיים</span>
+                    </label>
+
+                    <div style="margin-bottom: 10px;">
+                        <label for="setting-life-pregnancy" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">תחילת ההריון (לפי מניין ליל טבילה)</label>
+                        <input type="date" id="setting-life-pregnancy" class="text-input">
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label for="setting-life-birth" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">תאריך הלידה</label>
+                        <input type="date" id="setting-life-birth" class="text-input">
+                    </div>
+
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em;">
+                        <input type="checkbox" id="setting-life-nursing" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>מניקה בימים אלה</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; margin-bottom: 12px;">
+                        <input type="checkbox" id="setting-life-nursing-lenient" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>להקל כדעת "דעת טהרה" — לידה והנקה כמסולקת דמים עד כ"ד חודש</span>
+                    </label>
+
+                    <div style="margin-bottom: 10px;">
+                        <label for="setting-life-age" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">גיל בשנים (לחישוב זקנה וקטנה)</label>
+                        <input type="number" id="setting-life-age" class="text-input" min="0" max="130" style="max-width: 110px;">
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-bottom: 10px;">
+                        <label for="setting-life-pill-type" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">סוג הכדורים</label>
+                        <select id="setting-life-pill-type" class="text-input" style="margin-bottom: 8px;">
+                            <option value="combined">כדורים משולבים</option>
+                            <option value="mini">מיני — פרוגסטרון בלבד</option>
+                            <option value="orgast">אורגסט — תלוי בסדר הנטילה</option>
+                            <option value="other">אחר</option>
+                        </select>
+                        <label for="setting-life-pill-start" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">מתאריך</label>
+                        <input type="date" id="setting-life-pill-start" class="text-input" style="margin-bottom: 8px;">
+                        <label for="setting-life-pill-stop" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">עד תאריך (ריק = עדיין נוטלת)</label>
+                        <input type="date" id="setting-life-pill-stop" class="text-input" style="margin-bottom: 8px;">
+                        <label for="setting-life-pill-reason" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">
+                            מדוע הפסקתי את הנטילה
+                            <button class="help-dot" data-help="sharp_food" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+                        </label>
+                        <select id="setting-life-pill-reason" class="text-input" style="margin-bottom: 8px;">
+                            <option value="own">הפסקתי מדעתי ומרצוני</option>
+                            <option value="doctor">הפסקתי בהוראת רופא</option>
+                            <option value="other">הפסקתי מחמת סיבה אחרת</option>
+                        </select>
+                        <p style="font-size: 0.85em; color: var(--text-muted); margin: 0 0 8px; line-height: 1.6;">
+                            תאריך ההפסקה משמש לחישוב <b>חשש יום ההפסקה</b>: ביום הראשון שאחרי ההפסקה מותרת,
+                            ומיום השני ואילך יש להחמיר לפרוש — ובימים שקבעה לעצמה. יש לרשום כל תקופת
+                            נטילה בנפרד (גם באמצע הנטילה), כדי שהמערכת תדע מתי הפסיקה בכל פעם.
+                            <b>ושימו לב לסוג הכדורים:</b> הדין הזה נאמר על רוב הכדורים, ואילו בכדורי
+                            <b>אורגסט</b> "תלוי בסדר שנוטלים אותם" — ולכן אין המערכת מחשבת להם חלון חשש,
+                            אלא מציגה את הדין לבירור.
+                        </p>
+                        <button class="action-btn btn-outline" style="width: 100%;" onclick="addPillPeriod()">הוסף תקופת כדורים</button>
+                    </div>
+                    <div id="life-pills-list" style="font-size: 0.9em;"></div>
+                    <div id="life-pills-reason-rule" style="font-size: 0.85em; color: var(--text-muted); margin-top: 10px; line-height: 1.6;"></div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button class="action-btn btn-blue" style="flex: 1;" onclick="saveLifeStateSetting()">שמור מצב חיים</button>
+                        <button class="action-btn btn-clear" style="flex: 1;" onclick="clearLifeStateSetting()">נקה מצב חיים</button>
+                    </div>
+                </div>
+
                 <!-- Or Zarua setting -->
                 <div class="settings-group">
-                    <h4>מנהג עונת "אור זרוע"</h4>
+                    <h4>מנהג עונת "אור זרוע"<button class="help-dot" data-help="or_zarua" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h4>
                     <p>הוספת פרישה של עונה אחת קודם לעונת הפרישה המקורית (מנהג חב"ד וחלק מקהילות אשכנז).</p>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em;">
                         <input type="checkbox" id="setting-or-zarua" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="saveOrZaruaSetting()">
                         <span>הפעל חישוב פרישת 'אור זרוע' אוטומטי</span>
                     </label>
-                </div>
-
-                <!-- Location setting for sunset-aware halachic day -->
-                <div class="settings-group">
-                    <h4>מיקום (לחישוב שקיעה)</h4>
-                    <p>בחירת עיר מאפשרת ליומן לדעת מתי השקיעה, כך שתאריך "היום" והתזכורות יתעדכנו לפי היום ההלכתי (המתחיל בשקיעה) ולא לפי חצות לועזי.</p>
-                    <select id="setting-location" class="text-input" style="margin-bottom: 8px;" onchange="saveLocationSetting()">
-                        <option value="">— לא נבחר (ברירת מחדל: חצות לועזי) —</option>
-                    </select>
-                    <p id="location-sunset-info" style="margin-bottom: 0;"></p>
-                </div>
-
-                <!-- Desktop / browser notifications -->
-                <div class="settings-group">
-                    <h4>התראות</h4>
-                    <p>קבלת התראה על מצב המחזור הנוכחי (ידרוש אישור הרשאת התראות מהדפדפן/המערכת).</p>
-                    <select id="setting-notifications" class="text-input" style="margin-bottom: 10px;" onchange="saveNotificationsSetting()">
-                        <option value="off">כבוי</option>
-                        <option value="daily">התראה יומית עם מצב היום</option>
-                        <option value="events">רק בימי אירוע/פרישה</option>
-                    </select>
-                    <label id="auto-launch-row" style="display: none; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em;">
-                        <input type="checkbox" id="setting-auto-launch" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="saveAutoLaunchSetting()">
-                        <span>הפעל את התוכנה אוטומטית עם המחשב (למגש המערכת), כדי שההתראות יגיעו גם כשהיא סגורה</span>
-                    </label>
-                </div>
-
-                <!-- App updates (Electron desktop only) -->
-                <div class="settings-group" id="update-settings-group" style="display: none;">
-                    <h4>עדכוני תוכנה</h4>
-                    <p id="update-status-text">גרסה נוכחית מותקנת.</p>
-                    <button class="action-btn btn-blue" style="width: 100%;" onclick="checkForAppUpdate()">בדוק אם יש עדכון חדש</button>
                 </div>
 
                 <!-- Update Security PIN code -->
@@ -371,24 +510,31 @@
                     </div>
                 </div>
                 
+                <!-- Google account connection & automatic backup -->
+                <div class="settings-group" id="google-backup-group" style="display: none;">
+                    <h4>גיבוי אוטומטי לחשבון גוגל</h4>
+                    <p id="google-status-text" style="margin-bottom: 10px;">טוען מצב חיבור...</p>
+                    <div id="google-connected-actions" style="display: none; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button class="action-btn btn-outline" style="flex: 1;" onclick="googleBackupNow()">☁️ גבה עכשיו</button>
+                            <button class="action-btn btn-outline" style="flex: 1;" onclick="googleOpenSheet()">📊 פתח את הגיליון</button>
+                        </div>
+                        <button class="action-btn btn-outline" onclick="googleRestoreBackup()">⬇️ שחזר מהגיבוי בגוגל</button>
+                        <button class="action-btn btn-outline" onclick="googleOpenRestorePoints()">🕘 נקודות שחזור (היסטוריה)</button>
+                        <button class="action-btn btn-outline" style="color: var(--red); border-color: var(--red);" onclick="googleDisconnectConfirm()">נתק חשבון גוגל</button>
+                    </div>
+                    <button class="action-btn btn-primary" id="google-connect-btn" style="width: 100%;" onclick="googleConnect()">🔗 חבר חשבון גוגל</button>
+                </div>
+
                 <!-- Database backups management -->
                 <div class="settings-group">
                     <h4>ניהול וגיבוי נתונים</h4>
                     <p>הנתונים שלכם נשמרים בדפדפן המקומי בלבד. מומלץ להוריד קובץ גיבוי למקרה של איפוס היסטוריית הגלישה.</p>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <button class="action-btn btn-primary btn-with-icon" onclick="backupData()">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                            הורד קובץ גיבוי נתונים
-                        </button>
-                        <button class="action-btn btn-outline btn-with-icon" onclick="document.getElementById('file-upload').click()">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                            טען נתונים מגיבוי (שחזור)
-                        </button>
+                        <button class="action-btn btn-primary" onclick="backupData()">💾 הורד קובץ גיבוי נתונים</button>
+                        <button class="action-btn btn-outline" onclick="document.getElementById('file-upload').click()">📂 טען נתונים מגיבוי (שחזור)</button>
                         <div style="height: 1px; background: var(--border-color); margin: 8px 0;"></div>
-                        <button class="action-btn btn-outline btn-with-icon" style="color: var(--red); border-color: var(--red);" onclick="openModal('delete-all-modal')">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            מחיקת כל הנתונים והאיפוס
-                        </button>
+                        <button class="action-btn btn-outline" style="color: var(--red); border-color: var(--red);" onclick="openModal('delete-all-modal')">🗑️ מחיקת כל הנתונים והאיפוס</button>
                     </div>
                 </div>
             </div>
@@ -409,7 +555,7 @@
     </div>
     <div class="nav-item" id="nav-table" onclick="switchView('view-table', 'nav-table')">
         <span style="display: inline-block; width: 20px; height: 20px;">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></path></svg>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></svg>
         </span>
         וסתות
     </div>
@@ -419,11 +565,29 @@
         </span>
         אודות
     </div>
+    <div class="nav-item" id="nav-guide" onclick="switchView('view-guide', 'nav-guide')">
+        <span style="display: inline-block; width: 20px; height: 20px;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </span>
+        מדריך
+    </div>
     <div class="nav-item" id="nav-settings" onclick="switchView('view-settings', 'nav-settings')">
         <span style="display: inline-block; width: 20px; height: 20px;">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </span>
         הגדרות
+    </div>
+</div>
+
+<!-- Halachic info bubble modal -->
+<div id="help-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-drag-handle"></div>
+        <h3 id="help-title">הסבר</h3>
+        <p id="help-summary" style="margin: 4px 0 12px 0; font-size: 0.88em; color: var(--text-muted, #6b7280);"></p>
+        <div id="help-body" style="max-height: 50vh; overflow-y: auto;"></div>
+        <div id="help-sources" class="guide-sources"></div>
+        <button class="action-btn btn-clear" style="width: 100%; margin-top: 14px;" onclick="closeModal('help-modal')">הבנתי, תודה</button>
     </div>
 </div>
 
@@ -436,6 +600,8 @@
         <h3 id="modal-date-title">בחר פעולה</h3>
         <p id="modal-date-heb"></p>
         
+        <div id="modal-prisha-hint" style="display: none;"></div>
+
         <textarea id="day-note" class="note-area" placeholder="הכנס הערה אישית ליום זה..."></textarea>
         <button class="action-btn btn-green" style="width:100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="saveNote()">
             <span style="display:inline-block; width:16px; height:16px;">
@@ -451,11 +617,192 @@
             <button class="action-btn btn-red" onclick="requestSaveEvent('reiyah', 'night')">תחילת ראייה (עונת לילה)</button>
             <button class="action-btn btn-blue" style="background: var(--yellow);" onclick="requestSaveEvent('hefsek', '')">הפסק טהרה</button>
             <button class="action-btn btn-blue" onclick="requestSaveEvent('tevilah', '')">טבילה (הזנה / דחייה)</button>
-            <button class="action-btn btn-outline btn-with-icon" style="color: var(--red); border-color: var(--red);" onclick="deleteEvent()">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                נקה יום זה
-            </button>
+            <div style="height: 1px; background: var(--border-color); margin: 12px 0;"></div>
+
+            <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 6px;">
+                בדיקה בעונת הפרישה
+                <button class="help-dot" data-help="bedikot" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+            </div>
+            <div style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 8px;">רק בדיקה בעומק ובחו"ס מועילה — קינוח לבד אינו מברר שלא ראתה.</div>
+            <button class="action-btn btn-blue" onclick="requestSaveEvent('check', 'day', 'deep')">בדקתי כדין — עונת יום</button>
+            <button class="action-btn btn-blue" onclick="requestSaveEvent('check', 'night', 'deep')">בדקתי כדין — עונת לילה</button>
+            <button class="action-btn btn-outline" onclick="requestSaveEvent('check', 'day', 'wipe')">קינוח בלבד (לא מועיל לעקירה)</button>
+            <label for="check-second-part" style="display: block; font-size: 0.82em; color: var(--text-muted); margin-top: 4px;">
+                בדיקה שנייה באותה עונה (לכתחילה)
+            </label>
+            <select id="check-second-part" class="text-input" style="max-width: 260px; margin-bottom: 4px;">
+                <option value="">לא בדקתי פעמיים</option>
+                <option value="rise">שנית — עם הקימה</option>
+                <option value="sunset">שנית — סמוך לשקיעה</option>
+                <option value="bedtime">שנית — לפני השינה</option>
+            </select>
+            <p style="font-size: 0.82em; color: var(--text-muted); margin: 0 0 4px; line-height: 1.55;">
+                עיקר הדין בפעם אחת; הבדיקה השנייה היא לכתחילה — בעונת היום "עם הקימה וסמוך לשקיעה",
+                ובעונת הלילה "סמוך לשקיעה ולפני השינה". <span style="white-space:nowrap;">[שט ל' | עמ' 77]</span>
+            </p>
+
+            <div style="height: 1px; background: var(--border-color); margin: 12px 0;"></div>
+
+            <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 6px;">
+                מיחוש גופני בלא ראייה
+                <button class="help-dot" data-help="michush_bli_reiyah" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+            </div>
+            <div style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 8px;">
+                המיחוש עצמו אוסר — "משעה שבאו המיחושים אסורה כדין שעת הוסת", ולכן יש לרשמו אף בלא ראייה.
+            </div>
+            <button class="action-btn btn-blue" style="background: var(--orange);" onclick="openSignDetails('day')">רישום מיחוש — עונת יום</button>
+            <button class="action-btn btn-blue" style="background: var(--orange);" onclick="openSignDetails('night')">רישום מיחוש — עונת לילה</button>
+            <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 6px;">
+                אכילת מאכל חריף
+                <button class="help-dot" data-help="sharp_food" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+            </div>
+            <div style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 8px;">
+                אכילה "מדעתה ולהנאתה" אינה אונס אלא דינה כוסת הגוף — ולכן היא נספרת אף בפעם אחת.
+            </div>
+            <button class="action-btn btn-blue" style="background: var(--orange);" onclick="openSignDetails('day', 'sharpFood')">אכלתי מאכל חריף — עונת יום</button>
+            <button class="action-btn btn-blue" style="background: var(--orange);" onclick="openSignDetails('night', 'sharpFood')">אכלתי מאכל חריף — עונת לילה</button>
+
+            <div style="height: 1px; background: var(--border-color); margin: 12px 0;"></div>
+
+            <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 6px;">
+                סימוני היום
+                <button class="help-dot" data-help="day_marks" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+            </div>
+            <div style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 8px;">
+                סימונים שאינם אירוע של ממש: כתם, פחד פתאום, חרדה מתמשכת, יציאה לדרך, וליל חופה.
+            </div>
+            <div id="day-marks-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;"></div>
+            <div id="day-marks-hint" style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5;"></div>
+            <button class="action-btn btn-green" onclick="saveDayMarks()">שמור סימוני יום</button>
+
+            <div style="height: 1px; background: var(--border-color); margin: 12px 0;"></div>
+
+            <button class="action-btn btn-outline" style="color: var(--red); border-color: var(--red);" onclick="deleteEvent()">🗑️ נקה יום זה</button>
             <button class="action-btn btn-clear" style="margin-top: 4px;" onclick="closeModal('modal')">ביטול וסגירה</button>
+        </div>
+    </div>
+</div>
+
+<!-- 1b. Sighting details (B3: why it happened · B5: did the bleeding run on) -->
+<div id="reiyah-details-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-drag-handle"></div>
+        <h3 id="reiyah-details-title">פרטי הראייה</h3>
+        <p style="font-size: 0.85em; color: var(--text-muted, #6b7280); margin-bottom: 12px;">
+            שני הפרטים האלה משנים את החישוב עצמו — ולא רק את התיעוד.
+        </p>
+
+        <div id="reiyah-flow-hint" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid var(--orange); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.86em; line-height: 1.55;"></div>
+
+        <h4 style="margin: 0 0 6px 0; font-size: 0.95em;">
+            מה גרם לראייה?
+            <button class="help-dot" data-help="reiyah_kind" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer;">
+                <input type="radio" name="reiyah-kind" value="regular" checked style="width: 16px; height: 16px; accent-color: var(--primary);">
+                <span>רגילה — ללא גורם חיצוני</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer;">
+                <input type="radio" name="reiyah-kind" value="ones" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                <span>מחמת אונס / קפיצה — <b>אינה נספרת לקביעת וסת</b></span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer;">
+                <input type="radio" name="reiyah-kind" value="sharp" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                <span>מחמת מאכלים חריפים — נספרת כמו וסת הגוף</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer;">
+                <input type="radio" name="reiyah-kind" value="pills" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                <span>מחמת כדורים</span>
+            </label>
+        </div>
+
+        <h4 style="margin: 0 0 6px 0; font-size: 0.95em;">
+            מיחוש גופני לפני הראייה?
+            <button class="help-dot" data-help="veset_haguf" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+        </h4>
+        <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.88em; cursor: pointer; margin-bottom: 8px;">
+            <input type="checkbox" id="reiyah-signs-confirm" onchange="toggleReiyahSigns()" style="width: 16px; height: 16px; margin-top: 2px; accent-color: var(--primary);">
+            <span>היה מיחוש <b>משונה</b> — לא דבר שבשיגרה — וברור לי שהוא קשור לראייה</span>
+        </label>
+        <div id="reiyah-signs-wrap" style="display: none; margin-bottom: 16px;">
+            <div id="reiyah-signs-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            <p style="font-size: 0.8em; color: var(--text-muted, #6b7280); margin: 8px 0 0 0; line-height: 1.5;">
+                משעה שבאו המיחושים אסורה כדין שעת הוסת. שלש פעמים לאותו מיחוש קובעות וסת הגוף;
+                ואם המיחוש בא תמיד באותו זמן — הרי זה "וסת מורכב", שחוששת באותו היום אף קודם שבא המיחוש.
+            </p>
+        </div>
+
+        <h4 style="margin: 0 0 6px 0; font-size: 0.95em;">
+            האם הדימום נמשך?
+            <button class="help-dot" data-help="meayan_satum" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer;">
+                <input type="radio" name="reiyah-flow" value="ended" checked onchange="toggleReiyahDuration()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                <span>הראייה החלה והסתיימה ביום זה — ראייה נפרדת</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9em; cursor: pointer;">
+                <input type="radio" name="reiyah-flow" value="continued" onchange="toggleReiyahDuration()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                <span>הדימום נמשך ברצף בימים נוספים</span>
+            </label>
+        </div>
+
+        <div id="reiyah-duration-wrap" style="display: none; margin-bottom: 14px;">
+            <label style="font-size: 0.9em;">
+                כמה ימים סך הכל נמשך הדימום?
+                <input type="number" id="reiyah-duration-days" min="2" max="30" value="2" class="text-input" style="width: 90px; margin-inline-start: 8px;" dir="ltr">
+            </label>
+            <p style="font-size: 0.8em; color: var(--text-muted, #6b7280); margin-top: 6px; line-height: 1.5;">
+                זמן הוסת נקבע לפי <b>תחילת</b> הראייה — גם אם נמשכה ימים. הפרט הזה נשמר לשם תנאי "ממעיין סתום" ו"משיכת הראייה".
+            </p>
+        </div>
+
+        <h4 style="margin: 0 0 6px 0; font-size: 0.95em;">
+            האם הראייה היתה סמוך לחילוף העונות?
+            <button class="help-dot" data-help="safek_ona" type="button" aria-label="הסבר הלכתי ומקורות">?</button>
+        </h4>
+        <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.9em; cursor: pointer; margin-bottom: 14px;">
+            <input type="checkbox" id="reiyah-safek-ona" style="width: 16px; height: 16px; margin-top: 2px; accent-color: var(--primary);">
+            <span>ספק עונה — איני בטוחה אם הראייה היתה בעונה זו או בקודמתה
+                <span style="display: block; font-size: 0.85em; color: var(--text-muted, #6b7280); line-height: 1.5;">
+                    מן הדין חוששת לעונה המאוחרת בלבד (כאן רשומה) — ש"חזקה שראתה ככל שיותר מאחר". לחוש לשתי העונות הוא חומרא, וניתן להפעילה במתגי החומרא שבהגדרות.
+                </span>
+            </span>
+        </label>
+
+        <div id="reiyah-times" style="display: none; background: rgba(79, 70, 229, 0.08); border: 1px solid var(--primary); border-radius: 8px; padding: 8px 10px; margin-bottom: 14px; font-size: 0.82em; line-height: 1.6;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="action-btn btn-green" onclick="saveReiyahDetails()">שמור את הראייה</button>
+            <button class="action-btn btn-clear" onclick="closeModal('reiyah-details-modal')">ביטול וחזרה</button>
+        </div>
+    </div>
+</div>
+
+<!-- 1c. Sign without a sighting (מיחוש בלא ראייה) -->
+<div id="sign-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-drag-handle"></div>
+        <h3 id="sign-modal-title">רישום מיחוש גופני</h3>
+        <p style="font-size: 0.85em; color: var(--text-muted, #6b7280); margin-bottom: 12px;">
+            המיחוש עצמו הוא האוסר: "משעה שבאו המיחושים אסורה כדין שעת הוסת".
+            שלש פעמים לאותו מיחוש קובעות וסת הגוף, ואם עבר ולא נבדקה — אסורה עד שתבדוק.
+        </p>
+
+        <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.88em; cursor: pointer; margin-bottom: 10px;">
+            <input type="checkbox" id="sign-confirm" onchange="toggleSignList()" style="width: 16px; height: 16px; margin-top: 2px; accent-color: var(--primary);">
+            <span>המיחוש <b>משונה</b> — לא דבר שבשיגרה — וברור לי שהוא שייך לביאת הוסת</span>
+        </label>
+
+        <div id="sign-list-wrap" style="display: none; margin-bottom: 14px;">
+            <div id="sign-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            <div id="sign-sources" class="guide-sources" style="margin-top: 8px;"></div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="action-btn btn-green" onclick="saveSignDetails()">שמור את המיחוש</button>
+            <button class="action-btn btn-clear" onclick="closeModal('sign-modal')">ביטול וחזרה</button>
         </div>
     </div>
 </div>
@@ -489,6 +836,34 @@
     </div>
 </div>
 
+<!-- 3b. Google backup restore modal -->
+<div id="restore-google-modal" class="modal-overlay">
+    <div class="modal-content" style="text-align: center;">
+        <div class="modal-drag-handle"></div>
+        <div style="color: var(--primary); margin: 0 auto 8px auto; width: 44px; height: 44px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><polyline points="21 3 21 9 15 9"></polyline></svg>
+        </div>
+        <h3>שחזור מהגיבוי בגוגל</h3>
+        <p id="restore-google-summary" style="margin-top: 8px; line-height: 1.6; font-size: 0.9em;"></p>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+            <button class="action-btn btn-primary" onclick="googleRestoreApply('merge')">מיזוג — הוסף רק את מה שחסר 🙌</button>
+            <button class="action-btn btn-red" onclick="googleRestoreApply('replace')">החלף הכול — מחק את המקומי ❗</button>
+            <button class="action-btn btn-clear" onclick="closeModal('restore-google-modal')">ביטול וחזרה</button>
+        </div>
+    </div>
+</div>
+
+<!-- 3c. Restore points (history) modal -->
+<div id="restore-points-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-drag-handle"></div>
+        <h3 style="text-align: center;">נקודות שחזור מההיסטוריה</h3>
+        <p id="restore-points-info" style="margin: 8px 0 12px 0; font-size: 0.85em; line-height: 1.5; text-align: center;"></p>
+        <div id="restore-points-list" style="max-height: 45vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+        <button class="action-btn btn-clear" style="width: 100%; margin-top: 14px;" onclick="closeModal('restore-points-modal')">ביטול וחזרה</button>
+    </div>
+</div>
+
 <!-- 4. Email Send modal -->
 <div id="email-modal" class="modal-overlay">
     <div class="modal-content">
@@ -517,19 +892,13 @@
         <textarea id="export-notes" placeholder="הודעה חופשית למקבל המייל (אופציונלי)..." class="note-area" style="height: 60px; margin-bottom: 12px;"></textarea>
 
         <div style="background: rgba(217, 119, 6, 0.08); border: 1px solid rgba(217, 119, 6, 0.15); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.8em; line-height: 1.4;">
-            <strong style="color: var(--orange); display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                שים לב (למשתמשים פעם ראשונה):
-            </strong>
+            <strong style="color: var(--orange); display: block; margin-bottom: 2px;">⚠️ שים לב (למשתמשים פעם ראשונה):</strong>
             בפעם הראשונה שתשלחו למייל זה, תקבלו הודעת אימות לתיבת הדואר שלכם מ-FormSubmit. 
             יש ללחוץ על "Activate" בתוך המייל כדי שהנתונים יתקבלו בפועל.
         </div>
 
         <div style="display: flex; gap: 8px;">
-            <button class="action-btn btn-primary btn-with-icon" style="flex: 2;" onclick="handleEmailSendClick()">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                שלח נתונים עכשיו
-            </button>
+            <button class="action-btn btn-primary" style="flex: 2;" onclick="handleEmailSendClick()">📤 שלח נתונים עכשיו</button>
             <button class="action-btn btn-clear" style="flex: 1;" onclick="closeModal('email-modal')">ביטול</button>
         </div>
     </div>
@@ -568,14 +937,8 @@
             לא ניתן יהיה לשחזר את המידע ללא קובץ גיבוי מוקדם. אנו ממליצים בחום להוריד קובץ גיבוי ממש עכשיו, לפני המחיקה.
         </p>
         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
-            <button class="action-btn btn-green btn-with-icon" onclick="backupData()">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                הורד קובץ גיבוי כעת
-            </button>
-            <button class="action-btn btn-red btn-with-icon" onclick="executeDeleteAll()">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                אני מבין, מחק את כל הנתונים
-            </button>
+            <button class="action-btn btn-green" onclick="backupData()">💾 הורד קובץ גיבוי כעת</button>
+            <button class="action-btn btn-red" onclick="executeDeleteAll()">🗑️ אני מבין, מחק את כל הנתונים</button>
             <button class="action-btn btn-clear" onclick="closeModal('delete-all-modal')">ביטול וחזרה</button>
         </div>
     </div>
