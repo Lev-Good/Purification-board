@@ -440,13 +440,14 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
-        // Immersion actual or prediction (tevilah)
+        // Immersion actual or prediction (tevilah). computed.tevilot / a manually
+        // recorded 'tevilah' already store the abs of the day whose NIGHT is mikvah
+        // night (see calculations.js), so it renders at the TOP of this same box —
+        // matching the night-before-day convention used throughout the calendar.
         if (db[abs] && db[abs].type === 'tevilah') {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
+            topMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה הלילה</span></div>`;
         } else if (computed.tevilot.includes(abs)) {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
+            topMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה הלילה</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
         }
 
@@ -565,13 +566,14 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
-        // Immersion actual or prediction (tevilah)
+        // Immersion actual or prediction (tevilah). computed.tevilot / a manually
+        // recorded 'tevilah' already store the abs of the day whose NIGHT is mikvah
+        // night (see calculations.js), so it renders at the TOP of this same box —
+        // matching the night-before-day convention used throughout the calendar.
         if (db[abs] && db[abs].type === 'tevilah') {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
+            topMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה הלילה</span></div>`;
         } else if (computed.tevilot.includes(abs)) {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
+            topMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה הלילה</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
         }
 

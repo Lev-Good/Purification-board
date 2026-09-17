@@ -51,7 +51,8 @@
       "preload.js",
       "css/**/*",
       "js/**/*",
-      "icon.png"
+      "icon.png",
+ "google-oauth.local.json"
     ]
   }
 }
