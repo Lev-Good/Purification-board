@@ -120,9 +120,9 @@ export function syncSelectors(currentHDate) {
 
 /**
  * Update the visual cycle status dashboard.
+ * @param {number} todayAbs - Halachic-aware "today" (accounts for sunset if a location is configured).
  */
-export function updateDashboard(db, engineData) {
-    const todayAbs = new HDate().abs();
+export function updateDashboard(db, engineData, todayAbs) {
     const dashContainer = document.getElementById('dashboard-container');
     if (!dashContainer) return;
     
@@ -172,7 +172,7 @@ export function updateDashboard(db, engineData) {
                 </div>
             </div>
         `;
-        
+
         dashContainer.innerHTML = `
             <div class="dashboard-text">
                 <strong>יום ${daysSince} מתחילת הראייה.</strong>
@@ -180,6 +180,17 @@ export function updateDashboard(db, engineData) {
             ${progressHtml}
         `;
         dashContainer.classList.add('dash-red');
+
+        // No hefsek/tevilah recorded since this reiyah, and 5+ weeks have passed —
+        // surface a rough (LMP + 280 days) expected-due-date estimate, clearly marked as non-medical.
+        if (daysSince >= 35) {
+            const dueHDate = new HDate(latestAbs + 280);
+            const dueDateEl = document.createElement('div');
+            dueDateEl.className = 'dashboard-due-date';
+            dueDateEl.title = 'הערכה גסה בלבד (280 יום / 40 שבועות מהווסת האחרונה שנרשמה) — אינה תחליף לייעוץ רפואי';
+            dueDateEl.innerHTML = `${ICONS.CALENDAR} תאריך לידה משוער (אם קיים הריון): <strong>${dueHDate.renderGematriya()}</strong>`;
+            dashContainer.appendChild(dueDateEl);
+        }
     } else if (latestEvent.type === 'hefsek') {
         let diff = todayAbs - latestAbs;
         if (diff === 0) {
@@ -238,8 +249,9 @@ export function updateDashboard(db, engineData) {
 
 /**
  * Builds HTML grid content for a single Hebrew month.
+ * @param {number} [todayAbs] - Halachic-aware "today" for highlighting; defaults to civil (midnight-based) today.
  */
-export function buildMonthGridHTML(month, year, db, engineData, isYearly = false) {
+export function buildMonthGridHTML(month, year, db, engineData, isYearly = false, todayAbs = new HDate().abs()) {
     const computed = engineData.computed;
     const daysInMonth = HDate.daysInMonth(month, year);
     const firstDayOfMonth = new HDate(1, month, year);
@@ -288,18 +300,20 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
             }
         }
 
-        // Clean days marking
-        if (computed.nekiim.includes(abs)) {
+        // Clean days marking. Day 1 begins the night right after a daytime hefsek (the Jewish day
+        // starts at nightfall), so it belongs at the TOP (night) of its box; days 2-7 render at the bottom.
+        if (computed.nekiimFirstDay.includes(abs)) {
+            topMarkers += `<div class="marker bg-green" title="שבעה נקיים - היום הראשון (מתחיל בלילה שלאחר ההפסק)">${ICONS.SHIELD}<span>נקיים (יום 1)</span></div>`;
+        } else if (computed.nekiim.includes(abs)) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
-        // Immersion actual or prediction (tevilah)
-        if (db[abs] && db[abs].type === 'tevilah') {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
-        } else if (computed.tevilot.includes(abs)) {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
+        // Immersion actual or prediction (tevilah). Mikvah night is "leil" the day after the recorded/
+        // expected date, so it renders at the TOP (night) of the box for the FOLLOWING day.
+        if (db[abs - 1] && db[abs - 1].type === 'tevilah') {
+            topMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה הלילה</span></div>`;
+        } else if (computed.tevilot.includes(abs - 1)) {
+            topMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה הלילה</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
         }
 
@@ -322,7 +336,7 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
         }
 
         // Highlight today
-        if (abs === new HDate().abs()) {
+        if (abs === todayAbs) {
             classes.push("day-today");
         }
 
@@ -346,8 +360,9 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
 
 /**
  * Builds HTML grid content for a single Hebrew month rendered as a horizontal row (Yearly View).
+ * @param {number} [todayAbs] - Halachic-aware "today" for highlighting; defaults to civil (midnight-based) today.
  */
-export function buildYearlyRowHTML(month, year, db, engineData) {
+export function buildYearlyRowHTML(month, year, db, engineData, todayAbs = new HDate().abs()) {
     const computed = engineData.computed;
     const daysInMonth = HDate.daysInMonth(month, year);
     const firstDayOfMonth = new HDate(1, month, year);
@@ -379,7 +394,7 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
         const dateHeb = HEB_DAYS_CLEAN[day];
 
         let cellClasses = ["yearly-day-cell"];
-        if (abs === new HDate().abs()) {
+        if (abs === todayAbs) {
             cellClasses.push("day-today");
         }
 
@@ -404,18 +419,20 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
             }
         }
 
-        // Clean days marking
-        if (computed.nekiim.includes(abs)) {
+        // Clean days marking. Day 1 begins the night right after a daytime hefsek (the Jewish day
+        // starts at nightfall), so it belongs at the TOP (night) of its box; days 2-7 render at the bottom.
+        if (computed.nekiimFirstDay.includes(abs)) {
+            topMarkers += `<div class="marker bg-green" title="שבעה נקיים - היום הראשון (מתחיל בלילה שלאחר ההפסק)">${ICONS.SHIELD}<span>נקיים (יום 1)</span></div>`;
+        } else if (computed.nekiim.includes(abs)) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
         }
 
-        // Immersion actual or prediction (tevilah)
-        if (db[abs] && db[abs].type === 'tevilah') {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה (${nextDayHebrew})</span></div>`;
-        } else if (computed.tevilot.includes(abs)) {
-            let nextDayHebrew = HEB_DAYS[new HDate(abs + 1).getDate()];
-            bottomMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה (${nextDayHebrew})</span></div>`;
+        // Immersion actual or prediction (tevilah). Mikvah night is "leil" the day after the recorded/
+        // expected date, so it renders at the TOP (night) of the box for the FOLLOWING day.
+        if (db[abs - 1] && db[abs - 1].type === 'tevilah') {
+            topMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה הלילה</span></div>`;
+        } else if (computed.tevilot.includes(abs - 1)) {
+            topMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה הלילה</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
         }
 
@@ -457,8 +474,9 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
 
 /**
  * Render the monthly/yearly calendar.
+ * @param {number} [todayAbs] - Halachic-aware "today" (accounts for sunset if a location is configured).
  */
-export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView) {
+export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView, todayAbs = new HDate().abs()) {
     const singleCal = document.getElementById('calendar');
     const yearlyWrapper = document.getElementById('yearly-calendar-wrapper');
     const monthTitle = document.getElementById('month-title');
@@ -470,15 +488,15 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
         if (yearlyWrapper) {
             yearlyWrapper.style.display = 'block';
             yearlyWrapper.innerHTML = '';
-            
+
             const currentYearStr = new HDate(1, 1, currentHDate.getFullYear()).renderGematriya().split(' ').pop();
             if (monthTitle) monthTitle.innerText = `תצוגה שנתית: שנת ${currentYearStr}`;
-            
+
             const maxMonths = getMonthsInYear(currentHDate.getFullYear());
             for (let m = 1; m <= maxMonths; m++) {
                 const monthDiv = document.createElement('div');
                 monthDiv.className = 'yearly-row';
-                monthDiv.innerHTML = buildYearlyRowHTML(m, currentHDate.getFullYear(), db, engineData);
+                monthDiv.innerHTML = buildYearlyRowHTML(m, currentHDate.getFullYear(), db, engineData, todayAbs);
                 yearlyWrapper.appendChild(monthDiv);
             }
         }
@@ -486,26 +504,26 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
         if (yearlyWrapper) yearlyWrapper.style.display = 'none';
         if (singleCal) {
             singleCal.style.display = 'grid';
-            const html = buildMonthGridHTML(currentHDate.getMonth(), currentHDate.getFullYear(), db, engineData, false);
-            
+            const html = buildMonthGridHTML(currentHDate.getMonth(), currentHDate.getFullYear(), db, engineData, false, todayAbs);
+
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
-            
+
             if (monthTitle) monthTitle.innerText = tempDiv.querySelector('.month-title-display').innerText;
             singleCal.innerHTML = tempDiv.querySelector('.calendar').innerHTML;
         }
     }
 
-    const todayHDate = new HDate();
+    const todayHDate = new HDate(todayAbs);
     const isToday = currentHDate.getMonth() === todayHDate.getMonth() && currentHDate.getFullYear() === todayHDate.getFullYear();
-    
+
     [todayBtn, mobTodayBtn].forEach(btn => {
         if (btn) btn.style.display = isToday ? 'none' : 'inline-block';
     });
 
     syncSelectors(currentHDate);
     renderSummaryTable(engineData.reiyot);
-    updateDashboard(db, engineData);
+    updateDashboard(db, engineData, todayAbs);
 }
 
 /**

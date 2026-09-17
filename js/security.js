@@ -19,6 +19,15 @@ export function setupPinInputListeners() {
                 if (input.value.length === 1 && index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 }
+
+                // Auto-submit the login screen once all 6 digits are filled in,
+                // so the user doesn't have to also press "כניסה ליומן".
+                if (containerId === 'unlock-pin-container') {
+                    const allFilled = Array.from(inputs).every(i => i.value.length === 1);
+                    if (allFilled && window.verifyPin) {
+                        window.verifyPin();
+                    }
+                }
             });
             
             input.addEventListener('keydown', (e) => {

@@ -76,7 +76,7 @@
                 לוח שנה
             </button>
             <button id="desktop-nav-table" onclick="switchView('view-table', 'nav-table', 'desktop-nav-table')">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></svg>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></path></svg>
                 ריכוז וסתות
             </button>
             <button id="desktop-nav-about" onclick="switchView('view-about', 'nav-about', 'desktop-nav-about')">
@@ -125,6 +125,20 @@
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             </div>
         </div>
+
+        <!-- Global zoom controls -->
+        <div class="sidebar-controls" style="padding-top: 12px; border-top: 1px solid var(--border-color);">
+            <div class="sidebar-controls-title">זום תצוגה</div>
+            <div class="sidebar-nav-row">
+                <button class="sidebar-nav-btn" onclick="zoomOut()" title="הקטן תצוגה" aria-label="הקטן תצוגה">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                </button>
+                <button class="sidebar-nav-btn" onclick="zoomIn()" title="הגדל תצוגה" aria-label="הגדל תצוגה">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                </button>
+            </div>
+            <button class="sidebar-nav-btn" id="zoom-reset-btn" onclick="zoomReset()" style="margin-top: 4px;">איפוס זום (100%)</button>
+        </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -143,7 +157,7 @@
                 <button id="mobile-next-month" class="action-btn btn-outline" style="padding: 6px 10px;">◀</button>
             </div>
             <div class="mobile-controls-row" style="margin-top: 4px; justify-content: center; gap: 8px;">
-                <button id="mobile-toggle-yearly-btn" class="action-btn btn-outline" style="padding: 6px 12px; font-size: 0.8em;" onclick="toggleYearlyView()">תצוגה שנתית</button>
+                <button id="mobile-toggle-yearly-btn" class="action-btn btn-outline btn-with-icon" style="padding: 6px 12px; font-size: 0.8em;" onclick="toggleYearlyView()">תצוגה שנתית</button>
                 <button id="mobile-return-today" class="action-btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="returnToToday()">חזור להיום</button>
             </div>
         </div>
@@ -226,7 +240,7 @@
                 </h3>
                 <ul>
                     <li><strong>אבטחה מקסימלית:</strong> כל הנתונים שלכם נשמרים <strong>אך ורק על המכשיר האישי שלכם</strong> (בדפדפן או בתוכנה). אף נתון לא נשלח לשרת חיצוני.</li>
-                    <li><strong>קוד נעילה (PIN):</strong> כדי להגן על היומן מעיניים סקרניות, היכנסו לתפריט ההגדרות (⚙️) והגדירו קוד בן 6 תווים שיידרש בכל פתיחה של האפליקציה.</li>
+                    <li><strong>קוד נעילה (PIN):</strong> כדי להגן על היומן מעיניים סקרניות, היכנסו לתפריט ההגדרות והגדירו קוד בן 6 תווים שיידרש בכל פתיחה של האפליקציה.</li>
                     <li><strong>גיבוי חובה:</strong> מאחר והנתונים נשמרים בדפדפן, ניקוי היסטוריה עמוק עלול למחוק אותם. <strong>אנו ממליצים בחום להוריד קובץ גיבוי לעיתים קרובות</strong> מתוך תפריט ההגדרות. את הקובץ תוכלו לטעון מחדש בכל מכשיר.</li>
                 </ul>
             </div>
@@ -238,8 +252,14 @@
                 <p style="font-size: 1.1em; color: var(--primary); font-weight: 600;">פותח באהבה ובמחשבה רבה על ידי לב טוב</p>
                 <p style="font-size: 0.9em; color: var(--text-muted);">לשאלות, הצעות לשיפור או תמיכה טכנית:</p>
                 <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px;">
-                    <a href="mailto:myylbwt@gmail.com" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">myylbwt@gmail.com ✉️</a>
-                    <a href="https://lev-good.github.io/Good-heart/" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">אתר הבית 🌐</a>
+                    <a href="mailto:myylbwt@gmail.com" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 6px;">
+                        <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        myylbwt@gmail.com
+                    </a>
+                    <a href="https://lev-good.github.io/Good-heart/" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 6px;">
+                        <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        אתר הבית
+                    </a>
                 </div>
             </div>
         </section>
@@ -255,9 +275,14 @@
                     <h4>פעולות מהירות</h4>
                     <p>גישה מהירה לפעולות המערכת הנפוצות.</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="action-btn btn-outline" onclick="toggleTheme()" style="flex: 1;">החלף עיצוב 🌙</button>
-                        <button class="action-btn btn-outline" onclick="prepareAndPrint()" style="flex: 1;">הדפס לוח 🖨️</button>
-                        <button class="action-btn btn-outline" onclick="openEmailModal()" style="flex: 1;">שלח למייל ✉️</button>
+                        <button class="action-btn btn-outline" onclick="toggleTheme()" style="flex: 1;">החלף עיצוב</button>
+                        <button class="action-btn btn-outline" onclick="prepareAndPrint()" style="flex: 1;">הדפס לוח</button>
+                        <button class="action-btn btn-outline" onclick="openEmailModal()" style="flex: 1;">שלח למייל</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        <button class="action-btn btn-outline" onclick="zoomOut()" style="flex: 1;">הקטן זום</button>
+                        <button class="action-btn btn-outline" onclick="zoomIn()" style="flex: 1;">הגדל זום</button>
+                        <button class="action-btn btn-outline" onclick="zoomReset()" style="flex: 1;">איפוס זום</button>
                     </div>
                 </div>
 
@@ -275,6 +300,38 @@
                         <input type="checkbox" id="setting-or-zarua" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="saveOrZaruaSetting()">
                         <span>הפעל חישוב פרישת 'אור זרוע' אוטומטי</span>
                     </label>
+                </div>
+
+                <!-- Location setting for sunset-aware halachic day -->
+                <div class="settings-group">
+                    <h4>מיקום (לחישוב שקיעה)</h4>
+                    <p>בחירת עיר מאפשרת ליומן לדעת מתי השקיעה, כך שתאריך "היום" והתזכורות יתעדכנו לפי היום ההלכתי (המתחיל בשקיעה) ולא לפי חצות לועזי.</p>
+                    <select id="setting-location" class="text-input" style="margin-bottom: 8px;" onchange="saveLocationSetting()">
+                        <option value="">— לא נבחר (ברירת מחדל: חצות לועזי) —</option>
+                    </select>
+                    <p id="location-sunset-info" style="margin-bottom: 0;"></p>
+                </div>
+
+                <!-- Desktop / browser notifications -->
+                <div class="settings-group">
+                    <h4>התראות</h4>
+                    <p>קבלת התראה על מצב המחזור הנוכחי (ידרוש אישור הרשאת התראות מהדפדפן/המערכת).</p>
+                    <select id="setting-notifications" class="text-input" style="margin-bottom: 10px;" onchange="saveNotificationsSetting()">
+                        <option value="off">כבוי</option>
+                        <option value="daily">התראה יומית עם מצב היום</option>
+                        <option value="events">רק בימי אירוע/פרישה</option>
+                    </select>
+                    <label id="auto-launch-row" style="display: none; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em;">
+                        <input type="checkbox" id="setting-auto-launch" style="width: 18px; height: 18px; accent-color: var(--primary);" onchange="saveAutoLaunchSetting()">
+                        <span>הפעל את התוכנה אוטומטית עם המחשב (למגש המערכת), כדי שההתראות יגיעו גם כשהיא סגורה</span>
+                    </label>
+                </div>
+
+                <!-- App updates (Electron desktop only) -->
+                <div class="settings-group" id="update-settings-group" style="display: none;">
+                    <h4>עדכוני תוכנה</h4>
+                    <p id="update-status-text">גרסה נוכחית מותקנת.</p>
+                    <button class="action-btn btn-blue" style="width: 100%;" onclick="checkForAppUpdate()">בדוק אם יש עדכון חדש</button>
                 </div>
 
                 <!-- Update Security PIN code -->
@@ -319,10 +376,19 @@
                     <h4>ניהול וגיבוי נתונים</h4>
                     <p>הנתונים שלכם נשמרים בדפדפן המקומי בלבד. מומלץ להוריד קובץ גיבוי למקרה של איפוס היסטוריית הגלישה.</p>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <button class="action-btn btn-primary" onclick="backupData()">💾 הורד קובץ גיבוי נתונים</button>
-                        <button class="action-btn btn-outline" onclick="document.getElementById('file-upload').click()">📂 טען נתונים מגיבוי (שחזור)</button>
+                        <button class="action-btn btn-primary btn-with-icon" onclick="backupData()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            הורד קובץ גיבוי נתונים
+                        </button>
+                        <button class="action-btn btn-outline btn-with-icon" onclick="document.getElementById('file-upload').click()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                            טען נתונים מגיבוי (שחזור)
+                        </button>
                         <div style="height: 1px; background: var(--border-color); margin: 8px 0;"></div>
-                        <button class="action-btn btn-outline" style="color: var(--red); border-color: var(--red);" onclick="openModal('delete-all-modal')">🗑️ מחיקת כל הנתונים והאיפוס</button>
+                        <button class="action-btn btn-outline btn-with-icon" style="color: var(--red); border-color: var(--red);" onclick="openModal('delete-all-modal')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            מחיקת כל הנתונים והאיפוס
+                        </button>
                     </div>
                 </div>
             </div>
@@ -343,7 +409,7 @@
     </div>
     <div class="nav-item" id="nav-table" onclick="switchView('view-table', 'nav-table')">
         <span style="display: inline-block; width: 20px; height: 20px;">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></svg>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM21 9H3M21 15H3M12 3v18"></path></svg>
         </span>
         וסתות
     </div>
@@ -385,7 +451,10 @@
             <button class="action-btn btn-red" onclick="requestSaveEvent('reiyah', 'night')">תחילת ראייה (עונת לילה)</button>
             <button class="action-btn btn-blue" style="background: var(--yellow);" onclick="requestSaveEvent('hefsek', '')">הפסק טהרה</button>
             <button class="action-btn btn-blue" onclick="requestSaveEvent('tevilah', '')">טבילה (הזנה / דחייה)</button>
-            <button class="action-btn btn-outline" style="color: var(--red); border-color: var(--red);" onclick="deleteEvent()">🗑️ נקה יום זה</button>
+            <button class="action-btn btn-outline btn-with-icon" style="color: var(--red); border-color: var(--red);" onclick="deleteEvent()">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                נקה יום זה
+            </button>
             <button class="action-btn btn-clear" style="margin-top: 4px;" onclick="closeModal('modal')">ביטול וסגירה</button>
         </div>
     </div>
@@ -448,13 +517,19 @@
         <textarea id="export-notes" placeholder="הודעה חופשית למקבל המייל (אופציונלי)..." class="note-area" style="height: 60px; margin-bottom: 12px;"></textarea>
 
         <div style="background: rgba(217, 119, 6, 0.08); border: 1px solid rgba(217, 119, 6, 0.15); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.8em; line-height: 1.4;">
-            <strong style="color: var(--orange); display: block; margin-bottom: 2px;">⚠️ שים לב (למשתמשים פעם ראשונה):</strong>
+            <strong style="color: var(--orange); display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                שים לב (למשתמשים פעם ראשונה):
+            </strong>
             בפעם הראשונה שתשלחו למייל זה, תקבלו הודעת אימות לתיבת הדואר שלכם מ-FormSubmit. 
             יש ללחוץ על "Activate" בתוך המייל כדי שהנתונים יתקבלו בפועל.
         </div>
 
         <div style="display: flex; gap: 8px;">
-            <button class="action-btn btn-primary" style="flex: 2;" onclick="handleEmailSendClick()">📤 שלח נתונים עכשיו</button>
+            <button class="action-btn btn-primary btn-with-icon" style="flex: 2;" onclick="handleEmailSendClick()">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                שלח נתונים עכשיו
+            </button>
             <button class="action-btn btn-clear" style="flex: 1;" onclick="closeModal('email-modal')">ביטול</button>
         </div>
     </div>
@@ -493,8 +568,14 @@
             לא ניתן יהיה לשחזר את המידע ללא קובץ גיבוי מוקדם. אנו ממליצים בחום להוריד קובץ גיבוי ממש עכשיו, לפני המחיקה.
         </p>
         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
-            <button class="action-btn btn-green" onclick="backupData()">💾 הורד קובץ גיבוי כעת</button>
-            <button class="action-btn btn-red" onclick="executeDeleteAll()">🗑️ אני מבין, מחק את כל הנתונים</button>
+            <button class="action-btn btn-green btn-with-icon" onclick="backupData()">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                הורד קובץ גיבוי כעת
+            </button>
+            <button class="action-btn btn-red btn-with-icon" onclick="executeDeleteAll()">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                אני מבין, מחק את כל הנתונים
+            </button>
             <button class="action-btn btn-clear" onclick="closeModal('delete-all-modal')">ביטול וחזרה</button>
         </div>
     </div>
