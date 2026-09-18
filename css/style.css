@@ -250,6 +250,19 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+.sidebar-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.sidebar-action-label {
+    font-size: 0.72em;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .sidebar-action-circle {
     width: 38px;
     height: 38px;
@@ -270,6 +283,22 @@ body {
     background: var(--surface);
     border-color: var(--primary);
     box-shadow: var(--shadow-sm);
+}
+
+/* מיקוד מקלדת על אלמנטים לחיצים שאינם <button>/<a> (יום בלוח, פעולה מהירה
+   בסיידבר) — מוצג רק בניווט מקלדת (:focus-visible), לא בלחיצת עכבר. */
+.day:focus-visible,
+.yearly-day-cell:focus-visible,
+.sidebar-action-circle:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* כלי ניווט הלוח והדשבורדים שייכים ללשונית "לוח שנה" בלבד — switchView() מוסיפה/
+   מסירה את .calendar-view-active מה-body, וכאן זה נאכף בלי להתנגש עם ה-display
+   הדינמי (JS) שכל כרטיס דשבורד מקבל בהתאם לנתונים (chazaka/life/day-state). */
+body:not(.calendar-view-active) .calendar-only-panel {
+    display: none !important;
 }
 
 /* Main Content Area */
@@ -337,6 +366,26 @@ h1 {
     background: var(--primary);
     border-radius: 10px;
     transition: width 0.5s ease;
+}
+
+/* קבוצת כרטיסי המצב (index.html): כרטיס היום הראשי נשאר בעל המשקל החזותי המלא,
+   ושלושת פאנלי ההרחבה (מצב חיים / חזקה / סימוני יום) מוצגים באופן קומפקטי יותר —
+   בלי לצמצם מילה מהתוכן ההלכתי עצמו, רק את "עוצמת" הכרטיס (ריפוד/צל/רווח). כך
+   ערימה של עד ארבעה כרטיסים לא נקראת כארבע אזהרות נפרדות ושוות-משקל. */
+.dashboard-stack .dashboard {
+    margin-bottom: 8px;
+}
+
+.dashboard-stack .dashboard:last-child {
+    margin-bottom: 16px;
+}
+
+.dashboard-stack #life-container,
+.dashboard-stack #chazaka-container,
+.dashboard-stack #day-state-container {
+    padding: 10px 16px;
+    font-size: 0.92em;
+    box-shadow: none;
 }
 
 .dashboard.dash-red { background: var(--dash-red-bg); border-right-color: var(--red); }
@@ -510,6 +559,14 @@ h1 {
     left: 4px;
     font-size: 0.85em;
     opacity: 0.8;
+    cursor: pointer;
+    padding: 4px;
+    margin: -4px;
+    z-index: 1;
+}
+
+.note-icon:hover {
+    opacity: 1;
 }
 
 /* Markers styling */
@@ -535,18 +592,18 @@ h1 {
     line-height: 1.2;
 }
 
-.bg-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-.bg-yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.bg-green { background: linear-gradient(135deg, #10b981, #059669); }
-.bg-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.bg-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+/* צבעי הסימונים (.marker) — גוונים כהים ("700"→"800") ולא הבהירים המקוריים
+   ("500"→"600"): נמדד בפועל שטקסט לבן על הגוונים הבהירים נופל ל-2.1–3.8:1
+   ניגודיות (WCAG AA לטקסט קטן דורש 4.5:1) — כי גרדיאנט לבהיר מבטיח שקצה אחד
+   שלו תמיד ייכשל. הגוונים כאן שומרים על אותה משפחת צבע (לזיהוי חזותי קיים) אבל
+   כהים מספיק ששני קצוות הגרדיאנט עוברים ניגודיות (נמדד: 5.0–6.7:1). */
+.bg-red { background: linear-gradient(135deg, #b91c1c, #991b1b); }
+.bg-yellow { background: linear-gradient(135deg, #b45309, #92400e); }
+.bg-green { background: linear-gradient(135deg, #047857, #065f46); }
+.bg-blue { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
+.bg-orange { background: linear-gradient(135deg, #c2410c, #9a3412); }
 /* וסת הגוף — המיחוש שתועד על הראייה (B2). */
-.bg-purple { background: linear-gradient(135deg, #a855f7, #7e22ce); }
-
-[data-theme="dark"] .bg-yellow, 
-[data-theme="dark"] .bg-green {
-    color: #fff !important;
-}
+.bg-purple { background: linear-gradient(135deg, #7e22ce, #6b21a8); }
 
 /* Today date highlight */
 .day-today {
@@ -646,10 +703,38 @@ tr:hover {
 }
 
 /* Settings items */
+.settings-section {
+    margin-bottom: 28px;
+}
+
+.settings-section-title {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
 .settings-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 16px;
+    align-items: start;
+}
+
+/* משתמש ברוחב הדסקטופ: כרטיסי ההגדרות הקצרים נפרסים בשתי עמודות במקום עמודה
+   שטוחה אחת שגוררת גלילה ארוכה גם כשיש הרבה מקום פנוי בצדדים. */
+@media (min-width: 700px) {
+    .settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .settings-group.settings-span-2 {
+        grid-column: span 2;
+    }
 }
 
 .settings-group {
@@ -658,6 +743,37 @@ tr:hover {
     border-radius: var(--radius);
     padding: 16px;
     box-shadow: var(--shadow-sm);
+}
+
+/* כרטיסי הגדרות ארוכים/נדירים עטופים כ-<details> — "מצב חיים" (ארוך משמעותית
+   משאר ההגדרות, ולכן פתוח מלכתחילה כדי שלא יוסתר תוכן פעיל) ו"מתגי חומרא"
+   (מחלוקות פוסקים נדירות, סגור כברירת מחדל אלא אם מתג כלשהו כבר דלוק —
+   ר' js/app.js). */
+.settings-group.settings-collapsible summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.settings-group.settings-collapsible summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-group.settings-collapsible summary h4 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.settings-group.settings-collapsible summary h4::after {
+    content: '▾';
+    font-size: 0.8em;
+    color: var(--text-muted);
+    margin-inline-start: 4px;
+    transition: transform 0.15s ease;
+}
+
+.settings-group.settings-collapsible[open] summary h4::after {
+    transform: rotate(180deg);
 }
 
 .settings-group h4 {
@@ -711,10 +827,64 @@ tr:hover {
 
 .btn-primary { background: var(--primary); color: white; }
 .btn-blue { background: var(--blue); color: white; }
-.btn-red { background: var(--red); color: white; }
-.btn-green { background: var(--green); color: white; }
+/* אדום/ירוק/צהוב/כתום: לא var(--red)/(--green)/(--yellow)/(--orange) — אותם
+   משתנים משמשים גם כטקסט על משטח בהיר/כהה (עמוד "אודות", כרטיסי אזהרה), ושם
+   הגוון הבהיר עצמו עובד; אבל כרקע מלא מאחורי טקסט לבן הוא נכשל בניגודיות
+   (נמדד: 3.2–3.8:1, נדרש 4.5:1). לכן לכפתורים גוון כהה נפרד ("700"), שנמדד
+   עובר (5.0–6.5:1) בלי לגעת במשתנה המשותף ובלי סיכון רגרסיה בערכת הכהה. */
+.btn-red { background: #b91c1c; color: white; }
+.btn-green { background: #15803d; color: white; }
+.btn-yellow { background: #b45309; color: white; }
+.btn-orange { background: #c2410c; color: white; }
 .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
 .btn-clear { background: var(--input-bg); color: var(--text-main); }
+
+/* קבוצות פעולה מתקפלות במודאל היום (index.html #modal): פעולות פחות שכיחות
+   (בדיקה / מיחוש / סימוני יום) מקופלות כברירת מחדל, כדי שרוב הימים לא ידרשו
+   גלילה מעבר לארבעת הכפתורים העיקריים. אין כאן מידע הלכתי שמוסתר בשקט —
+   רק טופסי קלט אופציונליים, בשונה מפאנלי הדשבורד (ר' .dashboard-stack). */
+.action-group {
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    margin-top: 4px;
+}
+
+.action-group summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9em;
+    font-weight: 600;
+    padding-bottom: 4px;
+}
+
+.action-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.action-group summary::after {
+    content: '▾';
+    color: var(--text-muted);
+    font-size: 0.8em;
+    font-weight: 400;
+    transition: transform 0.15s ease;
+    margin-inline-start: 8px;
+}
+
+.action-group[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.action-group summary span {
+    display: flex;
+    align-items: center;
+}
+
+.action-group[open] summary {
+    margin-bottom: 8px;
+}
 
 /* Custom OTP Passcode Inputs */
 .pin-inputs {
@@ -1383,6 +1553,31 @@ tr:hover {
 
 .legend-list li b {
     color: var(--text-main);
+}
+
+/* גרסה קומפקטית: שבבים ברצף (שם + בועת "?") במקום רשימה אנכית עם פסקת הסבר
+   מלאה לכל פריט — ר' ההערה ב-index.html מעל .board-legend. */
+.legend-list-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+}
+
+.legend-list-compact li {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.link-like {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--primary);
+    font-weight: 600;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    text-decoration: underline;
 }
 
 .legend-note {

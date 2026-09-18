@@ -20,6 +20,10 @@ export function showToast(msg) {
     }, 3000);
 }
 
+// סדר הפתיחה בפועל (לא סדר ה-DOM) — כדי ש-Escape יסגור את מה שנפתח אחרון, גם
+// כשמודאל הסבר (help-modal) נפתח מעל מודאל אחר שנשאר פתוח מתחתיו.
+const openModalStack = [];
+
 /**
  * Open a modal dialog.
  * @param {string} id - The ID of the modal overlay.
@@ -29,6 +33,10 @@ export function openModal(id) {
     if (!modal) return;
 
     modal.style.display = 'flex';
+    const idx = openModalStack.indexOf(id);
+    if (idx !== -1) openModalStack.splice(idx, 1);
+    openModalStack.push(id);
+
     const content = modal.querySelector('.modal-content');
     if (content) {
         // Reset animations
@@ -47,6 +55,8 @@ export function closeModal(id) {
     if (modal) {
         modal.style.display = 'none';
     }
+    const idx = openModalStack.indexOf(id);
+    if (idx !== -1) openModalStack.splice(idx, 1);
 }
 
 /**
@@ -94,17 +104,39 @@ if (typeof window !== 'undefined') {
     };
 }
 
+// Dialogs that must be dismissed through their own buttons — not by clicking the
+// backdrop or pressing Escape (a locked screen or an "are you sure" warning that
+// closes itself would defeat its own purpose).
+const NON_CANCELLABLE_MODALS = ['delete-all-modal', 'custom-confirm', 'setup-screen', 'email-first-time-modal', 'lock-screen'];
+
 // Listen to modal overlay backdrop clicks
 if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', function(e) {
             if (e.target === this) {
-                // Prevent closing critical dialogs on backdrop click
-                const nonCancellable = ['delete-all-modal', 'custom-confirm', 'setup-screen', 'email-first-time-modal', 'lock-screen'];
-                if (!nonCancellable.includes(this.id)) {
+                if (!NON_CANCELLABLE_MODALS.includes(this.id)) {
                     closeModal(this.id);
                 }
             }
         });
     });
+});
+
+/**
+ * Escape closes the modal that was opened last (openModalStack, not DOM order —
+ * a help-modal opened on top of another dialog must close first) — the same
+ * reach a mouse user already has via the backdrop or the "ביטול" button, extended
+ * to keyboard users who cannot otherwise dismiss a dialog without a pointer.
+ */
+if (typeof document !== 'undefined') document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    for (let i = openModalStack.length - 1; i >= 0; i--) {
+        const id = openModalStack[i];
+        if (NON_CANCELLABLE_MODALS.includes(id)) continue;
+        const modal = document.getElementById(id);
+        if (modal && getComputedStyle(modal).display !== 'none') {
+            closeModal(id);
+            return;
+        }
+    }
 });

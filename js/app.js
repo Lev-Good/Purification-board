@@ -186,6 +186,20 @@ document.addEventListener('click', event => {
     window.showHelp(trigger.getAttribute('data-help'));
 });
 
+/**
+ * Keyboard activation for role="button" elements that are not real <button>s
+ * (calendar day cells, sidebar quick actions) — a <div onclick> is invisible to
+ * Tab and does nothing on Enter/Space without this. Delegated, so it also covers
+ * day cells re-rendered after every calendar refresh.
+ */
+document.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const target = event.target && event.target.closest ? event.target.closest('[role="button"]') : null;
+    if (!target) return;
+    event.preventDefault(); // Space must not also scroll the page
+    target.click();
+});
+
 // --- PWA Injection ---
 const manifestJSON = {
     "name": "לוח טהרת המשפחה", "short_name": "לוח טהרה",
@@ -200,6 +214,15 @@ const pwaLink = document.createElement('link');
 pwaLink.rel = 'manifest';
 pwaLink.href = URL.createObjectURL(new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' }));
 document.head.appendChild(pwaLink);
+
+// רישום ה-Service Worker (sw.js) — נותן תוקף אמיתי להבטחת ה-manifest למעלה
+// ("standalone" + אייקון = מותקנת), שאחרת נשארת "מותקנת" רק בשם ונופלת בלי רשת.
+// !window.api הוא אותו סימן שכל שאר הקוד כבר משתמש בו לזיהוי ווב מול תוכנה
+// (ר' ARCHITECTURE.md) — Service Worker לא נחוץ ולא נתמך בטעינת file:// של
+// Electron ממילא, ו-sw.js אף לא ארוז לתוכנה (package.json build.files).
+if (!window.api && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* אין רשת מקוונת — לא קריטי */ });
+}
 
 // App State
 let currentHDate = new HDate(1, new HDate().getMonth(), new HDate().getFullYear());
@@ -234,6 +257,14 @@ function renderStringencySettings() {
     const container = document.getElementById('stringency-list');
     if (!container) return;
     const current = normalizeStringencies(getStringencies());
+
+    // הכרטיס סגור כברירת מחדל (מחלוקות נדירות) — אבל אם המשתמשת כבר שינתה מתג
+    // כלשהו מברירת המחדל שלו (ולא רק שהוא "דלוק" מטבעו, כמו lateBedika/orZaruaDay31),
+    // לא נשאיר את זה מוסתר מהמבט הראשון בלי שביקשה זאת.
+    const group = document.getElementById('stringency-group');
+    if (group && STRINGENCY_DEFS.some(def => !!current[def.key] !== !!def.default)) {
+        group.open = true;
+    }
 
     container.innerHTML = STRINGENCY_DEFS.map(def => `
         <label style="display: block; margin-bottom: 14px; cursor: pointer;">
@@ -1402,6 +1433,27 @@ function renderDayPrishaHint() {
     box.style.lineHeight = '1.6';
     box.innerHTML = lines.join('<br>');
 }
+
+// תצוגת ההערה האישית: משבצת היום בלוח קטנה מכדי להכיל הערה ארוכה בשלמותה, ו-title
+// (הדרך הקודמת) לא עובד באמינות במגע ואינו מוגן מתווים מיוחדים בטקסט. לכן העיקון
+// בלוח פותח כרטיסון עם הטקסט המלא (ללא שום קיצוץ), ומשם אפשר לגשת לעריכה.
+let notePreviewAbs = null;
+
+window.showDayNotePreview = function(abs) {
+    const entry = db[abs];
+    const text = entry && entry.note ? entry.note : '';
+    if (!text) return;
+    notePreviewAbs = abs;
+    document.getElementById('note-preview-title').innerText = `הערה — ${new HDate(abs).renderGematriya()}`;
+    document.getElementById('note-preview-text').innerText = text;
+    openModal('note-preview-modal');
+};
+
+window.editNoteFromPreview = function() {
+    if (notePreviewAbs === null) return;
+    closeModal('note-preview-modal');
+    window.openDayModal(new HDate(notePreviewAbs));
+};
 
 window.saveNote = function() {
     if (!selectedAbsDate) return;
