@@ -28,10 +28,14 @@ export function translateMonth(monthName) {
 export function switchView(viewId, activeTabId) {
     document.querySelectorAll('.section-container').forEach(el => el.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
-    
+
     document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.top-actions button').forEach(el => el.classList.remove('active-tab'));
-    
+
+    // כלי הניווט בלוח (חצי חודש, דשבורדים) שייכים ללשונית "לוח שנה" בלבד —
+    // ומוסתרים בכל לשונית אחרת (ר' css/style.css: .calendar-only-panel).
+    document.body.classList.toggle('calendar-view-active', viewId === 'view-calendar');
+
     if (viewId === 'view-calendar') {
         const mob = document.getElementById('nav-cal');
         const dsk = document.getElementById('desktop-nav-cal');
@@ -400,28 +404,39 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
         let topMarkers = "";
         let bottomMarkers = "";
         let noteHTML = "";
+        // תקציר קריא לקורא מסך — התא עצמו הוא <div>, ולכן אין לו טקסט מובנה
+        // מלבד המספר; כל מה שכבר מנוסח בתגי title כאן נאסף גם לכאן.
+        const ariaBits = [];
 
         if (db[abs]) {
             if (db[abs].note) {
-                noteHTML = `<span class="note-icon" title="${db[abs].note}">${ICONS.NOTE}</span>`;
+                // הטקסט עצמו לא נכנס לתוך תג HTML: תווים כמו גרשיים בהערה היו שוברים
+                // מאפיין title, ו-title ממילא לא אמין במגע. הלחיצה פותחת כרטיסון עם
+                // הטקסט המלא (js/app.js: showDayNotePreview), בלי לפתוח גם את יום המשבצת.
+                noteHTML = `<span class="note-icon" onclick="event.stopPropagation(); window.showDayNotePreview(${abs})" title="הערה אישית — לחצו לתצוגה מלאה">${ICONS.NOTE}</span>`;
+                ariaBits.push('יש הערה אישית');
             }
             if (db[abs].type === 'reiyah') {
                 if (db[abs].ona === 'day') {
                     bottomMarkers += `<div class="marker bg-red" title="ראיית יום">${ICONS.FLAG}<span>ראיית יום</span></div>`;
+                    ariaBits.push('ראיית יום');
                 } else {
                     topMarkers += `<div class="marker bg-red" title="ראיית לילה">${ICONS.FLAG}<span>ראיית לילה</span></div>`;
+                    ariaBits.push('ראיית לילה');
                 }
                 // B2 — המיחוש שתועד על הראייה (וסת הגוף).
                 bottomMarkers += buildSignMarker(db[abs]);
             }
             if (db[abs].type === 'hefsek') {
                 bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">${ICONS.SUN_SPARK}<span>הפסק טהרה</span></div>`;
+                ariaBits.push('הפסק טהרה');
             }
             if (db[abs].type === 'check') {
                 // B4: what was checked, and with what result - only a proper check
                 // can uproot a veset `[שט מ"א | עמ' 182]`.
                 const depthLabel = db[abs].depth === 'wipe' ? 'קינוח בלבד — לא מועיל לעקירה' : 'בדיקה כדין (עומק ובחו"ס)';
                 bottomMarkers += `<div class="marker bg-green" title="${depthLabel}">${ICONS.CHECK}<span>בדיקה</span></div>`;
+                ariaBits.push('בדיקה');
                 // A3 — הבדיקה השנייה שבעונה מוצגת בסימון משלה, ולא נבלעת בשדה אחד.
                 const checkParts = checkPartsOf(db[abs]);
                 if (checkParts.length > 1) {
@@ -438,6 +453,7 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
         // Clean days marking
         if (computed.nekiim.includes(abs)) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
+            ariaBits.push('משבעת הנקיים');
         }
 
         // Immersion actual or prediction (tevilah). computed.tevilot / a manually
@@ -446,29 +462,35 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
         // matching the night-before-day convention used throughout the calendar.
         if (db[abs] && db[abs].type === 'tevilah') {
             topMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה הלילה</span></div>`;
+            ariaBits.push('הלילה טבילה');
         } else if (computed.tevilot.includes(abs)) {
             topMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה הלילה</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
+            ariaBits.push('צפי טבילה הלילה');
         }
 
         // Separation dates (prishot)
         if (computed.prishot[abs]) {
             let nList = computed.prishot[abs].filter(p => p.ona === 'night');
             let dList = computed.prishot[abs].filter(p => p.ona === 'day');
-            
-            if (nList.length > 0) topMarkers += buildPrishaMarker(nList, 'פרישת לילה');
-            if (dList.length > 0) bottomMarkers += buildPrishaMarker(dList, 'פרישת יום');
+
+            if (nList.length > 0) { topMarkers += buildPrishaMarker(nList, 'פרישת לילה'); ariaBits.push('פרישת לילה'); }
+            if (dList.length > 0) { bottomMarkers += buildPrishaMarker(dList, 'פרישת יום'); ariaBits.push('פרישת יום'); }
         }
 
         // Highlight today
-        if (abs === new HDate().abs()) {
+        const isToday = abs === new HDate().abs();
+        if (isToday) {
             classes.push("day-today");
+            ariaBits.push('היום');
         }
 
         const animDelay = isYearly ? '0s' : `${day * 0.01}s`;
+        const ariaLabel = `${hd.renderGematriya()}, ${greg.toLocaleDateString('he-IL')}`
+            + (ariaBits.length ? ` — ${ariaBits.join(', ')}` : '');
 
         html += `
-            <div class="${classes.join(' ')}" style="${bgStyle} animation-delay: ${animDelay};" onclick="window.openDayModal(new window.HDateLocal(${abs}))">
+            <div class="${classes.join(' ')}" style="${bgStyle} animation-delay: ${animDelay};" onclick="window.openDayModal(new window.HDateLocal(${abs}))" role="button" tabindex="0" aria-label="${ariaLabel}">
                 ${noteHTML}
                 <div class="marker-wrapper">${topMarkers}</div>
                 <div class="day-dates">
@@ -526,28 +548,37 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
         let topMarkers = "";
         let bottomMarkers = "";
         let noteHTML = "";
+        const ariaBits = [];
 
         if (db[abs]) {
             if (db[abs].note) {
-                noteHTML = `<span class="note-icon" title="${db[abs].note}">${ICONS.NOTE}</span>`;
+                // הטקסט עצמו לא נכנס לתוך תג HTML: תווים כמו גרשיים בהערה היו שוברים
+                // מאפיין title, ו-title ממילא לא אמין במגע. הלחיצה פותחת כרטיסון עם
+                // הטקסט המלא (js/app.js: showDayNotePreview), בלי לפתוח גם את יום המשבצת.
+                noteHTML = `<span class="note-icon" onclick="event.stopPropagation(); window.showDayNotePreview(${abs})" title="הערה אישית — לחצו לתצוגה מלאה">${ICONS.NOTE}</span>`;
+                ariaBits.push('יש הערה אישית');
             }
             if (db[abs].type === 'reiyah') {
                 if (db[abs].ona === 'day') {
                     bottomMarkers += `<div class="marker bg-red" title="ראיית יום">${ICONS.FLAG}<span>ראיית יום</span></div>`;
+                    ariaBits.push('ראיית יום');
                 } else {
                     topMarkers += `<div class="marker bg-red" title="ראיית לילה">${ICONS.FLAG}<span>ראיית לילה</span></div>`;
+                    ariaBits.push('ראיית לילה');
                 }
                 // B2 — המיחוש שתועד על הראייה (וסת הגוף).
                 bottomMarkers += buildSignMarker(db[abs]);
             }
             if (db[abs].type === 'hefsek') {
                 bottomMarkers += `<div class="marker bg-yellow" title="הפסק טהרה">${ICONS.SUN_SPARK}<span>הפסק טהרה</span></div>`;
+                ariaBits.push('הפסק טהרה');
             }
             if (db[abs].type === 'check') {
                 // B4: what was checked, and with what result - only a proper check
                 // can uproot a veset `[שט מ"א | עמ' 182]`.
                 const depthLabel = db[abs].depth === 'wipe' ? 'קינוח בלבד — לא מועיל לעקירה' : 'בדיקה כדין (עומק ובחו"ס)';
                 bottomMarkers += `<div class="marker bg-green" title="${depthLabel}">${ICONS.CHECK}<span>בדיקה</span></div>`;
+                ariaBits.push('בדיקה');
                 // A3 — הבדיקה השנייה שבעונה מוצגת בסימון משלה, ולא נבלעת בשדה אחד.
                 const checkParts = checkPartsOf(db[abs]);
                 if (checkParts.length > 1) {
@@ -564,6 +595,7 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
         // Clean days marking
         if (computed.nekiim.includes(abs)) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
+            ariaBits.push('משבעת הנקיים');
         }
 
         // Immersion actual or prediction (tevilah). computed.tevilot / a manually
@@ -572,22 +604,28 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
         // matching the night-before-day convention used throughout the calendar.
         if (db[abs] && db[abs].type === 'tevilah') {
             topMarkers += `<div class="marker bg-blue" title="הלילה טבילה">${ICONS.WAVES}<span>טבילה הלילה</span></div>`;
+            ariaBits.push('הלילה טבילה');
         } else if (computed.tevilot.includes(abs)) {
             topMarkers += `<div class="marker bg-blue" style="opacity:0.85; border: 1px dashed white;" title="צפי טבילה הלילה">${ICONS.WAVES}<span>צפי טבילה הלילה</span></div>`;
             bgStyle = 'background-color: var(--input-bg); border-color: var(--blue);';
+            ariaBits.push('צפי טבילה הלילה');
         }
 
         // Separation dates (prishot)
         if (computed.prishot[abs]) {
             let nList = computed.prishot[abs].filter(p => p.ona === 'night');
             let dList = computed.prishot[abs].filter(p => p.ona === 'day');
-            
-            if (nList.length > 0) topMarkers += buildPrishaMarker(nList, 'פרישת לילה');
-            if (dList.length > 0) bottomMarkers += buildPrishaMarker(dList, 'פרישת יום');
+
+            if (nList.length > 0) { topMarkers += buildPrishaMarker(nList, 'פרישת לילה'); ariaBits.push('פרישת לילה'); }
+            if (dList.length > 0) { bottomMarkers += buildPrishaMarker(dList, 'פרישת יום'); ariaBits.push('פרישת יום'); }
         }
 
+        if (cellClasses.includes('day-today')) ariaBits.push('היום');
+        const ariaLabel = `${hd.renderGematriya()}, ${hd.greg().toLocaleDateString('he-IL')}`
+            + (ariaBits.length ? ` — ${ariaBits.join(', ')}` : '');
+
         html += `
-            <div class="${cellClasses.join(' ')}" style="${bgStyle}" onclick="window.openDayModal(new window.HDateLocal(${abs}))">
+            <div class="${cellClasses.join(' ')}" style="${bgStyle}" onclick="window.openDayModal(new window.HDateLocal(${abs}))" role="button" tabindex="0" aria-label="${ariaLabel}">
                 <div class="yearly-cell-inner">
                     ${noteHTML}
                     <div class="marker-wrapper">${topMarkers}</div>
