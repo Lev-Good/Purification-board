@@ -29,7 +29,8 @@
       `npm test` עבר במלואו (27 קבצי בדיקה, כולל `tests/errorLog.test.js`
       החדש). אומת גם ידנית: `tests/integrity.test.js` (74 handlers
       פנימיים, כולם פתורים; אותר ותוקן `id` ישן ב-`goToBackupSettings` שהצביע
-      על קבוצה שהוזזה). ראו `docs/DECISIONS.md`.
+      על קבוצה שהוזזה). ראו `docs/DECISIONS.md`. **פורסם כגרסה 3.1.0** ב-GitHub
+      Releases (מתקין NSIS + גרסה נייחת), ראו `docs/AGENT_LOG.md`.
 - [x] **סנכרון יומן גוגל + התראות דוא"ל (2026-09-20, לפי `docs/GOOGLE_CALENDAR_SPEC.md`):**
       יומן Google נפרד (לא היומן הראשי) עם תזכורות מייל+פופ-אפ לשבעה נקיים,
       טבילה, ועונות פרישה — `js/googleCalendar.js` חדש, על גבי אינפרסטרוקטורת

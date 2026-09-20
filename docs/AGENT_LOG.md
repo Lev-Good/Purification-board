@@ -52,11 +52,29 @@ scroll-spy/יומן התקלות דרך `document.querySelector`/`javascript_exe
 
 - `index.html`, `css/style.css`, `js/app.js`
 - `js/errorLog.js` (חדש), `tests/errorLog.test.js` (חדש)
-- `package.json` (הוספת `tests/errorLog.test.js` לסקריפט `test`)
+- `package.json` (הוספת `tests/errorLog.test.js` לסקריפט `test`, וגרסה 3.1.0)
+
+### פרסום גרסה 3.1.0
+
+לאחר בקשת המשתמשת לבנות ולהעלות גרסה: הועלה commit `e55b76b` ל-`main`
+(push ישיר, `git push origin HEAD:main` — לא מיזוג מקומי, `main` מחוץ ל-worktree
+הזה), גרסה עודכנה ל-3.1.0, ונבנה מתקין (`npm run dist`): `לוח טהרה Setup
+3.1.0.exe` (113,133,070 בייטים), `לוח טהרה 3.1.0.exe` הנייח (112,754,712
+בייטים), ו-blockmap. תג `v3.1.0` נוצר על ה-commit ונדחף.
+
+**תקלה שנמצאה ותוקנה תוך כדי ההעלאה:** `gh release upload` עם תחביר
+`<path-בעברית>#<שם-תצוגה>` יצר בפועל אסטים עם שמות מקוטעים
+(`3.1.0.exe`/`Setup.3.1.0.exe` וכו', בלי הקידומת `purification-board-`) —
+כנראה תקלת קידוד בין Git Bash לבין הנתיב העברי. **גודל הקובץ שהועלה היה
+תקין** (אומת ביט-לביט מול `ls -la`), רק שם הקובץ המוצג ב-GitHub היה שגוי.
+תוקן ע"י העתקת קבצי הבנייה לשמות ASCII נקיים (`dist/purification-board-*.exe`)
+לפני ההעלאה, מחיקת שלושת האסטים השגויים, והעלאה חדשה — אומת שוב מול ה-API
+(`gh api .../releases`) ששלושת השמות והגדלים תקינים במדויק. ה-release
+פורסם (`--draft=false`) עם הערות שינויים בעברית.
 
 ### סטטוס
 
-הושלם.
+הושלם. Release פורסם: https://github.com/Lev-Good/Purification-board/releases/tag/v3.1.0
 
 ---
 
