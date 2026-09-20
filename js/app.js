@@ -1255,10 +1255,14 @@ window.googleConnect = async function() {
         if (statusText) statusText.innerText = 'נפתח חלון ההתחברות של גוגל... השלימו את ההתחברות בדפדפן.';
         await connectGoogle(() => getGoogleBackupData(db, getRecoveryEmail));
         await updateGoogleStatusUI();
+        // בלי זה כרטיס היומן נשאר מוסתר עד להפעלה מחדש של האפליקציה - הוא
+        // מוצג/מוסתר לפי status.connected, שרק עתה התעדכן.
+        await updateGoogleCalendarUI();
         showAlert('חשבון הגוגל חובר בהצלחה!\n\nנוצר גיליון "לוח טהרת המשפחה - גיבוי" ב-Drive שלכם, והגיבוי יתבצע אוטומטית פעם ביום.');
     } catch (e) {
         console.error('Google connect failed:', e);
         await updateGoogleStatusUI();
+        await updateGoogleCalendarUI();
         showAlert(explainGoogleError(e));
     }
 };
@@ -1470,6 +1474,7 @@ window.googleDisconnectConfirm = function() {
     showConfirm('לנתק את חשבון הגוגל? הגיבוי האוטומטי יופסק. הגיליון הקיים יישמר ב-Drive שלכם.', async () => {
         await disconnectGoogle();
         await updateGoogleStatusUI();
+        await updateGoogleCalendarUI(); // מסתיר את כרטיס היומן מיד, לא רק בהפעלה הבאה
         showToast('חשבון הגוגל נותק');
     });
 };
