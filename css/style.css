@@ -245,11 +245,24 @@ body {
 
 .sidebar-actions-grid {
     display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* שתי שורות נפרדות: עיצוב/הדפסה/מייל מול זום — לא עוד קבוצה שטוחה אחת
+   שגולשת לשתי שורות באקראי לפי רוחב הסיידבר. */
+.sidebar-actions-row {
+    display: flex;
     flex-wrap: wrap;
     justify-content: space-around;
     row-gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+}
+
+.sidebar-actions-row + .sidebar-actions-row {
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
 }
 
 .sidebar-action {
@@ -672,6 +685,13 @@ tr:hover {
     margin-bottom: 16px;
     box-shadow: var(--shadow-sm);
     line-height: 1.6;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.about-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
 }
 
 .about-card h3 {
@@ -704,34 +724,92 @@ tr:hover {
     margin-bottom: 8px;
 }
 
-/* Settings sub-nav: quick jump between the settings sections below */
-.settings-subnav {
+/* --------------------------------------------------------------------
+   סרגל צד קבוע לניווט — לשוניות "הגדרות" ו"אודות". אותו מנגנון בשתי
+   הלשוניות (.side-nav-layout), כדי שהתחושה תהיה אחידה בכל האפליקציה.
+   מתקפל לשורת "פצפוצים" אופקית ברוחב מסך צר (כמו שהיה קודם), ונשאר
+   סרגל צד אמיתי, דביק (sticky), ברוחב דסקטופ.
+   -------------------------------------------------------------------- */
+.side-nav-layout {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
+    gap: 28px;
+    align-items: flex-start;
 }
 
-.settings-subnav a {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    font-size: 0.88em;
+.side-nav {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: 12px;
+}
+
+.side-nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.9em;
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
 }
 
-.settings-subnav a:hover,
-.settings-subnav a:focus-visible {
+.side-nav a:hover,
+.side-nav a:focus-visible {
+    background: var(--input-bg);
+    color: var(--text-main);
+    border-color: var(--border-color);
+    transform: translateX(-3px);
+}
+
+.side-nav a.active {
+    background: var(--primary);
+    color: #fff;
     border-color: var(--primary);
-    background: var(--primary-light, var(--surface));
+    box-shadow: var(--shadow-sm);
+}
+
+.side-nav-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* מתחת לרוחב מסוים אין מקום לסרגל צד אמיתי — חוזר לשורת פצפוצים אופקית
+   שגוללת בעצמה, בדיוק כמו ההתנהגות הקודמת. */
+@media (max-width: 900px) {
+    .side-nav-layout {
+        flex-direction: column;
+    }
+
+    .side-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        position: static;
+        width: 100%;
+        gap: 8px;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .side-nav a {
+        flex: 0 0 auto;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border-color: var(--border-color);
+        background: var(--surface);
+    }
+
+    .side-nav a.active {
+        transform: none;
+    }
 }
 
 /* Settings items */
@@ -776,6 +854,13 @@ tr:hover {
     border-radius: var(--radius);
     padding: 16px;
     box-shadow: var(--shadow-sm);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.settings-group:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
 }
 
 /* כרטיסי הגדרות ארוכים/נדירים עטופים כ-<details> — "מצב חיים" (ארוך משמעותית
@@ -1756,29 +1841,3 @@ tr:hover {
     line-height: 1.6;
 }
 
-/* Nav bar by heading, at the top of the halachic guide (spec: quick jump between categories) */
-.guide-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 14px;
-}
-
-.guide-nav a {
-    display: inline-block;
-    padding: 5px 12px;
-    border-radius: 16px;
-    background: var(--surface-alt, var(--bg-secondary, transparent));
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    font-size: 0.8em;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.guide-nav a:hover,
-.guide-nav a:focus-visible {
-    border-color: var(--primary);
-    color: var(--primary);
-}

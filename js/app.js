@@ -62,6 +62,11 @@ import {
 import {
     syncCalendarNow, clearAllAppEvents, hasCalendarScope, CALENDAR_SUMMARY
 } from './googleCalendar.js';
+import { initErrorLogging, getErrorLogCount, downloadErrorLog, clearErrorLog } from './errorLog.js';
+
+// מתחברת מוקדם ככל האפשר - כדי לתפוס גם תקלות בעליית האפליקציה עצמה, ולא רק
+// מהרגע שה-DOM מוכן. הרישום עצמו לעולם לא זורק (ר' errorLog.js).
+initErrorLogging();
 
 // ---------- Halachic help: info bubbles + guide tab ----------
 
@@ -129,21 +134,30 @@ function renderGuide() {
 
     const categories = topicsByCategory();
 
-    // סרגל ניווט לפי כותרות המדריך — קפיצה לכל קטגוריה, בלי לצאת מלשונית "אודות".
-    const nav = document.createElement('nav');
-    nav.className = 'guide-nav';
-    nav.setAttribute('aria-label', 'ניווט לפי כותרות המדריך ההלכתי');
-    categories.forEach((group, i) => {
-        const link = document.createElement('a');
-        link.href = '#guide-category-' + i;
-        link.innerText = group.category;
-        link.onclick = (e) => {
-            e.preventDefault();
-            document.getElementById('guide-category-' + i).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // סרגל הצד המשותף ללשונית "אודות" (#about-side-nav) — מכיל גם את הקישורים
+    // הקבועים (הוראות שימוש, מייל, פרטיות, אודות) וגם קישור לכל קטגוריה במדריך,
+    // כדי שיהיה סרגל ניווט אחד ומאוחד לכל הלשונית ולא סרגל נפרד בתוך המדריך.
+    const sideNav = document.getElementById('about-side-nav');
+    if (sideNav) {
+        sideNav.innerHTML = '';
+        const addLink = (targetId, label) => {
+            const link = document.createElement('a');
+            link.href = '#' + targetId;
+            link.innerText = label;
+            link.onclick = (e) => {
+                e.preventDefault();
+                const target = document.getElementById(targetId);
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                sideNav.querySelectorAll('a').forEach(a => a.classList.toggle('active', a === link));
+            };
+            sideNav.appendChild(link);
         };
-        nav.appendChild(link);
-    });
-    container.appendChild(nav);
+        addLink('about-section-instructions', 'הוראות שימוש');
+        categories.forEach((group, i) => addLink('guide-category-' + i, group.category));
+        addLink('about-section-email', 'שליחת נתונים למייל');
+        addLink('about-section-privacy', 'פרטיות וגיבוי נתונים');
+        addLink('about-section-credit', 'אודות');
+    }
 
     const intro = document.createElement('div');
     intro.className = 'guide-intro';
@@ -629,7 +643,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // 4b. Build the halachic guide from the shared help content
     renderGuide();
-    
+
+    // 4c. סרגלי הצד לניווט קל (הגדרות ואודות/מדריך) - מסמנים את הקטגוריה
+    // הנראית כרגע, לא רק בלחיצה.
+    initSideNavScrollSpy(document.querySelector('#view-settings .side-nav'));
+    initSideNavScrollSpy(document.querySelector('#view-about .side-nav'));
+
+    // 4d. יומן תקלות (settings-section-notifications) - כמה רשומות כבר נרשמו.
+    refreshErrorLogCountUI();
+
     // 5. Populate Or Zarua setting
     const orZaruaInput = document.getElementById('setting-or-zarua');
     if (orZaruaInput) orZaruaInput.checked = isOrZaruaEnabled();
@@ -833,7 +855,7 @@ function hideBackupReminderBanner() {
 
 window.goToBackupSettings = function() {
     switchView('view-settings', 'nav-settings', 'desktop-nav-settings');
-    const section = document.getElementById('settings-section-account');
+    const section = document.getElementById('settings-section-backup');
     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
@@ -956,6 +978,27 @@ window.openLocalBackupFolder = function() {
     } else {
         showAlert('פתיחת תיקיית הגיבוי זמינה רק באפליקציית שולחן העבודה.');
     }
+};
+
+/**
+ * מציגה כמה רשומות נרשמו ביומן התקלות (settings-section-notifications) -
+ * כדי שיהיה ברור אם יש בכלל משהו לשלוח.
+ */
+function refreshErrorLogCountUI() {
+    const el = document.getElementById('error-log-count');
+    if (el) el.innerText = String(getErrorLogCount());
+}
+
+window.downloadErrorLogFile = function() {
+    downloadErrorLog();
+};
+
+window.clearErrorLogConfirm = function() {
+    showConfirm('לנקות את יומן התקלות השמור במכשיר הזה?', () => {
+        clearErrorLog();
+        refreshErrorLogCountUI();
+        showToast('יומן התקלות נוקה');
+    });
 };
 
 /**
@@ -1572,14 +1615,51 @@ window.switchView = function(viewId, activeTabId, desktopNavId) {
 };
 
 /**
- * Settings sub-nav (index.html `.settings-subnav`): jumps to a section inside
- * the currently-open settings tab instead of navigating away from it.
+ * Settings side-nav (index.html `.side-nav`): jumps to a section inside
+ * the currently-open settings tab instead of navigating away from it. Sets
+ * the clicked link active immediately - the scroll-spy (below) would get
+ * there too, but only once the smooth-scroll animation actually settles.
  */
 window.jumpToSettingsSection = function(event, sectionId) {
     if (event) event.preventDefault();
     const target = document.getElementById(sectionId);
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (event && event.currentTarget) {
+        const nav = event.currentTarget.closest('.side-nav');
+        if (nav) {
+            nav.querySelectorAll('a').forEach(a => a.classList.toggle('active', a === event.currentTarget));
+        }
+    }
 };
+
+/**
+ * "סרגל צד קבוע לניווט קל" (הגדרות, אודות/מדריך): מסמן אוטומטית איזה קישור
+ * תואם לקטע שהמשתמשת רואה כרגע בגלילה, לא רק בלחיצה - בדיוק כמו תוכן עניינים
+ * חי. שני הסרגלים חולקים את אותו CSS (.side-nav), ולכן גם את אותה לוגיקה.
+ */
+function initSideNavScrollSpy(nav) {
+    if (!nav) return;
+    const links = Array.from(nav.querySelectorAll('a[href^="#"]'));
+    const sections = links
+        .map(link => document.getElementById(link.getAttribute('href').slice(1)))
+        .filter(Boolean);
+    if (!sections.length) return;
+
+    const setActive = (id) => {
+        links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + id));
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter(e => e.isIntersecting);
+        if (!visible.length) return;
+        // הקטע שהחלק הגדול ביותר ממנו גלוי כרגע - לא בהכרח הראשון שנכנס למסך.
+        visible.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        setActive(visible[0].target.id);
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
+
+    sections.forEach(section => observer.observe(section));
+    setActive(sections[0].id); // מצב פתיחה, לפני שהמשתמשת גללה כלל
+}
 
 window.openModal = function(id) {
     openModal(id);

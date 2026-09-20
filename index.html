@@ -135,43 +135,48 @@
         <!-- Repositioned Quick Action buttons — כל פעולה עם תווית טקסט גלויה, לא רק
              title/aria-label (שדורשים ריחוף שלא תמיד קיים, ואינם מובנים בלי הסבר). -->
         <div class="sidebar-actions-grid">
-            <div class="sidebar-action">
-                <div class="sidebar-action-circle" onclick="toggleTheme()" id="theme-btn" role="button" tabindex="0" title="החלף עיצוב יום/לילה" aria-label="החלף עיצוב יום/לילה">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <div class="sidebar-actions-row">
+                <div class="sidebar-action">
+                    <div class="sidebar-action-circle" onclick="toggleTheme()" id="theme-btn" role="button" tabindex="0" title="החלף עיצוב יום/לילה" aria-label="החלף עיצוב יום/לילה">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </div>
+                    <span class="sidebar-action-label">עיצוב</span>
                 </div>
-                <span class="sidebar-action-label">עיצוב</span>
-            </div>
-            <div class="sidebar-action">
-                <div class="sidebar-action-circle" onclick="prepareAndPrint()" role="button" tabindex="0" title="הדפס לוח וריכוז וסתות" aria-label="הדפס לוח וריכוז וסתות">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                <div class="sidebar-action">
+                    <div class="sidebar-action-circle" onclick="prepareAndPrint()" role="button" tabindex="0" title="הדפס לוח וריכוז וסתות" aria-label="הדפס לוח וריכוז וסתות">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    </div>
+                    <span class="sidebar-action-label">הדפסה</span>
                 </div>
-                <span class="sidebar-action-label">הדפסה</span>
-            </div>
-            <div class="sidebar-action">
-                <div class="sidebar-action-circle" onclick="openEmailModal()" role="button" tabindex="0" title="שלח נתונים למייל" aria-label="שלח נתונים למייל">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <div class="sidebar-action">
+                    <div class="sidebar-action-circle" onclick="openEmailModal()" role="button" tabindex="0" title="שלח נתונים למייל" aria-label="שלח נתונים למייל">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    </div>
+                    <span class="sidebar-action-label">מייל</span>
                 </div>
-                <span class="sidebar-action-label">מייל</span>
             </div>
             <!-- כפתורי זום גלובליים (spec: זום בכל התוכנה) — מגדילים/מקטינים את כל
-                 הממשק (document.body.style.zoom), לא רק את הלוח. -->
-            <div class="sidebar-action">
-                <div class="sidebar-action-circle" onclick="zoomOut()" role="button" tabindex="0" title="הקטן תצוגה" aria-label="הקטן תצוגה">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                 הממשק (document.body.style.zoom), לא רק את הלוח. בשורה נפרדת
+                 מהפעולות שלמעלה, כדי שלא יתערבבו קבוצות שונות מבחינה מושגית. -->
+            <div class="sidebar-actions-row">
+                <div class="sidebar-action">
+                    <div class="sidebar-action-circle" onclick="zoomOut()" role="button" tabindex="0" title="הקטן תצוגה" aria-label="הקטן תצוגה">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                    </div>
+                    <span class="sidebar-action-label">הקטן</span>
                 </div>
-                <span class="sidebar-action-label">הקטן</span>
-            </div>
-            <div class="sidebar-action">
-                <div class="sidebar-action-circle" onclick="zoomReset()" role="button" tabindex="0" title="אפס תצוגה ל-100%" aria-label="אפס תצוגה ל-100%">
-                    <span id="zoom-level-label" style="font-size: 0.62em; font-weight: 700;">100%</span>
+                <div class="sidebar-action">
+                    <div class="sidebar-action-circle" onclick="zoomReset()" role="button" tabindex="0" title="אפס תצוגה ל-100%" aria-label="אפס תצוגה ל-100%">
+                        <span id="zoom-level-label" style="font-size: 0.62em; font-weight: 700;">100%</span>
+                    </div>
+                    <span class="sidebar-action-label">איפוס</span>
                 </div>
-                <span class="sidebar-action-label">איפוס</span>
-            </div>
-            <div class="sidebar-action">
-                <div class="sidebar-action-circle" onclick="zoomIn()" role="button" tabindex="0" title="הגדל תצוגה" aria-label="הגדל תצוגה">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                <div class="sidebar-action">
+                    <div class="sidebar-action-circle" onclick="zoomIn()" role="button" tabindex="0" title="הגדל תצוגה" aria-label="הגדל תצוגה">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                    </div>
+                    <span class="sidebar-action-label">הגדל</span>
                 </div>
-                <span class="sidebar-action-label">הגדל</span>
             </div>
         </div>
     </aside>
@@ -287,7 +292,15 @@
         <section id="view-about" class="section-container">
             <h2 style="margin-bottom: 16px; color: var(--text-main);">אודות והוראות שימוש</h2>
 
-            <div class="about-card">
+            <!-- סרגל צד קבוע לניווט (css/style.css .side-nav) — מתמלא ב-JS
+                 (js/app.js renderGuide) כי הוא כולל גם את קטגוריות המדריך
+                 ההלכתי, שהן נתון דינמי ולא ידוע מראש ב-HTML. -->
+            <div class="side-nav-layout">
+                <nav class="side-nav" id="about-side-nav" aria-label="ניווט באודות ובמדריך ההלכתי"></nav>
+
+                <div class="side-nav-content">
+
+            <div class="about-card" id="about-section-instructions">
                 <h3>
                     <svg class="icon text-icon" style="color:var(--primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                     איך משתמשים ביומן?
@@ -324,7 +337,7 @@
                 <div id="guide-content"></div>
             </div>
 
-            <div class="about-card">
+            <div class="about-card" id="about-section-email">
                 <h3>
                     <svg class="icon text-icon" style="color:var(--primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                     שליחת נתונים למייל
@@ -336,7 +349,7 @@
                 </ul>
             </div>
 
-            <div class="about-card">
+            <div class="about-card" id="about-section-privacy">
                 <h3>
                     <svg class="icon text-icon" style="color:var(--primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                     פרטיות וגיבוי נתונים
@@ -348,7 +361,7 @@
                 </ul>
             </div>
 
-            <div class="credit-box">
+            <div class="credit-box" id="about-section-credit">
                 <div style="color: var(--primary); margin-bottom: 8px; width: 44px; height: 44px; display: inline-block;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
                 </div>
@@ -359,17 +372,14 @@
                     <a href="https://lev-good.github.io/Good-heart/" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 0.95em; background: var(--surface); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 6px;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> אתר הבית</a>
                 </div>
             </div>
+
+                </div>
+            </div>
         </section>
 
         <!-- SECTION 4: Settings View -->
         <section id="view-settings" class="section-container">
             <h2 style="margin-bottom: 16px; color: var(--text-main);">הגדרות מתקדמות</h2>
-
-            <!-- סרגל לשוניות לניווט מהיר בתוך לשונית ההגדרות (קפיצה לעוגן, לא מסתיר תוכן) -->
-            <nav class="settings-subnav" aria-label="ניווט בתוך ההגדרות">
-                <a href="#settings-section-halacha" onclick="jumpToSettingsSection(event, 'settings-section-halacha')">הלכה וחישוב</a>
-                <a href="#settings-section-account" onclick="jumpToSettingsSection(event, 'settings-section-account')">חשבון, פרטיות וגיבוי</a>
-            </nav>
 
             <!-- Quick Mobile Actions (Theme, Print, Email - hidden on desktop sidebar) -->
             <div class="settings-group mobile-only-group" style="display: none; margin-bottom: 20px;">
@@ -392,6 +402,19 @@
                     .mobile-only-group { display: block !important; }
                 }
             </style>
+
+            <!-- סרגל צד קבוע לניווט בתוך ההגדרות — מתקפל לשורת פצפוצים ברוחב מסך
+                 צר (css/style.css .side-nav-layout). מסמן את הקטגוריה הנראית כרגע
+                 (js/app.js initSideNavScrollSpy). -->
+            <div class="side-nav-layout">
+                <nav class="side-nav" aria-label="ניווט בתוך ההגדרות">
+                    <a href="#settings-section-halacha" onclick="jumpToSettingsSection(event, 'settings-section-halacha')">הלכה וחישוב</a>
+                    <a href="#settings-section-security" onclick="jumpToSettingsSection(event, 'settings-section-security')">חשבון ואבטחה</a>
+                    <a href="#settings-section-backup" onclick="jumpToSettingsSection(event, 'settings-section-backup')">גיבוי וסנכרון</a>
+                    <a href="#settings-section-notifications" onclick="jumpToSettingsSection(event, 'settings-section-notifications')">התראות ועדכונים</a>
+                </nav>
+
+                <div class="side-nav-content">
 
             <!-- קבוצה א: הלכה וחישוב — כל מה שקובע איך המנוע מחשב את הוסתות והחששות -->
             <div class="settings-section" id="settings-section-halacha">
@@ -531,26 +554,10 @@
                 </div>
             </div>
 
-            <!-- קבוצה ב: חשבון, פרטיות וגיבוי — נפרד מהחלק ההלכתי, כי זו קטגוריה מנטלית אחרת -->
-            <div class="settings-section" id="settings-section-account">
-                <div class="settings-section-title">חשבון, פרטיות וגיבוי</div>
+            <!-- קבוצה ב: חשבון ואבטחה — קוד גישה ואימיילים -->
+            <div class="settings-section" id="settings-section-security">
+                <div class="settings-section-title">חשבון ואבטחה</div>
                 <div class="settings-grid">
-
-                <!-- בדיקת גרסה חדשה מול GitHub Releases (אפיון תוספות עתידיות מתוכננות.txt,
-                     שורות 6–8). id="update-settings-card" הוא עוגן הקפיצה מ-goToUpdateSettings(). -->
-                <div class="settings-group settings-span-2" id="update-settings-card">
-                    <h4>עדכון תוכנה</h4>
-                    <p>גרסה מותקנת: <b id="current-app-version">בודק...</b></p>
-                    <p id="update-settings-text" style="color: var(--primary); font-weight: 600; display: none;"></p>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <a id="update-download-link" href="#" target="_blank" class="action-btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;" onclick="if(this.getAttribute('href')==='#') return false;">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            פתח את דף ההורדה
-                        </a>
-                        <button class="action-btn btn-outline" onclick="checkForUpdateNow()">בדוק עדכון עכשיו</button>
-                    </div>
-                    <p style="font-size: 0.82em; color: var(--text-muted); margin-top: 8px;">מומלץ לגבות את הנתונים (למעלה בעמוד זה) לפני התקנת עדכון. ההתקנה עצמה מתבצעת מקובץ ההתקנה שיורד מדף ה-GitHub, ולא אוטומטית מתוך האפליקציה.</p>
-                </div>
 
                 <!-- Update Security PIN code -->
                 <div class="settings-group">
@@ -588,7 +595,15 @@
                         <button class="action-btn btn-clear" style="flex: 1;" onclick="removeEmailSetting()">הסר כתובת</button>
                     </div>
                 </div>
-                
+
+                </div>
+            </div>
+
+            <!-- קבוצה ג: גיבוי וסנכרון — כל מה ששומר את הנתונים במקום נוסף -->
+            <div class="settings-section" id="settings-section-backup">
+                <div class="settings-section-title">גיבוי וסנכרון</div>
+                <div class="settings-grid">
+
                 <!-- Google account connection & automatic backup -->
                 <div class="settings-group settings-span-2" id="google-backup-group" style="display: none;">
                     <h4>גיבוי אוטומטי לחשבון גוגל</h4>
@@ -686,18 +701,6 @@
                     </div>
                 </div>
 
-                <!-- Desktop OS notifications — daily summary or event-day only.
-                     Electron only (main.js exposes Notification via IPC). -->
-                <div class="settings-group settings-span-2">
-                    <h4>התראות במחשב</h4>
-                    <p>התראת מערכת (מחוץ לחלון האפליקציה) שמזכירה את התאריך העברי הנוכחי ואת המצב, או רק ביום שיש בו אירוע וסת בפועל. עד התראה אחת ביום. זמין רק באפליקציית שולחן העבודה.</p>
-                    <select id="setting-notifications-mode" class="text-input" style="width: 100%;" onchange="saveNotificationsSetting()">
-                        <option value="off">כבוי</option>
-                        <option value="daily">כל יום — תאריך ומצב</option>
-                        <option value="event">רק ביום שיש בו אירוע וסת</option>
-                    </select>
-                </div>
-
                 <!-- Daily automatic local backup file — separate from the manual download
                      above and from the Google Sheets auto-backup; writes to userData/backups
                      in the desktop app only (Electron). -->
@@ -711,6 +714,59 @@
                     <p id="local-backup-status" style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 10px;"></p>
                     <button class="action-btn btn-outline" onclick="openLocalBackupFolder()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> פתח את תיקיית הגיבויים</button>
                 </div>
+
+                <!-- יומן תקלות אוטומטי (spec: "תוסיף תכונה ששומרת באגים... כדי שיוכלו לשלוח
+                     לי את הקובץ לוגים הזה"). js/errorLog.js תופס שגיאות שלא נתפסו + Promise-ים
+                     שנדחו, ושומר אותן ב-localStorage; הכפתור כאן מוריד קובץ טקסט אחד עם כל
+                     הרשומות בתוספת פרטי מערכת (גרסה, מכשיר, דפדפן) לשליחה למפתח. -->
+                <div class="settings-group settings-span-2">
+                    <h4>יומן תקלות לתמיכה</h4>
+                    <p>האפליקציה שומרת באופן אוטומטי תקלות טכניות שקרו במכשיר הזה, בתוספת פרטי גרסה ומערכת. אם משהו לא עובד כמו שצריך, ניתן להוריד את קובץ הלוג ולשלוח אותו למפתח כדי שיבין מה קרה.</p>
+                    <p style="font-size: 0.82em; color: var(--text-muted); margin-bottom: 10px;">נרשמו במכשיר הזה: <b id="error-log-count">0</b> תקלות.</p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="action-btn btn-outline" style="flex: 1;" onclick="downloadErrorLogFile()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> הורד קובץ לוג לתקלות</button>
+                        <button class="action-btn btn-outline" style="color: var(--red); border-color: var(--red);" onclick="clearErrorLogConfirm()">נקה יומן</button>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+
+            <!-- קבוצה ד: התראות ועדכונים -->
+            <div class="settings-section" id="settings-section-notifications">
+                <div class="settings-section-title">התראות ועדכונים</div>
+                <div class="settings-grid">
+
+                <!-- בדיקת גרסה חדשה מול GitHub Releases (אפיון תוספות עתידיות מתוכננות.txt,
+                     שורות 6–8). id="update-settings-card" הוא עוגן הקפיצה מ-goToUpdateSettings(). -->
+                <div class="settings-group settings-span-2" id="update-settings-card">
+                    <h4>עדכון תוכנה</h4>
+                    <p>גרסה מותקנת: <b id="current-app-version">בודק...</b></p>
+                    <p id="update-settings-text" style="color: var(--primary); font-weight: 600; display: none;"></p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a id="update-download-link" href="#" target="_blank" class="action-btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;" onclick="if(this.getAttribute('href')==='#') return false;">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            פתח את דף ההורדה
+                        </a>
+                        <button class="action-btn btn-outline" onclick="checkForUpdateNow()">בדוק עדכון עכשיו</button>
+                    </div>
+                    <p style="font-size: 0.82em; color: var(--text-muted); margin-top: 8px;">מומלץ לגבות את הנתונים (בקבוצת "גיבוי וסנכרון") לפני התקנת עדכון. ההתקנה עצמה מתבצעת מקובץ ההתקנה שיורד מדף ה-GitHub, ולא אוטומטית מתוך האפליקציה.</p>
+                </div>
+
+                <!-- Desktop OS notifications — daily summary or event-day only.
+                     Electron only (main.js exposes Notification via IPC). -->
+                <div class="settings-group settings-span-2">
+                    <h4>התראות במחשב</h4>
+                    <p>התראת מערכת (מחוץ לחלון האפליקציה) שמזכירה את התאריך העברי הנוכחי ואת המצב, או רק ביום שיש בו אירוע וסת בפועל. עד התראה אחת ביום. זמין רק באפליקציית שולחן העבודה.</p>
+                    <select id="setting-notifications-mode" class="text-input" style="width: 100%;" onchange="saveNotificationsSetting()">
+                        <option value="off">כבוי</option>
+                        <option value="daily">כל יום — תאריך ומצב</option>
+                        <option value="event">רק ביום שיש בו אירוע וסת</option>
+                    </select>
+                </div>
+
+                </div>
+            </div>
 
                 </div>
             </div>
