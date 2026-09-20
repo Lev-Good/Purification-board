@@ -173,6 +173,73 @@ const adjSecond = rAdj.find(r => r.abs === tishrei1Abs + 1);
 assert(adjSecond && adjSecond.haflagahDiff === 2, 'consecutive-day sightings give a haflagah of 2');
 assert(!!cAdj.prishot[tishrei1Abs + 2], 'next haflagah concern is the following day');
 
+// --- כרתי ופלתי (מתג `karetiUfaletei`): הרחבת עונה בינונית ליממה שלמה ---
+// מנהג אשכנז נוסף (מסמכי "יסודות הבית") — כשדלוק, יום ל' (עונה בינונית) מקבל
+// גם את העונה שכנגד עונת הראייה, לא רק את עונתה.
+const kufDb = { 20000: { type: 'reiyah', ona: 'day' } };
+const kufBeinonitAbs = 20000 + 29;
+
+const { computed: kufOff } = calculateEngine(kufDb, false, { stringencies: { karetiUfaletei: false } });
+assert(kufOff.prishot[kufBeinonitAbs].some(p => p.code === 'עו"ב' && p.ona === 'day'),
+    'karetiUfaletei off: day-30 beinonit carries only the day onah (the sighting\'s own onah)');
+assert(!kufOff.prishot[kufBeinonitAbs].some(p => p.ona === 'night'),
+    'karetiUfaletei off: no night-onah entry is added on day 30');
+
+const { computed: kufOn } = calculateEngine(kufDb, false, { stringencies: { karetiUfaletei: true } });
+assert(kufOn.prishot[kufBeinonitAbs].some(p => p.code === 'עו"ב' && p.ona === 'day'),
+    'karetiUfaletei on: the original day-onah entry still stands');
+assert(kufOn.prishot[kufBeinonitAbs].some(p => p.code === 'עו"ב' && p.ona === 'night'),
+    'karetiUfaletei on: the opposite (night) onah is added too, for the full 24h');
+
+// --- וסת מעד בדיקה (מתג `vesetFromBedika`): דם שנמצא בבדיקה נמנה כראייה ---
+// מקור: מסמכי "יסודות הבית" (מקור משני). ג' בדיקות עם "נמצא דם" יבנו וסת קבוע
+// של יום החודש, בדיוק כמו ג' ראיות רגילות — רק כשהמתג דלוק.
+const bedikaAbs1 = new HDate(5, 1, 5786).abs();
+const bedikaAbs2 = new HDate(5, 2, 5786).abs();
+const bedikaAbs3 = new HDate(5, 3, 5786).abs();
+const bedikaDb = {
+    [bedikaAbs1]: { type: 'check', ona: 'day', depth: 'deep', bloodFound: true },
+    [bedikaAbs2]: { type: 'check', ona: 'day', depth: 'deep', bloodFound: true },
+    [bedikaAbs3]: { type: 'check', ona: 'day', depth: 'deep', bloodFound: true }
+};
+
+const { reiyot: reiyotOff } = calculateEngine(bedikaDb, false, { stringencies: { vesetFromBedika: false } });
+assert(reiyotOff.length === 0,
+    'vesetFromBedika off: a check with blood found does not become a sighting at all');
+
+const { reiyot: reiyotOn, chazaka: chazakaOn } = calculateEngine(bedikaDb, false, { stringencies: { vesetFromBedika: true } });
+assert(reiyotOn.length === 3 && reiyotOn.every(r => r.kind === 'bedikaBlood'),
+    'vesetFromBedika on: each blood-found check becomes a sighting, marked with kind bedikaBlood');
+assert(!!(chazakaOn && chazakaOn.established && chazakaOn.established.some(v => v.kind === 'month')),
+    'and three such sightings on the same Hebrew day establish a fixed veset, same as three ordinary reiyot');
+
+// A check WITHOUT blood found must never count, even with the stringency on.
+const { reiyot: reiyotNoBlood } = calculateEngine({
+    [bedikaAbs1]: { type: 'check', ona: 'day', depth: 'deep' }
+}, false, { stringencies: { vesetFromBedika: true } });
+assert(reiyotNoBlood.length === 0,
+    'a routine check (no blood found) never becomes a sighting, even with the stringency on');
+
+// --- מאכל חריף (מתג `sharpFoodOnes`): כוסת האונס, לפי המחלוקת ברמ"א יו"ד קפ"ט:כ"ג ---
+// שלוש ראיות מחמת מאכל חריף באותו יום בחודש: כברירת מחדל (כבוי) קובעות וסת חודש
+// בדיוק כשלוש ראיות רגילות; כשהמתג דלוק, מוחרגות כדין אונס ואינן קובעות דבר.
+const sharpAbs1 = new HDate(5, 1, 5786).abs();
+const sharpAbs2 = new HDate(5, 2, 5786).abs();
+const sharpAbs3 = new HDate(5, 3, 5786).abs();
+const sharpDb = {
+    [sharpAbs1]: { type: 'reiyah', ona: 'day', kind: 'sharp' },
+    [sharpAbs2]: { type: 'reiyah', ona: 'day', kind: 'sharp' },
+    [sharpAbs3]: { type: 'reiyah', ona: 'day', kind: 'sharp' }
+};
+
+const { chazaka: sharpChazakaOff } = calculateEngine(sharpDb, false, { stringencies: { sharpFoodOnes: false } });
+assert(!!(sharpChazakaOff && sharpChazakaOff.established && sharpChazakaOff.established.some(v => v.kind === 'month')),
+    'sharpFoodOnes off (default): three sharp-food sightings on the same day-of-month establish a fixed veset');
+
+const { chazaka: sharpChazakaOn } = calculateEngine(sharpDb, false, { stringencies: { sharpFoodOnes: true } });
+assert(!(sharpChazakaOn && sharpChazakaOn.established && sharpChazakaOn.established.length),
+    'sharpFoodOnes on: the same three sharp-food sightings establish nothing - they are excluded like ones/kfitzot');
+
 if (failures > 0) {
     console.error('\n' + failures + ' test(s) failed.');
     process.exit(1);

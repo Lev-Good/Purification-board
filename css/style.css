@@ -245,7 +245,9 @@ body {
 
 .sidebar-actions-grid {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-around;
+    row-gap: 10px;
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
 }
@@ -702,9 +704,40 @@ tr:hover {
     margin-bottom: 8px;
 }
 
+/* Settings sub-nav: quick jump between the settings sections below */
+.settings-subnav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-subnav a {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    font-size: 0.88em;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-subnav a:hover,
+.settings-subnav a:focus-visible {
+    border-color: var(--primary);
+    background: var(--primary-light, var(--surface));
+}
+
 /* Settings items */
 .settings-section {
     margin-bottom: 28px;
+    scroll-margin-top: 12px;
 }
 
 .settings-section-title {
@@ -977,6 +1010,8 @@ tr:hover {
     padding: 24px;
     width: 90%;
     max-width: 400px;
+    max-height: 85vh;
+    overflow-y: auto;
     box-shadow: var(--shadow);
     animation: popIn 0.2s ease-out;
 }
@@ -1314,6 +1349,70 @@ tr:hover {
 }
 
 /* Bottom Navigation (Mobile Tab-bar) */
+/* Global "software update available" mark — floats above every tab, spec:
+   "מציגה באופן גלובלי בתוכנה סימון קטן... ולחיצה עליו מובילה לדף ההגדרות". */
+.update-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 600;
+    background: var(--primary);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+}
+
+.update-badge .icon {
+    width: 15px;
+    height: 15px;
+}
+
+.update-badge-close {
+    background: rgba(255, 255, 255, 0.25);
+    border: none;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    line-height: 1;
+    font-size: 0.95em;
+    cursor: pointer;
+    margin-inline-start: 2px;
+}
+
+/* Same shape as .update-badge, opposite corner (right instead of left) so
+   the two can never overlap when both a software update and a stale-backup
+   reminder are true at the same time. */
+.backup-reminder-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 600;
+    background: var(--orange);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+}
+
+.backup-reminder-badge .icon {
+    width: 15px;
+    height: 15px;
+}
+
 .bottom-nav {
     display: none;
     position: fixed;
@@ -1383,6 +1482,7 @@ tr:hover {
     .modal-content {
         width: 100%;
         max-width: 100%;
+        max-height: 80vh;
         border-radius: 20px 20px 0 0;
         padding-bottom: max(24px, env(safe-area-inset-bottom));
         animation: bottomSheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1591,6 +1691,7 @@ tr:hover {
 /* Guide tab: one card per topic, grouped by category. */
 .guide-category {
     margin-bottom: 22px;
+    scroll-margin-top: 12px;
 }
 
 .guide-category > h3 {
@@ -1653,4 +1754,31 @@ tr:hover {
     margin-bottom: 20px;
     font-size: 0.9em;
     line-height: 1.6;
+}
+
+/* Nav bar by heading, at the top of the halachic guide (spec: quick jump between categories) */
+.guide-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.guide-nav a {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 16px;
+    background: var(--surface-alt, var(--bg-secondary, transparent));
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    font-size: 0.8em;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.guide-nav a:hover,
+.guide-nav a:focus-visible {
+    border-color: var(--primary);
+    color: var(--primary);
 }

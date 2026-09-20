@@ -314,6 +314,23 @@ const wipeData = calculateEngine(Object.assign({}, compoundDb, {
 assert(wipeData.computed.pendingChecks.some(p => p.kind === 'body' && p.abs === nextFifth),
     'but a wipe-only record does not - the check that clarifies is a proper one');
 
+// מחלוקת הט"ז (מחמיר, ברירת המחדל) והש"ך (אין חומרא בוסת הגוף) — מתג `vesetHagufBedika`.
+const shachData = calculateEngine(compoundDb, false, {
+    today: nextFifth + 3, stringencies: { vesetHagufBedika: false }
+});
+assert(!shachData.computed.pendingChecks.some(p => p.kind === 'body'),
+    'with the Shach\'s leniency switched on (Taz toggle off), the special body-veset demand does not fire');
+assert((shachData.computed.prishot[nextFifth] || []).length > 0,
+    'but the compound veset concern itself still stands - only the extra "forbidden until checked" duty is removed');
+const shachReminder = bodyReminder({
+    bodyVeset: shachData.bodyVeset,
+    prishot: shachData.computed.prishot,
+    pendingChecks: shachData.computed.pendingChecks,
+    today: nextFifth + 3
+});
+assert(!shachReminder.active || shachReminder.level !== 'pending',
+    'and the daily reminder no longer treats it as the urgent "forbidden until checked" state');
+
 // ראתה בו ביום — אין כאן "עבר ולא נבדקה", אלא הראייה עצמה.
 const seenOnDay = calculateEngine(Object.assign({}, compoundDb, {
     [nextFifth]: { type: 'reiyah', ona: 'night', signs: ['yawn'] }
@@ -402,6 +419,46 @@ assert(dash.innerHTML.indexOf('בחו"ס') !== -1,
     'an armed sign is carried on the card too, with the check it requires');
 assert(dash.className.indexOf('dash-body') !== -1,
     'and it joins the day card as a second block rather than replacing it');
+
+// ---------- 10. דרגת ודאות במיחוש בלא ראייה (2026-09-20, מסמכי "יסודות הבית") ----------
+// הדרגה קובעת רק את חומרת התביעה של הרגע, לא את קביעות וסת הגוף עצמה.
+
+const certainSignDb = { 20000: { type: 'sign', ona: 'day', signs: ['yawn'] } }; // ברירת מחדל: 'certain'
+const certainData = calculateEngine(certainSignDb, false, { today: 20000 });
+const certainReminder = bodyReminder({
+    bodyVeset: certainData.bodyVeset, prishot: certainData.computed.prishot,
+    pendingChecks: certainData.computed.pendingChecks, today: 20000
+});
+assert(certainReminder.level === 'pending',
+    'no signCertainty field (or "certain") keeps the original behavior: forbidden until she checks');
+
+const likelySignDb = { 20010: { type: 'sign', ona: 'day', signs: ['yawn'], signCertainty: 'likely' } };
+const likelyData = calculateEngine(likelySignDb, false, { today: 20010 });
+const likelyReminder = bodyReminder({
+    bodyVeset: likelyData.bodyVeset, prishot: likelyData.computed.prishot,
+    pendingChecks: likelyData.computed.pendingChecks, today: 20010
+});
+assert(likelyReminder.level === 'likely',
+    '"likely" certainty is a distinct, lighter level - not "pending" (not forbidden)');
+assert(likelyReminder.active === true, 'and it is still an active reminder, just not a prohibition');
+
+const vagueSignDb = { 20020: { type: 'sign', ona: 'day', signs: ['yawn'], signCertainty: 'vague' } };
+const vagueData = calculateEngine(vagueSignDb, false, { today: 20020 });
+const vagueReminder = bodyReminder({
+    bodyVeset: vagueData.bodyVeset, prishot: vagueData.computed.prishot,
+    pendingChecks: vagueData.computed.pendingChecks, today: 20020
+});
+assert(vagueReminder.level === 'vague', '"vague" certainty is the lightest level, informational only');
+
+// An unrecognised certainty value must fall back to the strict default, not silently
+// grant a leniency that was never requested.
+const junkSignDb = { 20030: { type: 'sign', ona: 'day', signs: ['yawn'], signCertainty: 'nonsense' } };
+const junkData = calculateEngine(junkSignDb, false, { today: 20030 });
+const junkReminder = bodyReminder({
+    bodyVeset: junkData.bodyVeset, prishot: junkData.computed.prishot,
+    pendingChecks: junkData.computed.pendingChecks, today: 20030
+});
+assert(junkReminder.level === 'pending', 'an unrecognised certainty value falls back to the strict default');
 
 if (failures > 0) {
     console.error(`\n${failures} body-veset test(s) failed.`);

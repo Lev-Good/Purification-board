@@ -51,11 +51,6 @@ export function switchView(viewId, activeTabId) {
         const dsk = document.getElementById('desktop-nav-about');
         if (mob) mob.classList.add('active');
         if (dsk) dsk.classList.add('active-tab');
-    } else if (viewId === 'view-guide') {
-        const mob = document.getElementById('nav-guide');
-        const dsk = document.getElementById('desktop-nav-guide');
-        if (mob) mob.classList.add('active');
-        if (dsk) dsk.classList.add('active-tab');
     } else if (viewId === 'view-settings') {
         const mob = document.getElementById('nav-settings');
         const dsk = document.getElementById('desktop-nav-settings');
@@ -450,7 +445,15 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
         // הם נוספים לכל סוג רשומה, ולכן אינם תלויים בענף של סוג האירוע.
         if (db[abs]) bottomMarkers += buildDayMarksMarker(db[abs]);
 
-        // Clean days marking
+        // Clean days marking. The FIRST of the seven actually begins the night
+        // before (immediately after hefsek tahara, since a Jewish day opens at
+        // night) — so besides the day-portion marker below, that same night
+        // also gets its own TOP marker, matching the night-before-day convention
+        // (see computed.nekiimStart in calculations.js).
+        if (computed.nekiimStart && computed.nekiimStart.includes(abs)) {
+            topMarkers += `<div class="marker bg-green" style="opacity:0.85; border: 1px dashed white;" title="הלילה מתחילים שבעה נקיים">${ICONS.SHIELD}<span>הלילה תחילת נקיים</span></div>`;
+            ariaBits.push('הלילה מתחילים שבעה נקיים');
+        }
         if (computed.nekiim.includes(abs)) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
             ariaBits.push('משבעת הנקיים');
@@ -592,7 +595,15 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
         // הם נוספים לכל סוג רשומה, ולכן אינם תלויים בענף של סוג האירוע.
         if (db[abs]) bottomMarkers += buildDayMarksMarker(db[abs]);
 
-        // Clean days marking
+        // Clean days marking. The FIRST of the seven actually begins the night
+        // before (immediately after hefsek tahara, since a Jewish day opens at
+        // night) — so besides the day-portion marker below, that same night
+        // also gets its own TOP marker, matching the night-before-day convention
+        // (see computed.nekiimStart in calculations.js).
+        if (computed.nekiimStart && computed.nekiimStart.includes(abs)) {
+            topMarkers += `<div class="marker bg-green" style="opacity:0.85; border: 1px dashed white;" title="הלילה מתחילים שבעה נקיים">${ICONS.SHIELD}<span>הלילה תחילת נקיים</span></div>`;
+            ariaBits.push('הלילה מתחילים שבעה נקיים');
+        }
         if (computed.nekiim.includes(abs)) {
             bottomMarkers += `<div class="marker bg-green" title="שבעה נקיים">${ICONS.SHIELD}<span>נקיים</span></div>`;
             ariaBits.push('משבעת הנקיים');
@@ -842,10 +853,21 @@ export function updateLifePanel(engineData) {
     if (life.pregnant && life.pregnant.firstTrimester) {
         blocks.push(`
             <div class="dashboard-text">
-                <strong>⚠️ הריון — ג' החודשים הראשונים</strong>
+                <strong>${ICONS.ALERT} הריון — ג' החודשים הראשונים</strong>
                 <span>עד ${new HDate(life.pregnant.silekFromAbs).renderGematriya()}
                 (תשעים יום מתחילת ההריון) אין סילוק דמים, והיא חוששת לוסתות שהיו לה קודם.
                 <button class="help-dot" data-help="life_state" type="button" aria-label="ההסבר ההלכתי ומקורות">?</button></span>
+            </div>
+        `);
+    }
+
+    // תאריך לידה משוער (40 שבועות) — מידע כללי, לא חלק מהדין המחושב.
+    if (life.pregnant && life.pregnant.dueDateAbs) {
+        blocks.push(`
+            <div class="dashboard-text">
+                <strong>תאריך לידה משוער</strong>
+                <span>${new HDate(life.pregnant.dueDateAbs).renderGematriya()}
+                (40 שבועות מתחילת ההריון) — הערכה כללית ואינה חלק מהחישוב ההלכתי.</span>
             </div>
         `);
     }
@@ -918,7 +940,7 @@ export function updateLifePanel(engineData) {
         const noteList = (pillPause.notes || [])
             .filter(n => n.title !== PILL_PAUSE_RULES.nature.title)
             .map(n => {
-            const mark = n.level === 'strict' ? '⚠️ לחומרא' : 'ℹ️';
+            const mark = n.level === 'strict' ? `${ICONS.ALERT} לחומרא` : ICONS.INFO;
             return `<li>${mark} — <b>${n.title}</b><br>${n.text}
                 <small style="white-space:nowrap;">${n.source}</small></li>`;
         }).join('');
@@ -978,7 +1000,7 @@ export function updateLifePanel(engineData) {
                 `<li>${s.reason} — ${s.text}</li>`).join('')}</ul>`
             : '';
         const noteList = (silekReturn.notes || []).map(n => {
-            const mark = n.level === 'dispute' ? '⚠️ מחלוקת' : 'ℹ️';
+            const mark = n.level === 'dispute' ? `${ICONS.ALERT} מחלוקת` : ICONS.INFO;
             return `<li>${mark} — <b>${n.title}</b><br>${n.text}
                 <small style="white-space:nowrap;">${n.source}</small></li>`;
         }).join('');
@@ -1000,7 +1022,7 @@ export function updateLifePanel(engineData) {
     const notes = life.notes || [];
     if (notes.length) {
         const items = notes.map(n => {
-            const mark = n.level === 'dispute' ? '⚠️ מחלוקת' : (n.level === 'strict' ? '⚠️ לחומרא' : 'ℹ️');
+            const mark = n.level === 'dispute' ? `${ICONS.ALERT} מחלוקת` : (n.level === 'strict' ? `${ICONS.ALERT} לחומרא` : ICONS.INFO);
             return `<li>${mark} — <b>${n.title}</b><br>${n.text} <small style="white-space:nowrap;">${n.source}</small></li>`;
         }).join('');
         blocks.push(`
@@ -1084,7 +1106,7 @@ export function updateChazakaPanel(engineData) {
         ).join('');
         blocks.push(`
             <div class="dashboard-text">
-                <strong>⚠️ עבר זמן הוסת ולא נבדקה בדיקה כדין</strong>
+                <strong>${ICONS.ALERT} עבר זמן הוסת ולא נבדקה בדיקה כדין</strong>
                 <ul style="margin: 8px 18px; padding: 0; line-height: 1.7;">${items}</ul>
                 ${more}
                 <span>בלא בדיקה לא נברר שלא ראתה, ולכן <b>אסורה לבעלה עד שתבדוק</b>, ווסת קבוע אינה נעקרת.
@@ -1119,7 +1141,7 @@ export function updateChazakaPanel(engineData) {
         }).join('');
         blocks.push(`
             <div class="dashboard-text">
-                <strong>נקבעה וסת קבועה ✅</strong>
+                <strong>נקבעה וסת קבועה ${ICONS.CHECK}</strong>
                 <ul style="margin: 8px 18px; padding: 0; line-height: 1.7;">${items}</ul>
                 <span>מכוח הוסת הקבוע אין חוששים עוד לשאר החששות — לא לעונה בינונית, ולא ליום החודש של שאר הראיות.
                 ימי הפרישה המסומנים בלוח הם של הוסת הקבוע בלבד.
@@ -1157,7 +1179,7 @@ export function updateChazakaPanel(engineData) {
         }).join('');
         blocks.push(`
             <div class="dashboard-text">
-                <strong>נעקרה הוסת הקבועה 🔄</strong>
+                <strong>נעקרה הוסת הקבועה ${ICONS.REFRESH}</strong>
                 <ul style="margin: 8px 18px; padding: 0; line-height: 1.7;">${items}</ul>
                 <span>משעה שנעקרה חוזרים לחול שלושת החששות הרגילים (חודש, הפלגה, עונה בינונית),
                 ומעתה נקבעת וסת חדשה רק בחזקת ג' ראיות (או ד' להפלגה).
@@ -1285,8 +1307,8 @@ export function updateChazakaPanel(engineData) {
         const replacedVesets = (computed.suppressed || []).filter(s => s.why === 'compound');
 
         const noteList = (bodyVeset.notes || []).map(n => {
-            const mark = n.level === 'dispute' ? '⚠️ מחלוקת'
-                : (n.level === 'strict' ? '⚠️ לחומרא' : 'ℹ️');
+            const mark = n.level === 'dispute' ? `${ICONS.ALERT} מחלוקת`
+                : (n.level === 'strict' ? `${ICONS.ALERT} לחומרא` : ICONS.INFO);
             return `<li>${mark} — <b>${n.title}</b><br>${n.text}
                 <small style="white-space:nowrap;">${n.source}</small></li>`;
         }).join('');
@@ -1370,7 +1392,7 @@ export function updateChazakaPanel(engineData) {
         ).join('');
         blocks.push(`
             <div class="dashboard-text">
-                <strong>⚠️ נתונים שאינם מתיישבים זה עם זה</strong>
+                <strong>${ICONS.ALERT} נתונים שאינם מתיישבים זה עם זה</strong>
                 <ul style="margin: 8px 18px; padding: 0; line-height: 1.7;">${items}</ul>
             </div>
         `);

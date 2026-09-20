@@ -49,6 +49,24 @@ const withSharp = classifyReiyot([
 ]);
 assert(withSharp.counted.length === 2, 'sharp-food and pill sightings are counted');
 
+// מתג sharpFoodOnes (כבוי כברירת מחדל): כשדלוק, מאכל חריף מוחרג כדין אונס;
+// כדורים ('pills') אינם מוחרגים בכל מקרה — המחלוקת/המתג נוגעים למאכל חריף בלבד.
+const sharpAsOnesOff = classifyReiyot([
+    reiya(10000, 'day', { kind: 'sharp' }),
+    reiya(10030, 'day', { kind: 'pills' })
+], { sharpFoodAsOnes: false });
+assert(sharpAsOnesOff.counted.length === 2,
+    'with the stringency off (default), sharp-food and pill sightings still count');
+
+const sharpAsOnesOn = classifyReiyot([
+    reiya(10000, 'day', { kind: 'sharp' }),
+    reiya(10030, 'day', { kind: 'pills' })
+], { sharpFoodAsOnes: true });
+assert(sharpAsOnesOn.counted.length === 1 && sharpAsOnesOn.counted[0].kind === 'pills',
+    'with the stringency on, the sharp-food sighting is excluded but the pill sighting still counts');
+assert(sharpAsOnesOn.excluded.length === 1 && sharpAsOnesOn.excluded[0].reason === 'sharp',
+    'the excluded sharp-food sighting is reported with its own reason, not silently dropped');
+
 // המשך דימום — נמנה עם הראייה שקדמה לו.
 const continuation = classifyReiyot([
     reiya(10000),

@@ -207,6 +207,39 @@ const unknownDepth = parseBackupRows([
 ]);
 assert(unknownDepth.db[60000].depth === 'wipe', 'an unreadable depth falls back to the cautious value');
 
+// --- Scenario 12c: "וסת מעד בדיקה" — bloodFound survives both tabs, and stacks
+// correctly with "twice" and with the checkParts-in-parens suffix.
+const bloodDb = {
+    70000: { type: 'check', ona: 'day', note: '', depth: 'deep', bloodFound: true },
+    70001: { type: 'check', ona: 'night', note: '', depth: 'wipe' }
+};
+const bloodRows = buildPayload(bloodDb, '111111', '');
+assert(bloodRows[0][9].indexOf('נמצא דם') !== -1, 'a blood-found check writes the marker into the kind column');
+assert(bloodRows[1][9].indexOf('נמצא דם') === -1, 'a check without blood found does not carry the marker');
+
+const bloodParsed = parseBackupRows(bloodRows);
+assert(bloodParsed.db[70000].depth === 'deep' && bloodParsed.db[70000].bloodFound === true,
+    'a blood-found proper check survives the main-tab round-trip with both depth and the marker');
+assert(!bloodParsed.db[70001].bloodFound, 'a check without blood found does not gain the marker on restore');
+
+// Stacks correctly with "twice" (no parts) and with checkParts-in-parens.
+const bloodTwiceDb = { 70010: { type: 'check', ona: 'day', depth: 'deep', bloodFound: true, twice: true } };
+const bloodTwiceParsed = parseBackupRows(buildPayload(bloodTwiceDb, '111111', ''));
+assert(bloodTwiceParsed.db[70010].bloodFound === true && bloodTwiceParsed.db[70010].twice === true,
+    'blood-found stacks correctly with a plain "twice" marker (no specific parts)');
+
+const bloodPartsDb = { 70020: { type: 'check', ona: 'day', depth: 'deep', bloodFound: true, checkParts: ['rise', 'sunset'] } };
+const bloodPartsParsed = parseBackupRows(buildPayload(bloodPartsDb, '111111', ''));
+assert(bloodPartsParsed.db[70020].bloodFound === true && (bloodPartsParsed.db[70020].checkParts || []).length === 2,
+    'blood-found stacks correctly alongside the two-part ("twice") check parts in parentheses');
+
+const bloodHistory = parseHistoryRows([
+    ['2026-09-20T10:00:00.000Z', '70000', 'א', '1/1/2026', 'בדיקה', 'יום', '', 'נוסף', 'בדיקה כדין · נמצא דם', '']
+]);
+assert(bloodHistory[0].entry.bloodFound === true, 'history row keeps the blood-found marker');
+const bloodPoints = buildRestorePoints(bloodHistory);
+assert(bloodPoints[0].db[70000].bloodFound === true, 'a restore point rebuilds the blood-found marker');
+
 // --- Scenario 12c: B2 (body-signs, וסת הגוף) survive both tabs ---
 const signsDb = {
     70000: { type: 'reiyah', ona: 'night', note: '', kind: 'regular', signs: ['yawn', 'faceSpots'] },
@@ -238,6 +271,31 @@ const legacySign = parseBackupRows([
 ]);
 assert(JSON.stringify(legacySign.db[71000].signs) === JSON.stringify(['מיחוש ישן']),
     'an unrecognised sign label is kept rather than dropped');
+
+// --- Scenario 12d: דרגת ודאות של מיחוש בלא ראייה (2026-09-20, "יסודות הבית") ---
+const certaintyDb = {
+    72000: { type: 'sign', ona: 'day', signs: ['yawn'] },                          // 'certain' (default) - not written
+    72001: { type: 'sign', ona: 'day', signs: ['yawn'], signCertainty: 'likely' },
+    72002: { type: 'sign', ona: 'day', signs: ['yawn'], signCertainty: 'vague' }
+};
+const certaintyRows = buildPayload(certaintyDb, '111111', '');
+assert(certaintyRows[0][11] === 'פיהוק', 'the default certainty ("certain") writes no suffix at all');
+assert(certaintyRows[1][11] === 'פיהוק · ודאות: סביר', 'the "likely" certainty is written as a suffix on the signs column');
+assert(certaintyRows[2][11] === 'פיהוק · ודאות: מסופק', 'the "vague" certainty is written as a suffix on the signs column');
+
+const certaintyParsed = parseBackupRows(certaintyRows);
+assert(certaintyParsed.db[72000].signCertainty === undefined, 'the default certainty is not written back onto the restored entry either');
+assert(certaintyParsed.db[72000].signs.length === 1 && certaintyParsed.db[72000].signs[0] === 'yawn',
+    'and the sign itself still survives the round-trip, with no stray suffix text');
+assert(certaintyParsed.db[72001].signCertainty === 'likely', 'the "likely" marker survives the main-tab round-trip');
+assert(certaintyParsed.db[72002].signCertainty === 'vague', 'the "vague" marker survives the main-tab round-trip');
+
+const certaintyHistory = parseHistoryRows([
+    ['2026-09-20T10:00:00.000Z', '72001', 'א', '1/1/2026', 'מיחוש גופני', 'יום', '', 'נוסף', '', '', 'פיהוק · ודאות: סביר']
+]);
+assert(certaintyHistory[0].entry.signCertainty === 'likely', 'a history row keeps the certainty marker');
+const certaintyPoints = buildRestorePoints(certaintyHistory);
+assert(certaintyPoints[0].db[72001].signCertainty === 'likely', 'a restore point rebuilds the certainty marker');
 
 // --- Scenario 13: editing only the kind is logged as an update ---
 const kindEdit = diffDb(

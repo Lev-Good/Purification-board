@@ -92,25 +92,50 @@ const SIGN_FROM_LABEL = BODY_SIGNS.reduce((acc, sign) => {
  * בגיבוי ובשחזור. `standaloneSign` אינו נשמר כעמודה נפרדת: עצם הופעת המיחוש
  * בשורה שסוגה אינו "ראייה" מסמנת אותו (מזוהה בשחזור).
  */
+/**
+ * דרגת ודאות (2026-09-20, מסמכי "יסודות הבית") — רלוונטית רק למיחוש **בלא
+ * ראייה** (`standaloneSign`). ברירת המחדל ("certain") אינה נכתבת כלל, כדי
+ * שרוב השורות (שלא נוגעות בשדה הזה) יישארו בדיוק כמו שהיו; הסיומת נכתבת רק
+ * כשהדרגה "סביר" או "מסופק".
+ */
+const CERTAINTY_SUFFIX_LABELS = { likely: 'סביר', vague: 'מסופק' };
+const CERTAINTY_FROM_LABEL = { 'סביר': 'likely', 'מסופק': 'vague' };
+const CERTAINTY_SUFFIX_RE = /\s*·\s*ודאות:\s*(סביר|מסופק)\s*$/;
+
 function signsCellFor(entry) {
     if (!entry) return '';
     if (entry.type !== 'reiyah' && entry.type !== 'sign' && entry.standaloneSign !== true) return '';
     const codes = Array.isArray(entry.signs) ? entry.signs : [];
-    return codes.map(code => SIGN_LABELS[code] || code).join(' / ');
+    let text = codes.map(code => SIGN_LABELS[code] || code).join(' / ');
+    // דרגת ודאות רלוונטית רק למיחוש **בלא ראייה** — `type: 'sign'` הוא מיחוש
+    // כזה בהגדרה, ו-`standaloneSign` מסמן את אותו דבר על בדיקה שנספח לה מיחוש.
+    const isStandalone = entry.type === 'sign' || entry.standaloneSign === true;
+    if (isStandalone && CERTAINTY_SUFFIX_LABELS[entry.signCertainty]) {
+        text += ' · ודאות: ' + CERTAINTY_SUFFIX_LABELS[entry.signCertainty];
+    }
+    return text;
 }
 
 /**
  * מפרסרת את עמודת המיחושים חזרה לקודים.
  *
  * תווית שאינה מוכרת נשמרת כמו שהיא ולא נזרקת: עדיף קוד לא־מזוהה (שאינו קובע
- * וסת, אך נשמר ומוצג) מאשר איבוד תיעוד של מיחוש בשקט.
+ * וסת, אך נשמר ומוצג) מאשר איבוד תיעוד של מיחוש בשקט. סיומת דרגת הוודאות
+ * (אם קיימת) מופרדת קודם — ראו `certaintyFromSignsCell`.
  */
 function signsFromCell(cell) {
     return String(cell || '')
+        .replace(CERTAINTY_SUFFIX_RE, '')
         .split('/')
         .map(part => part.trim())
         .filter(Boolean)
         .map(label => SIGN_FROM_LABEL[label] || label);
+}
+
+/** דרגת הוודאות של מיחוש בלא ראייה; 'certain' (ברירת המחדל) כשאין סיומת. */
+function certaintyFromSignsCell(cell) {
+    const m = String(cell || '').match(CERTAINTY_SUFFIX_RE);
+    return m ? CERTAINTY_FROM_LABEL[m[1]] : 'certain';
 }
 
 /**
@@ -144,11 +169,20 @@ function onaCellFor(entry) {
 /** הסיומת שנוספת לאופן הבדיקה כשנבדקה פעמיים בעונה (A3 — לכתחילה). */
 const TWICE_SUFFIX = ' · פעמיים בעונה';
 
+/**
+ * הסיומת שמסמנת שנמצא דם בבדיקה — לשימוש מתג "וסת מעד בדיקה" (`vesetFromBedika`,
+ * js/stringencies.js). נכתבת ישר אחרי תווית העומק, לפני סיומת "פעמיים" והחלקים
+ * שבסוגריים — כדי שהרגקס שמאתר את הסוגריים בסוף המחרוזת (`parseCheckKind`) ימשיך
+ * לעבוד בלי שינוי.
+ */
+const BLOOD_FOUND_SUFFIX = ' · נמצא דם';
+
 /** The "kind" column: why a sighting happened, or how a check was made. */
 function kindCellFor(entry) {
     if (entry.type === 'reiyah') return KIND_LABELS[entry.kind] || KIND_LABELS.regular;
     if (entry.type === 'check') {
-        const label = CHECK_DEPTH_LABELS[entry.depth] || CHECK_DEPTH_LABELS.deep;
+        let label = CHECK_DEPTH_LABELS[entry.depth] || CHECK_DEPTH_LABELS.deep;
+        if (entry.bloodFound === true) label += BLOOD_FOUND_SUFFIX;
         // A3 — בדיקה שנעשתה פעמיים בעונה נשמרת עם שני חלקי העונה שבהם נעשתה,
         // כדי ששחזור לא יוריד את הבדיקה השנייה לשדה "פעמיים" סתמי.
         const parts = checkPartsOf(entry);
@@ -175,9 +209,12 @@ function parseCheckKind(raw) {
     const partsText = partMatch ? partMatch[1] : '';
     const withoutParts = partMatch ? text.slice(0, partMatch.index).trim() : text;
     const twice = withoutParts.indexOf('פעמיים') !== -1;
-    const label = twice ? withoutParts.replace(/·\s*פעמיים בעונה\s*$/, '').trim() : withoutParts;
+    let label = twice ? withoutParts.replace(/·\s*פעמיים בעונה\s*$/, '').trim() : withoutParts;
+    // "וסת מעד בדיקה" (מתג vesetFromBedika) — סימון שנמצא דם בבדיקה זו.
+    const bloodFound = label.indexOf('נמצא דם') !== -1;
+    if (bloodFound) label = label.replace(/·\s*נמצא דם\s*$/, '').trim();
     const parts = partsText.split('·').map(s => s.trim()).filter(Boolean);
-    return { depth: CHECK_DEPTH_FROM_LABEL[label] || null, twice, parts };
+    return { depth: CHECK_DEPTH_FROM_LABEL[label] || null, twice, parts, bloodFound };
 }
 
 const CHECK_PART_FROM_LABEL = ALL_CHECK_PARTS.reduce((acc, p) => { acc[p.label] = p.code; return acc; }, {});
@@ -687,13 +724,19 @@ export function parseHistoryRows(values) {
                 const parsed = parseCheckKind(row[8]);
                 entry.depth = parsed.depth || 'wipe';
                 if (parsed.depth && parsed.twice) entry.twice = true;
+                if (parsed.bloodFound) entry.bloodFound = true;
                 // A3 — שני חלקי העונה של הבדיקה הכפולה.
                 const checkParts = parsed.parts.map(l => CHECK_PART_FROM_LABEL[l]).filter(Boolean);
                 if (checkParts.length) entry.checkParts = checkParts;
                 // ...and a check that was logged with body-signs keeps them as a
                 // sign without a sighting, so the sign is not lost in a restore.
                 const checkSigns = signsFromCell(row[10]);
-                if (checkSigns.length) { entry.signs = checkSigns; entry.standaloneSign = true; }
+                if (checkSigns.length) {
+                    entry.signs = checkSigns;
+                    entry.standaloneSign = true;
+                    const certainty = certaintyFromSignsCell(row[10]);
+                    if (certainty !== 'certain') entry.signCertainty = certainty;
+                }
             }
             if (type === 'reiyah') {
                 // B3 / B5 / B2: restored exactly as logged, so a recovered sighting
@@ -711,6 +754,8 @@ export function parseHistoryRows(values) {
                 entry.standaloneSign = true;
                 const signs = signsFromCell(row[10]);
                 if (signs.length) entry.signs = signs;
+                const certainty = certaintyFromSignsCell(row[10]);
+                if (certainty !== 'certain') entry.signCertainty = certainty;
             }
             // סימוני היום (js/dayMarks.js) — כתם, פחד פתאום, חרדה, יציאה לדרך, חופה.
             const marks = marksFromCell(row[11]);
@@ -833,6 +878,7 @@ export function parseBackupRows(values) {
             const parsed = parseCheckKind(kindCell);
             entry.depth = parsed.depth || 'wipe';
             if (parsed.depth && parsed.twice) entry.twice = true;
+            if (parsed.bloodFound) entry.bloodFound = true;
             // A3 — שני חלקי העונה של הבדיקה הכפולה חוזרים כמספרי קוד.
             const checkParts = parsed.parts.map(l => CHECK_PART_FROM_LABEL[l]).filter(Boolean);
             if (checkParts.length) entry.checkParts = checkParts;
@@ -842,6 +888,8 @@ export function parseBackupRows(values) {
             if (checkSigns.length) {
                 entry.signs = checkSigns;
                 entry.standaloneSign = true;
+                const certainty = certaintyFromSignsCell(signsCell);
+                if (certainty !== 'certain') entry.signCertainty = certainty;
             }
         }
         if (type === 'reiyah') {
@@ -857,6 +905,8 @@ export function parseBackupRows(values) {
             entry.standaloneSign = true;
             const signs = signsFromCell(signsCell);
             if (signs.length) entry.signs = signs;
+            const certainty = certaintyFromSignsCell(signsCell);
+            if (certainty !== 'certain') entry.signCertainty = certainty;
         }
         db[abs] = entry;
     });
@@ -974,19 +1024,16 @@ const DATA_CHANGE_MIN_INTERVAL_MS = 5 * 60 * 1000;
 /**
  * Gathers everything a backup needs from the current app state.
  * Exported so app.js can hand it to the backup functions as a lazy getter.
+ *
+ * The PIN is intentionally never included: since it moved to one-way hashing
+ * (`js/pinCrypto.js`), the app has no way to recover the original digits to
+ * put in a backup. A backup made from an older version of the app may still
+ * carry a plain PIN in its "password" column - restoring from one of those
+ * still works (`js/security.js` `restoreFromGoogleAndEnter` re-hashes it on
+ * the way in); a newer backup simply leaves that column blank.
  */
-export async function getGoogleBackupData(db, getSavedPinFn, getRecoveryEmailFn) {
-    let pinPlain = '';
-    try {
-        const cipher = getSavedPinFn();
-        if (cipher && window.api && window.api.decrypt) {
-            pinPlain = await window.api.decrypt(cipher);
-        } else if (cipher) {
-            pinPlain = cipher; // legacy plaintext PIN
-        }
-    } catch (e) {
-        console.error('[GoogleBackup] PIN decrypt failed:', e);
-    }
+export async function getGoogleBackupData(db, getRecoveryEmailFn) {
+    const pinPlain = '';
     return {
         db: db || {},
         pin: pinPlain,

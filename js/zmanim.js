@@ -83,7 +83,7 @@ function formatTime(date, tzid) {
  * @returns {?{day: {sunrise: string, sunset: string}, night: {sunset: string, sunrise: string}}}
  *          `null` כשאין מיקום או שאין זמנים באותו יום (למשל בקווי רוחב קיצוניים)
  */
-export function dayTimes(abs, location) {
+function rawDayTimes(abs, location) {
     if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.long)) return null;
 
     let greg;
@@ -100,16 +100,64 @@ export function dayTimes(abs, location) {
     if (!sunrise || !sunset) return null;
 
     return {
+        day: { sunrise, sunset },
+        // עונת הלילה של התאריך העברי אינה אלא הלילה שלפני יום שלו.
+        night: { sunset: nightSunset, sunrise }
+    };
+}
+
+export function dayTimes(abs, location) {
+    const raw = rawDayTimes(abs, location);
+    if (!raw) return null;
+
+    return {
         day: {
-            sunrise: formatTime(sunrise, location.tzid),
-            sunset: formatTime(sunset, location.tzid)
+            sunrise: formatTime(raw.day.sunrise, location.tzid),
+            sunset: formatTime(raw.day.sunset, location.tzid)
         },
         night: {
-            // עונת הלילה של התאריך העברי אינה אלא הלילה שלפני יום שלו.
-            sunset: formatTime(nightSunset, location.tzid),
-            sunrise: formatTime(sunrise, location.tzid)
+            sunset: formatTime(raw.night.sunset, location.tzid),
+            sunrise: formatTime(raw.night.sunrise, location.tzid)
         }
     };
+}
+
+/**
+ * כמו `dayTimes`, אבל מחזיר אובייקטי `Date` אמיתיים ולא מחרוזות תצוגה —
+ * לשימוש בכל מקום שצריך לחשב זמן בפועל (למשל בניית `dateTime` לאירועי
+ * יומן גוגל, `js/googleCalendar.js`), ולא רק להציג אותו.
+ */
+export function dayTimesRaw(abs, location) {
+    return rawDayTimes(abs, location);
+}
+
+/**
+ * "היום" ההלכתי הנוכחי — abs, מתחשב בכך שהיום העברי מתחלף בשקיעה ולא בחצות.
+ *
+ * `new HDate().abs()` (בלי ארגומנט) גוזר את התאריך העברי מהתאריך הלועזי הנוכחי
+ * לפי חצות, ולכן בין השקיעה לחצות הלילה הוא עדיין "אתמול" עברית, בזמן שהיום
+ * העברי כבר התחלף. הפער הזה משפיע על כל התראה או חשש שנבחן "האם היום הוא יום
+ * הוסת" (למשל תזכורת וסת הגוף, `js/app.js` `announceBodyReminder`), ועל
+ * `calculateEngine` עצמו כברירת המחדל של `options.today`.
+ *
+ * כשיש מיקום מוגדר — הזמן הנוכחי נבדק מול שקיעת התאריך הלועזי הנוכחי במיקום זה,
+ * ואם השקיעה כבר עברה, "היום" מוקדם ביום אחד. **בלא מיקום מוגדר אין דרך לחשב
+ * שקיעה אמיתית**, ולכן מוחזר התאריך לפי חצות (ההתנהגות הקודמת) — פער ידוע
+ * ומתועד, ולא ניחוש שגוי.
+ */
+export function halachicTodayAbs(location, now = new Date()) {
+    const gregorianAbs = new HDate(now).abs();
+    if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.long)) {
+        return gregorianAbs;
+    }
+    let sunset;
+    try {
+        sunset = new Zmanim(now, location.lat, location.long).sunset();
+    } catch (e) {
+        return gregorianAbs;
+    }
+    if (!sunset) return gregorianAbs;
+    return now >= sunset ? gregorianAbs + 1 : gregorianAbs;
 }
 
 /** שורת הזמנים להצגה; מחרוזת ריקה כשאין מיקום או שאין זמנים. */

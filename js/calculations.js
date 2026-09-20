@@ -354,26 +354,46 @@ export function projectFixedVeset(veset, lastCounted, horizonDays = CHAZAKA_HORI
  *          waived).
  */
 export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
-    let computed = { nekiim: [], tevilot: [], prishot: {}, suppressed: [], uprooted: [], pendingChecks: [] };
+    let computed = { nekiim: [], nekiimStart: [], tevilot: [], prishot: {}, suppressed: [], uprooted: [], pendingChecks: [] };
     let absDays = Object.keys(db).map(Number).sort((a, b) => a - b);
     let reiyot = [];
+
+    // --- מתגי החומרא (§5ב — js/stringencies.js) ---
+    // מחלוקות שהספר מציג, שאינן ננעלות בקוד. בלא הגדרה מפורשת — ברירת המחדל
+    // שבמודול (השיטה הפשוטה), ולכן כל חומרא מופעלת ביודעין. מוקדם בכוונה —
+    // "וסת מעד בדיקה" (למטה) צריך אותה לפני שרשימת הראיות נבנית.
+    const stringencies = normalizeStringencies(options.stringencies);
 
     // Extract all bleeding events (reiyah) in chronological order
     absDays.forEach(day => {
         if (db[day] && db[day].type === 'reiyah') {
-            reiyot.push({ 
-                abs: day, 
-                ona: db[day].ona, 
-                hdate: new HDate(day) 
+            reiyot.push({
+                abs: day,
+                ona: db[day].ona,
+                hdate: new HDate(day)
             });
         }
     });
+
+    // "וסת מעד בדיקה" (מתג `vesetFromBedika`, כבוי כברירת מחדל) — מחלוקת אם דם
+    // שנמצא בבדיקה (עד בדיקה, לא ראייה כדרכה) יכול למנות/לקבוע וסת כשאר ראייה.
+    // מקור: מסמכי "יסודות הבית" (מקור משני). כשדלוק, בדיקה שסומנה "נמצא בה דם"
+    // (`entry.bloodFound`) מצטרפת לרשימת הראיות בקוד `bedikaBlood`, ועוברת באותו
+    // צינור חזקה/עקירה כשאר הראיות (`kind` אינו 'ones', ולכן היא נמנית).
+    if (stringencyOn(stringencies, 'vesetFromBedika')) {
+        absDays.forEach(day => {
+            if (db[day] && db[day].type === 'check' && db[day].bloodFound === true) {
+                reiyot.push({ abs: day, ona: db[day].ona, hdate: new HDate(day), kind: 'bedikaBlood' });
+            }
+        });
+        reiyot.sort((a, b) => a.abs - b.abs);
+    }
 
     // Sighting type (B3) and bleeding continuation (B5). The chazaka engine must
     // know which sightings count toward a veset, so both fields travel with the reiya.
     reiyot.forEach(r => {
         const entry = db[r.abs] || {};
-        r.kind = entry.kind || 'regular';
+        r.kind = r.kind || entry.kind || 'regular';
         r.durationDays = entry.durationDays;
         r.closedFountain = entry.closedFountain;
         // B2 — מיחושי וסת הגוף (js/vesetGuf.js). הקודים נוסעים עם הראייה, כי
@@ -384,18 +404,15 @@ export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
         r.safekOna = entry.safekOna === true;
     });
 
-    // --- מתגי החומרא (§5ב — js/stringencies.js) ---
-    // מחלוקות שהספר מציג, שאינן ננעלות בקוד. בלא הגדרה מפורשת — ברירת המחדל
-    // שבמודול (השיטה הפשוטה), ולכן כל חומרא מופעלת ביודעין.
-    const stringencies = normalizeStringencies(options.stringencies);
-
     // --- The reference day ---
     // Needed both by the life-state engine (days of pregnancy, quiet seasons) and by
     // the uprooting engine. It is the real today unless a test supplies one.
     const today = Number.isFinite(options.today) ? options.today : new HDate().abs();
 
     // --- Chazaka: what was ESTABLISHED, and which sightings count toward it ---
-    const chazaka = options.chazaka === false ? null : analyzeChazaka(reiyot);
+    const chazaka = options.chazaka === false ? null : analyzeChazaka(reiyot, {
+        sharpFoodAsOnes: stringencyOn(stringencies, 'sharpFoodOnes')
+    });
     if (chazaka) {
         const countedAbs = new Set(chazaka.counted.map(r => r.abs));
         const excludedByAbs = new Map(chazaka.excluded.map(e => [e.abs, e]));
@@ -460,7 +477,9 @@ export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
             abs: day,
             ona: entry.ona,
             signs,
-            checked: entry.type === 'check'
+            checked: entry.type === 'check',
+            // דרגת ודאות (2026-09-20, מסמכי "יסודות הבית") — ר' js/vesetGuf.js SIGN_CERTAINTY.
+            certainty: entry.signCertainty
         });
     });
 
@@ -727,6 +746,13 @@ export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
     // הנקיים הם hefsek+1 … hefsek+7, והטבילה היא בלילה שאחריהם — הוא הלילה שפותח את
     // היום hefsek+8. וזו גם הצבתו בלוח: בראש המשבצת של אותו יום (ראו `js/ui.js`) —
     // לפי הכלל שהלילה שלפני היום נכתב במעל למספר היום.
+    //
+    // **`computed.nekiimStart` (2026-09-20):** מאותו טעם עצמו — היום הראשון של
+    // הנקיים (hefsek+1) *מתחיל* בלילה שאחרי יום ההפסק, לא בבוקרו. hefsekAbs+1
+    // כבר מסומן ב-`nekiim` (היום כולו, יום ולילה כאחד), אבל בלי סימון נפרד
+    // ל"לילה שלפני" — הלילה שבו בפועל *נפתחת* ספירת הנקיים — הלוח עשוי להיראות
+    // כאילו הספירה מתחילה רק בבוקר. `nekiimStart` מכיל את hefsekAbs+1, ומצטרף
+    // ל-`nekiim` ברינדור (js/ui.js): מסומן גם בראש המשבצת שלו, לא רק בתחתיתה.
     let hefsekim = absDays.filter(day => db[day] && db[day].type === 'hefsek');
     const tevilotSet = new Set();
 
@@ -747,6 +773,7 @@ export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
         for (let i = 1; i <= 7; i++) {
             computed.nekiim.push(hefsekAbs + i);
         }
+        computed.nekiimStart.push(hefsekAbs + 1);
 
         // Expected Mikvah Immersion Date (the night that opens day hefsek+8)
         const expectedTevilah = hefsekAbs + 7;
@@ -866,6 +893,15 @@ export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
         let beinonitAbs = current.abs + 29;
         addForSighting(beinonitAbs, `עונה בינונית (${onaText})${silekSeenNote}`, 'עו"ב');
         orZaruaForSighting(beinonitAbs, `אור זרוע לעונה בינונית`);
+
+        // מנהג "כרתי ופלתי" (מתג `karetiUfaletei`): הרחבת עונה בינונית ליממה שלמה —
+        // גם העונה שכנגד של יום ל', לא רק עונת הראייה. מנהג אשכנז נוסף, לא דין.
+        if (stringencyOn(stringencies, 'karetiUfaletei')) {
+            const oppositeOna = current.ona === 'day' ? 'night' : 'day';
+            addPrishah(daySink, beinonitAbs,
+                `עונה בינונית — כרתי ופלתי (הרחבה ליממה שלמה, ${onaName(oppositeOna)})${silekSeenNote}`,
+                oppositeOna, 'עו"ב');
+        }
 
         // --- Ona Beinonit (Day 31 = Onah cycle of 30 days) ---
         let beinonit31Abs = current.abs + 30;
@@ -1047,29 +1083,38 @@ export function calculateEngine(db, isOrZaruaEnabled, options = {}) {
                 : findPendingChecks(computed.prishot, reiyot, checks, today,
                     { lateBedika: stringencyOn(stringencies, 'lateBedika') });
 
-            // 1c2. וסת מורכבת (יום + מיחוש) תובעת בדיקה על זמנה בכל מצב.
+            // 1c2. וסת מורכבת (יום + מיחוש) תובעת בדיקה על זמנה — בתנאי שהמתג
+            // `vesetHagufBedika` דלוק (ברירת המחדל: דלוק, כדעת הט"ז).
             //
             // היא אינה מסתלקת מפני וסת קבועה של ימים — ומכאן שגם כשוסת כזו עומדת
             // (ואז זמני הבדיקה באים מ-`akirot` בלבד) חייבת הבדיקה להיות נדרשת על יום
             // המורכב שעבר. "שצריכה לחשוש באותו היום אף קודם שבא המיחוש" `[שט כ"ז | עמ' 49]`,
-            // ולהלכה "בוסת הגוף אף כשאינו קבוע ועבר הוסת ולא ראתה אסורה עד שתבדוק"
-            // `[שט ל"ט | עמ' 160]` — ולכן גם היא נדרשת בבדיקה כדין ולא בקינוח `[שט מ"א | עמ' 182]`.
-            const compoundConcerns = {};
-            Object.keys(computed.prishot).forEach(abs => {
-                const list = (computed.prishot[abs] || []).filter(p => p.establishedConcern);
-                if (list.length) compoundConcerns[abs] = list;
-            });
-            const bodyPendings = findPendingChecks(compoundConcerns, reiyot, checks, today,
-                { lateBedika: stringencyOn(stringencies, 'lateBedika') })
-                .map(p => Object.assign({}, p, {
-                    kind: 'body',
-                    reason: p.reason + ' · ולהלכה אף בוסת הגוף שאינה קבועה: אסורה עד שתבדוק, '
-                        + 'והבדיקה המבררת היא כדין — בעומק ובחו"ס [שט ל\"ט | עמ\' 160]'
-                }));
-            const bodyKeys = new Set(bodyPendings.map(p => `${p.abs}|${p.ona}|${p.code}`));
-            computed.pendingChecks = bodyPendings
-                .concat(baseline.filter(p => !bodyKeys.has(`${p.abs}|${p.ona}|${p.code}`)))
-                .sort((a, b) => a.abs - b.abs);
+            // ולהלכה קיימא לן כדעת הט"ז "בוסת הגוף אף כשאינו קבוע ועבר הוסת ולא ראתה
+            // אסורה עד שתבדוק" `[שט ל"ט | עמ' 160]` — ולכן גם היא נדרשת בבדיקה כדין
+            // ולא בקינוח `[שט מ"א | עמ' 182]`. הש"ך בנקודות הכסף חולק (אין חומרא בוסת
+            // הגוף יותר משאר וסתות), והמחלוקת נשלטת במתג `vesetHagufBedika`
+            // (js/stringencies.js) — כשהוא כבוי, הזמן המורכב שעבר מוצג ככל וסת אחר
+            // (baseline), בלי דרישת "אסורה עד שתבדוק" נוספת.
+            if (!stringencyOn(stringencies, 'vesetHagufBedika')) {
+                computed.pendingChecks = baseline.slice().sort((a, b) => a.abs - b.abs);
+            } else {
+                const compoundConcerns = {};
+                Object.keys(computed.prishot).forEach(abs => {
+                    const list = (computed.prishot[abs] || []).filter(p => p.establishedConcern);
+                    if (list.length) compoundConcerns[abs] = list;
+                });
+                const bodyPendings = findPendingChecks(compoundConcerns, reiyot, checks, today,
+                    { lateBedika: stringencyOn(stringencies, 'lateBedika') })
+                    .map(p => Object.assign({}, p, {
+                        kind: 'body',
+                        reason: p.reason + ' · ולהלכה אף בוסת הגוף שאינה קבועה: אסורה עד שתבדוק, '
+                            + 'והבדיקה המבררת היא כדין — בעומק ובחו"ס [שט ל\"ט | עמ\' 160]'
+                    }));
+                const bodyKeys = new Set(bodyPendings.map(p => `${p.abs}|${p.ona}|${p.code}`));
+                computed.pendingChecks = bodyPendings
+                    .concat(baseline.filter(p => !bodyKeys.has(`${p.abs}|${p.ona}|${p.code}`)))
+                    .sort((a, b) => a.abs - b.abs);
+            }
         }
     }
 

@@ -37,6 +37,13 @@ import { HDate } from '../hebcal.js';
 /** תשעים יום — "אחר שלשה חודשים [תשעים יום] מתחילת ההריון" `[ד"ט | עמ' 14]`. */
 export const PREGNANCY_SILEK_DAYS = 90;
 
+/**
+ * ארבעים שבוע (280 יום) מתחילת ההריון (מניין ליל טבילה) — תאריך לידה צפוי,
+ * לפי חישוב ההריון המקובל. זהו מידע מעשי כללי ואינו חלק מהדין המחושב במנוע
+ * (אינו משפיע על סילוק דמים או על וסתות) — נתון תומך בלבד.
+ */
+export const PREGNANCY_DUE_DAYS = 280;
+
 /** כ"ד חודש אחר הלידה `[שט כ"ט | עמ' 66]`. */
 export const NURSING_MONTHS = 24;
 
@@ -305,7 +312,9 @@ export function analyzeLifeState({ life, reiyot, today }) {
             closedAtAbs,
             daysPregnant,
             firstTrimester: started === false && t !== null && t < silekFromAbs,
-            daysLeft: t === null || t >= silekFromAbs ? 0 : silekFromAbs - t
+            daysLeft: t === null || t >= silekFromAbs ? 0 : silekFromAbs - t,
+            // תאריך לידה צפוי (40 שבועות) — מוצג כמידע כללי; ראו PREGNANCY_DUE_DAYS.
+            dueDateAbs: closedAtAbs === null ? state.pregnancyAbs + PREGNANCY_DUE_DAYS : null
         };
         if (active) starts.push({ id: 'pregnant', short: 'מעוברת', since: silekFromAbs });
         statuses.push({

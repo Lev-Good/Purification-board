@@ -1,12 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell, net, session, Notification, Menu, MenuItem } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, net, session, Notification, Menu, MenuItem, safeStorage } = require('electron');
 const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
 const fs = require('fs');
-
-// Derive a stable key for local PIN protection
-const ENCRYPTION_KEY = crypto.scryptSync('taharah-local-secure-key-9823', 'taharah-salt', 32);
-const IV_LENGTH = 16;
 
 // --- OAuth loopback constants ---
 // Shipping model: the app carries its own OAuth credentials, so a user only
@@ -15,7 +11,7 @@ const IV_LENGTH = 16;
 // can hold them). A developer who wants to test with a different client can
 // point at one with the git-ignored file next to the app, which is NOT packaged:
 //   google-oauth.local.json  ->  { "clientId": "...", "clientSecret": "..." }
-const OAUTH_DEFAULT_CLIENT_ID = '91504498892-d5giddrbe9as3me1neqta1j5lc9cp0gr.apps.googleusercontent.com';
+const OAUTH_DEFAULT_CLIENT_ID = '668274727663-hr2ie72vv4naboffhjvvp0rtpeh7ema0.apps.googleusercontent.com';
 
 // Client secret of an INSTALLED (Desktop) OAuth client. For installed apps
 // Google treats this value as non-confidential (RFC 8252, "OAuth 2.0 for Native
@@ -72,7 +68,14 @@ const OAUTH_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 // is a SENSITIVE scope, which forces Google's OAuth verification review and makes
 // the consent screen show "Google hasn't verified this app" for every user.
 // https://developers.google.com/workspace/sheets/api/scopes
-const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+//
+// The calendar scope (added for the Calendar-sync feature, docs/GOOGLE_CALENDAR_SPEC.md)
+// is itself non-sensitive, but it is a SCOPE ADDITION: a user who connected before
+// this change has a refresh token that does not cover it. Google does not silently
+// grant new scopes to an old token - she must reconnect once to consent to it. The
+// renderer detects this (oauth-status has no calendarId yet despite being connected)
+// and prompts for that one-time re-consent rather than assuming access.
+const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar';
 const OAUTH_TIMEOUT_MS = 120000;
 
 /**
@@ -98,7 +101,9 @@ function logToWindow(kind, message) {
 }
 
 function addAuthHeaderToRequests(details, callback) {
-    if (details.url.startsWith('https://sheets.googleapis.com/') || details.url.startsWith('https://www.googleapis.com/upload/drive/v3/files'))
+    if (details.url.startsWith('https://sheets.googleapis.com/')
+        || details.url.startsWith('https://www.googleapis.com/upload/drive/v3/files')
+        || details.url.startsWith('https://www.googleapis.com/calendar/v3/'))
  {
         const t = getAccessToken();
         if (t) {
@@ -124,9 +129,46 @@ function getAccessToken() {
 // --- OAuth token store (persisted in userData) ---
 const STORE_PATH = () => path.join(app.getPath('userData'), 'google-oauth-store.json');
 
+// The OAuth store on disk holds a Google refresh token - a credential that
+// by itself grants ongoing access to the user's backup spreadsheet. It is
+// encrypted at rest with the OS's own secret store (Windows DPAPI / macOS
+// Keychain / Linux libsecret via safeStorage), tied to this OS user account,
+// rather than a fixed key that would simply sit readable in the app's source.
+const SAFE_STORAGE_PREFIX = 'enc:';
+
+function encryptForStore(text) {
+    if (!text) return text;
+    if (safeStorage.isEncryptionAvailable()) {
+        try {
+            return SAFE_STORAGE_PREFIX + safeStorage.encryptString(text).toString('base64');
+        } catch (err) {
+            console.error('safeStorage encryption failed:', err);
+        }
+    }
+    return text;
+}
+
+function decryptForStore(text) {
+    if (!text) return text;
+    if (typeof text === 'string' && text.startsWith(SAFE_STORAGE_PREFIX)) {
+        try {
+            const buf = Buffer.from(text.slice(SAFE_STORAGE_PREFIX.length), 'base64');
+            return safeStorage.decryptString(buf);
+        } catch (err) {
+            console.error('safeStorage decryption failed:', err);
+            return '';
+        }
+    }
+    return text; // legacy plaintext value, from before this was encrypted
+}
+
 function readStore() {
     try {
-        return JSON.parse(fs.readFileSync(STORE_PATH(), 'utf8'));
+        const raw = JSON.parse(fs.readFileSync(STORE_PATH(), 'utf8'));
+        return Object.assign({}, raw, {
+            token: decryptForStore(raw.token),
+            refreshToken: decryptForStore(raw.refreshToken)
+        });
     } catch (e) {
         return {};
     }
@@ -134,13 +176,17 @@ function readStore() {
 
 function writeStore(patch) {
     const next = Object.assign({}, readStore(), patch);
+    const onDisk = Object.assign({}, next, {
+        token: encryptForStore(next.token),
+        refreshToken: encryptForStore(next.refreshToken)
+    });
     try {
         fs.mkdirSync(path.dirname(STORE_PATH()), { recursive: true });
-        fs.writeFileSync(STORE_PATH(), JSON.stringify(next, null, 2), 'utf8');
+        fs.writeFileSync(STORE_PATH(), JSON.stringify(onDisk, null, 2), 'utf8');
     } catch (e) {
         console.error('Failed to persist OAuth store:', e);
     }
-    return next;
+    return next; // callers get the plaintext-in-memory shape back
 }
 
 /**
@@ -230,11 +276,16 @@ async function exchangeCodeForTokens(code, codeVerifier) {
         }
     } catch (e) { /* non-fatal */ }
 
+    // Google's token response echoes back the scopes actually granted (a user
+    // can uncheck one on the consent screen). Stored so the renderer can tell
+    // "connected, but never consented to calendar access" apart from a real
+    // API failure, and prompt for the one-time re-consent instead of guessing.
     const next = writeStore({
         token: data.access_token,
         refreshToken: data.refresh_token,
         expiry: Date.now() + (data.expires_in || 3600) * 1000,
         email,
+        grantedScopes: data.scope || '',
         connectedAt: new Date().toISOString()
     });
     logToWindow('oauth', `התחברות הושלמה${email ? ' לחשבון ' + email : ''}`);
@@ -384,33 +435,43 @@ function startBackupPing() {
     }, 60000);
 }
 
-function encrypt(text) {
-  try {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
-  } catch (err) {
-    console.error("Local encryption failed:", err);
-    return text;
-  }
+// --- Daily automatic local backup file (spec: "גיבוי יומי אוטומטי לקובץ במחשב") ---
+// One file per calendar day (overwritten on later calls the same day), kept
+// separate from the manual "הורד קובץ גיבוי" download and from the Google
+// Sheets auto-backup - this one lives entirely on the user's disk.
+const LOCAL_BACKUP_KEEP_DAYS = 30;
+
+function localBackupDir() {
+    return path.join(app.getPath('userData'), 'backups');
 }
 
-function decrypt(text) {
-  try {
-    const textParts = text.split(':');
-    if (textParts.length < 2) return text; // Fallback for plaintext or legacy formats
-    const iv = Buffer.from(textParts.shift(), 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  } catch (err) {
-    console.error("Local decryption failed:", err);
-    return text;
-  }
+function pruneOldLocalBackups(dir) {
+    let files;
+    try {
+        files = fs.readdirSync(dir);
+    } catch (e) {
+        return; // directory does not exist yet - nothing to prune
+    }
+    const cutoff = Date.now() - LOCAL_BACKUP_KEEP_DAYS * 24 * 60 * 60 * 1000;
+    for (const file of files) {
+        if (!/^backup-\d{4}-\d{2}-\d{2}\.json$/.test(file)) continue;
+        const full = path.join(dir, file);
+        try {
+            const stat = fs.statSync(full);
+            if (stat.mtimeMs < cutoff) fs.unlinkSync(full);
+        } catch (e) { /* best-effort cleanup only */ }
+    }
+}
+
+function writeLocalBackup(jsonString) {
+    const dir = localBackupDir();
+    fs.mkdirSync(dir, { recursive: true });
+    const today = new Date();
+    const stamp = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const file = path.join(dir, `backup-${stamp}.json`);
+    fs.writeFileSync(file, jsonString, 'utf8');
+    pruneOldLocalBackups(dir);
+    return { path: file, savedAt: new Date().toISOString() };
 }
 
 function createWindow () {
@@ -460,14 +521,39 @@ app.on('second-instance', () => {
 if (!gotSingleInstanceLock) {
   app.quit();
 } else app.whenReady().then(() => {
-  // IPC handle for local encryption
-  ipcMain.handle('encrypt-string', async (event, plainText) => {
-    return encrypt(plainText);
+  // Current app version (from package.json via Electron), for the in-app
+  // update checker (spec: בדיקה אוטומטית אם יש גרסה חדשה) to compare against
+  // the latest GitHub release tag.
+  ipcMain.handle('get-app-version', async () => {
+    return app.getVersion();
   });
 
-  // IPC handle for local decryption
-  ipcMain.handle('decrypt-string', async (event, base64Cipher) => {
-    return decrypt(base64Cipher);
+  // Desktop OS notification (spec: התראות במחשב) - daily or event-day only,
+  // decided by the renderer; this handler just shows whatever it is given.
+  ipcMain.handle('show-notification', async (event, { title, body } = {}) => {
+    if (!Notification.isSupported()) return { ok: false, error: 'not_supported' };
+    new Notification({ title: title || 'לוח טהרת המשפחה', body: body || '' }).show();
+    return { ok: true };
+  });
+
+  // Daily automatic local backup file
+  ipcMain.handle('local-backup-write', async (event, jsonString) => {
+    try {
+      return { ok: true, ...writeLocalBackup(jsonString) };
+    } catch (e) {
+      return { ok: false, error: String(e && e.message || e) };
+    }
+  });
+
+  ipcMain.handle('local-backup-dir', async () => {
+    return localBackupDir();
+  });
+
+  ipcMain.handle('local-backup-open-folder', async () => {
+    const dir = localBackupDir();
+    fs.mkdirSync(dir, { recursive: true });
+    shell.openPath(dir);
+    return { ok: true };
   });
 
   // Attach Authorization header to Google API requests from the renderer
@@ -490,7 +576,10 @@ if (!gotSingleInstanceLock) {
       email: s.email || '',
       spreadsheetId: s.spreadsheetId || '',
       sheetId: s.sheetId || '',
-      lastBackupAt: s.lastBackupAt || ''
+      lastBackupAt: s.lastBackupAt || '',
+      calendarId: s.calendarId || '',
+      calendarLastSyncAt: s.calendarLastSyncAt || '',
+      grantedScopes: s.grantedScopes || ''
     };
   });
 
@@ -506,7 +595,9 @@ if (!gotSingleInstanceLock) {
       connected: !!next.refreshToken,
       email: next.email || '',
       sheetId: next.sheetId || '',
-      lastBackupAt: next.lastBackupAt || ''
+      lastBackupAt: next.lastBackupAt || '',
+      calendarId: next.calendarId || '',
+      calendarLastSyncAt: next.calendarLastSyncAt || ''
     };
   });
 
@@ -524,7 +615,11 @@ if (!gotSingleInstanceLock) {
         await fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(s.refreshToken), { method: 'POST' });
       } catch (e) { /* offline revoke attempt is best-effort */ }
     }
-    writeStore({ token: '', refreshToken: '', email: '', expiry: 0 });
+    // calendarId is cleared too: disconnecting revokes the grant that lets the
+    // app verify the calendar still exists (or still has the expected name).
+    // The calendar itself is not deleted from the user's Google account - a
+    // future reconnect re-discovers it by name (getOrCreateAppCalendar).
+    writeStore({ token: '', refreshToken: '', email: '', expiry: 0, calendarId: '', calendarLastSyncAt: '' });
     logToWindow('oauth', 'החשבון נותק');
     return { ok: true };
   });

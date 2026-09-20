@@ -12,21 +12,34 @@ import {
     getSavedEmail, saveEmail, removeSavedEmail, 
     isEmailWarningSeen, setEmailWarningSeen,
     isOrZaruaEnabled, saveOrZarua,
-    isChazakaEnabled, saveChazaka,
-    isAkirotEnabled, saveAkirot,
     getLifeState, saveLifeState,
     getSavedTheme, saveTheme,
     downloadBackup, restoreBackup,
     getRecoveryEmail, saveRecoveryEmail, removeRecoveryEmail,
-    getSavedPin,
     getBodyReminderSeen, setBodyReminderSeen,
     getStringencies, saveStringencies,
-    getSavedLocation, saveLocation
+    getSavedLocation, saveLocation,
+    isLocalBackupEnabled, saveLocalBackupEnabled, getLocalBackupLast, setLocalBackupLast,
+    getZoomLevel, saveZoomLevel,
+    getNotificationsMode, saveNotificationsMode, getNotificationsLast, setNotificationsLast,
+    getUpdateLastCheck, setUpdateLastCheck, getSnoozedUpdate, snoozeUpdate,
+    getFirstUseAt, getManualBackupLast, requestPersistentStorage,
+    getBackupReminderLastCheck, setBackupReminderLastCheck,
+    getBackupReminderSnoozedUntil, snoozeBackupReminder,
+    isCalendarSyncEnabled, saveCalendarSyncEnabled,
+    getCalendarDiscretion, saveCalendarDiscretion,
+    getCalendarDiscreetPrefix, saveCalendarDiscreetPrefix,
+    isCalendarNotifyEmail, saveCalendarNotifyEmail,
+    isCalendarNotifyPopup, saveCalendarNotifyPopup,
+    getCalendarMorningTime, saveCalendarMorningTime,
+    getCalendarHefsekAdvisoryDays, isMochDachukEnabled, saveMochDachukEnabled
 } from './storage.js';
-import { STRINGENCY_DEFS, normalizeStringencies, stringencyOn } from './stringencies.js';
+import { STRINGENCY_DEFS, normalizeStringencies, stringencyOn, MINHAG_PROFILES, detectMinhagProfile } from './stringencies.js';
 import { DILUG_CODE } from './vesetDilug.js';
 import { DAY_MARKS, DAY_MARK_RULES, marksOf } from './dayMarks.js';
-import { LOCATIONS, locationById, timesLine } from './zmanim.js';
+import { LOCATIONS, locationById, timesLine, halachicTodayAbs } from './zmanim.js';
+import { ICONS } from './icons.js';
+import { checkForUpdate } from './updateCheck.js';
 import { getGoogleBackupData, mergeDb, fetchBackup, fetchRestorePoints } from './googleBackup.js';
 import { getTopic, topicsByCategory, SOURCE_LEGEND } from './halachaHelp.js';
 import { 
@@ -41,11 +54,14 @@ import {
     switchView, initJumpMenu, updateMonthList, 
     syncSelectors, renderScreenCalendar, buildMonthGridHTML 
 } from './ui.js';
-import { 
+import {
     initGoogleBackup, onDataChanged,
-    refreshConnectionState, connectGoogle, disconnectGoogle, 
+    refreshConnectionState, connectGoogle, disconnectGoogle,
     openSheetInBrowser, backupNow
 } from './googleBackup.js';
+import {
+    syncCalendarNow, clearAllAppEvents, hasCalendarScope, CALENDAR_SUMMARY
+} from './googleCalendar.js';
 
 // ---------- Halachic help: info bubbles + guide tab ----------
 
@@ -97,7 +113,7 @@ window.showHelp = function(topicId) {
  */
 window.openGuideTopic = function(topicId) {
     closeModal('help-modal');
-    switchView('view-guide', 'nav-guide', 'desktop-nav-guide');
+    switchView('view-about', 'nav-about', 'desktop-nav-about');
     const el = document.getElementById('guide-topic-' + topicId);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
@@ -111,6 +127,24 @@ function renderGuide() {
     if (!container) return;
     container.innerHTML = '';
 
+    const categories = topicsByCategory();
+
+    // סרגל ניווט לפי כותרות המדריך — קפיצה לכל קטגוריה, בלי לצאת מלשונית "אודות".
+    const nav = document.createElement('nav');
+    nav.className = 'guide-nav';
+    nav.setAttribute('aria-label', 'ניווט לפי כותרות המדריך ההלכתי');
+    categories.forEach((group, i) => {
+        const link = document.createElement('a');
+        link.href = '#guide-category-' + i;
+        link.innerText = group.category;
+        link.onclick = (e) => {
+            e.preventDefault();
+            document.getElementById('guide-category-' + i).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        nav.appendChild(link);
+    });
+    container.appendChild(nav);
+
     const intro = document.createElement('div');
     intro.className = 'guide-intro';
     intro.innerHTML =
@@ -121,9 +155,10 @@ function renderGuide() {
         '<b>מפתח מקורות:</b><br>' + SOURCE_LEGEND.map(s => '• <b>' + s.key + '</b> — ' + s.text).join('<br>');
     container.appendChild(intro);
 
-    topicsByCategory().forEach(group => {
+    categories.forEach((group, i) => {
         const section = document.createElement('div');
         section.className = 'guide-category';
+        section.id = 'guide-category-' + i;
 
         const h3 = document.createElement('h3');
         h3.innerText = group.category;
@@ -241,13 +276,56 @@ window.HDateLocal = HDate;
 function engineOptions() {
     // הנקודה האחת שממנה כל החישובים קוראים. מתגי החומרא (§5ב) עוברים כאן, ומהם
     // נגזרים ספק העונה, וסת הדילוג, דרך עקירת הוסת שאינה קבועה, ואור זרוע בל"א.
+    //
+    // זיהוי וסת קבוע (chazaka) ועקירת וסתות (akirot) אינם ניתנים לכיבוי על-ידי
+    // המשתמשת — ההגדרה הוסרה במכוון (2026-09-19): כיבוין הוא חומרא הלכתית לא
+    // מדויקת (המנוע מציג חששות שאינם נוהגים למי שיש לה וסת קבוע), ולכן שני המנועים
+    // פועלים תמיד. ראו docs/DECISIONS.md.
     return {
-        chazaka: isChazakaEnabled(),
-        akirot: isAkirotEnabled(),
+        chazaka: true,
+        akirot: true,
         life: getLifeState(),
-        stringencies: normalizeStringencies(getStringencies())
+        stringencies: normalizeStringencies(getStringencies()),
+        // "היום" ההלכתי (מתחשב בשקיעה כשיש מיקום מוגדר) — ולא היום הלועזי לפי
+        // חצות; ראו js/zmanim.js halachicTodayAbs ו-docs/DECISIONS.md (2026-09-19).
+        today: halachicTodayAbs(locationById(getSavedLocation()))
     };
 }
+
+/**
+ * פרופיל מנהג (אשכנז/עדות מזרח) — "בחירה אישית של הגדרות פרטיות בתוך המכלול", כלומר
+ * שכבה נוחה מעל המתגים הקיימים ולא מנגנון נפרד: בחירת פרופיל רק **מגדירה** את
+ * הצירוף הזה של מתגים; שינוי מתג בודד לאחר מכן פשוט "יוצא" מן הפרופיל (המערכת
+ * לא נועלת שום דבר). ההגדרה עצמה (`MINHAG_PROFILES`) והזיהוי (`detectMinhagProfile`)
+ * חיים ב-`js/stringencies.js` — פונקציות טהורות, נבדקות ב-`tests/stringencies.test.js`.
+ */
+function currentMinhagState() {
+    const current = normalizeStringencies(getStringencies());
+    return {
+        orZarua: isOrZaruaEnabled(),
+        orZaruaDay31: current.orZaruaDay31,
+        karetiUfaletei: current.karetiUfaletei
+    };
+}
+
+window.applyMinhagProfileSetting = function() {
+    const select = document.getElementById('setting-minhag-profile');
+    const name = select ? select.value : 'custom';
+    const profile = MINHAG_PROFILES[name];
+    if (!profile) return; // 'custom' - לא נוגעים בשום מתג
+
+    saveOrZarua(profile.orZarua);
+    const next = normalizeStringencies(getStringencies());
+    next.orZaruaDay31 = profile.orZaruaDay31;
+    next.karetiUfaletei = profile.karetiUfaletei;
+    saveStringencies(next);
+
+    const orZaruaInput = document.getElementById('setting-or-zarua');
+    if (orZaruaInput) orZaruaInput.checked = profile.orZarua;
+    renderStringencySettings();
+    showToast('פרופיל המנהג הוחל — ניתן עדיין לשנות כל מתג בנפרד.');
+    refreshCalendar();
+};
 
 /**
  * מרנדר את מתגי החומרא למסך ההגדרות, מן ההגדרות שבמודול — ובכללם מקורותיהם.
@@ -258,11 +336,15 @@ function renderStringencySettings() {
     if (!container) return;
     const current = normalizeStringencies(getStringencies());
 
+    const profileSelect = document.getElementById('setting-minhag-profile');
+    if (profileSelect) profileSelect.value = detectMinhagProfile(currentMinhagState());
+
     // הכרטיס סגור כברירת מחדל (מחלוקות נדירות) — אבל אם המשתמשת כבר שינתה מתג
     // כלשהו מברירת המחדל שלו (ולא רק שהוא "דלוק" מטבעו, כמו lateBedika/orZaruaDay31),
-    // לא נשאיר את זה מוסתר מהמבט הראשון בלי שביקשה זאת.
+    // לא נשאיר את זה מוסתר מהמבט הראשון בלי שביקשה זאת. אור זרוע שוכן כאן גם הוא
+    // (ראו index.html) ואינו כבוי כברירת מחדל, לכן דלוק שלו נחשב "שונה" ופותח את הכרטיס.
     const group = document.getElementById('stringency-group');
-    if (group && STRINGENCY_DEFS.some(def => !!current[def.key] !== !!def.default)) {
+    if (group && (STRINGENCY_DEFS.some(def => !!current[def.key] !== !!def.default) || isOrZaruaEnabled())) {
         group.open = true;
     }
 
@@ -284,6 +366,8 @@ function renderStringencySettings() {
             const next = normalizeStringencies(getStringencies());
             next[key] = input.checked;
             saveStringencies(next);
+            // מתג בודד עלול "להוציא" את המצב מפרופיל המנהג שנבחר — הבורר משתקף בהתאם.
+            if (profileSelect) profileSelect.value = detectMinhagProfile(currentMinhagState());
             showToast('ההגדרה עודכנה — החישובים מחושבים מחדש.');
             refreshCalendar();
         });
@@ -498,16 +582,18 @@ function refreshCalendar() {
 function announceBodyReminder(engineData) {
     if (!engineData || !engineData.computed) return;
 
+    // "היום" ההלכתי, לא הלועזי — ראו הערה ב-engineOptions() לעיל.
+    const todayAbs = halachicTodayAbs(locationById(getSavedLocation()));
+
     const reminder = bodyReminder({
         bodyVeset: engineData.bodyVeset,
         prishot: engineData.computed.prishot,
         pendingChecks: engineData.computed.pendingChecks,
-        today: new HDate().abs()
+        today: todayAbs
     });
     if (!reminder.active || (reminder.level !== 'pending' && reminder.level !== 'today')) return;
 
     const shownOn = getBodyReminderSeen();
-    const todayAbs = new HDate().abs();
     if (shownOn === todayAbs) return;
 
     const lockScreen = document.getElementById('lock-screen');
@@ -526,7 +612,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const savedTheme = getSavedTheme();
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
-    
+
+    // 1b. Initialize global zoom level
+    applyZoom(getZoomLevel());
+
     // 2. Setup PIN Input cursor shifting
     setupPinInputListeners();
     
@@ -544,14 +633,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 5. Populate Or Zarua setting
     const orZaruaInput = document.getElementById('setting-or-zarua');
     if (orZaruaInput) orZaruaInput.checked = isOrZaruaEnabled();
-
-    // 5b. Populate the chazaka (fixed veset) setting
-    const chazakaInput = document.getElementById('setting-chazaka');
-    if (chazakaInput) chazakaInput.checked = isChazakaEnabled();
-
-    // 5c. Populate the uprooting setting
-    const akirotInput = document.getElementById('setting-akirot');
-    if (akirotInput) akirotInput.checked = isAkirotEnabled();
 
     // 5d. Populate the life state (pregnancy / birth / nursing / age / pills)
     populateLifeStateForm();
@@ -585,9 +666,297 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 9. Google backup UI + scheduler (desktop app only)
     await updateGoogleStatusUI();
     if (window.api && window.api.onAutoBackupTick) {
-        initGoogleBackup(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+        initGoogleBackup(() => getGoogleBackupData(db, getRecoveryEmail));
+    }
+
+    // 9b. Google Calendar sync UI + scheduler (docs/GOOGLE_CALENDAR_SPEC.md §6ב,
+    // "טריגר פתיחה") - same connection, independent opt-in toggle.
+    await updateGoogleCalendarUI();
+    if (window.api && window.api.onAutoBackupTick) {
+        window.api.onAutoBackupTick(() => tickCalendarAutoSync());
+    }
+
+    // 10. Daily automatic local backup file (desktop app only) — independent
+    // opt-in setting, piggy-backing on the same main-process minute tick.
+    updateLocalBackupUI();
+    if (window.api && window.api.onAutoBackupTick && window.api.localBackupWrite) {
+        window.api.onAutoBackupTick(() => tickLocalBackup());
+        tickLocalBackup(); // covers "opened once and closed within the minute"
+    }
+
+    // 11. Desktop OS notifications (daily / event-day only) — same minute tick.
+    const notifModeSelect = document.getElementById('setting-notifications-mode');
+    if (notifModeSelect) notifModeSelect.value = getNotificationsMode();
+    if (window.api && window.api.onAutoBackupTick && window.api.showNotification) {
+        window.api.onAutoBackupTick(() => tickDesktopNotification());
+        tickDesktopNotification();
+    }
+
+    // 12. In-app update checker against GitHub releases (desktop app only) —
+    // once at startup, then once a day via the same minute tick.
+    const versionLabel = document.getElementById('current-app-version');
+    if (window.api && window.api.getAppVersion) {
+        window.api.getAppVersion().then(v => { if (versionLabel) versionLabel.innerText = v; });
+        tickUpdateCheck();
+        if (window.api.onAutoBackupTick) window.api.onAutoBackupTick(() => tickUpdateCheck());
+    } else if (versionLabel) {
+        versionLabel.innerText = 'לא זמין בגרסת האתר';
+    }
+
+    // 13. "No recent backup" reminder — checked once at startup (works in the
+    // web/PWA build too, unlike the items above), and again through the
+    // desktop minute-tick for a session left open across many days.
+    tickBackupReminder();
+    if (window.api && window.api.onAutoBackupTick) {
+        window.api.onAutoBackupTick(() => tickBackupReminder());
     }
 });
+
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const UPDATE_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function tickUpdateCheck() {
+    if (!window.api || !window.api.getAppVersion) return;
+    if (Date.now() - getUpdateLastCheck() < UPDATE_CHECK_INTERVAL_MS) return;
+    setUpdateLastCheck(Date.now()); // set first — a failed/offline check must not retry every minute
+
+    const currentVersion = await window.api.getAppVersion();
+    const result = await checkForUpdate(currentVersion);
+    if (!result.hasUpdate) {
+        hideUpdateBanner();
+        return;
+    }
+
+    const snoozed = getSnoozedUpdate();
+    if (snoozed.version === result.latest.version && Date.now() < snoozed.until) return;
+
+    showUpdateBanner(result.latest);
+}
+
+/**
+ * A small global "there's an update" mark (spec line 8: "מציגה באופן גלובלי
+ * בתוכנה סימון קטן... ולחיצה על הסימון הזה מובילה לדף ההגדרות"). Clicking the
+ * mark itself navigates to Settings and scrolls to the update card — the
+ * actual download link lives there, not on the mark. The mark's own small
+ * "X" dismisses it for a week (unless a newer release appears meanwhile).
+ */
+function showUpdateBanner(latest) {
+    const badge = document.getElementById('update-badge');
+    const cardText = document.getElementById('update-settings-text');
+    const link = document.getElementById('update-download-link');
+    if (badge) { badge.style.display = 'flex'; badge.dataset.version = latest.version; }
+    if (cardText) { cardText.innerText = `גרסה חדשה (${latest.version}) זמינה להורדה.`; cardText.style.display = 'block'; }
+    if (link) link.href = latest.url;
+}
+
+function hideUpdateBanner() {
+    const badge = document.getElementById('update-badge');
+    if (badge) badge.style.display = 'none';
+}
+
+window.goToUpdateSettings = function() {
+    switchView('view-settings', 'nav-settings', 'desktop-nav-settings');
+    const card = document.getElementById('update-settings-card');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+window.dismissUpdateBadge = function(event) {
+    if (event) event.stopPropagation(); // the badge itself is also clickable
+    const badge = document.getElementById('update-badge');
+    const version = badge && badge.dataset.version;
+    if (version) snoozeUpdate(version, Date.now() + UPDATE_SNOOZE_MS);
+    hideUpdateBanner();
+};
+
+window.checkForUpdateNow = function() {
+    setUpdateLastCheck(0); // force tickUpdateCheck() past its 24h guard
+    tickUpdateCheck().then(() => {
+        if (document.getElementById('update-badge').style.display === 'none' ||
+            !document.getElementById('update-badge').style.display) {
+            showToast('אין עדכון חדש כרגע — אתן משתמשות בגרסה העדכנית.');
+        }
+    });
+};
+
+/**
+ * "No recent backup" reminder (spec: תזכורת אם לא בוצע גיבוי מעל 30 יום).
+ * Looks at every backup path there is - the local-file auto-backup, the
+ * Google auto-backup, and a manual "download backup file" - and takes
+ * whichever is most recent. A brand new install (nothing yet) is not
+ * "stale": it gets the same 30-day grace period, counted from first use.
+ */
+const BACKUP_REMINDER_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const BACKUP_REMINDER_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+const BACKUP_REMINDER_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function getLastBackupTimestampMs() {
+    const candidates = [];
+    const localLast = getLocalBackupLast();
+    if (localLast) candidates.push(Date.parse(localLast));
+    const manualLast = getManualBackupLast();
+    if (manualLast) candidates.push(manualLast);
+    if (window.api && window.api.oauthStatus) {
+        try {
+            const status = await window.api.oauthStatus();
+            if (status && status.lastBackupAt) candidates.push(Date.parse(status.lastBackupAt));
+        } catch (e) {
+            // ignore - treated as "no Google backup info available"
+        }
+    }
+    return candidates.length ? Math.max(...candidates) : null;
+}
+
+async function tickBackupReminder() {
+    if (Date.now() - getBackupReminderLastCheck() < BACKUP_REMINDER_CHECK_INTERVAL_MS) return;
+    setBackupReminderLastCheck(Date.now());
+
+    const lastBackupMs = await getLastBackupTimestampMs();
+    const since = lastBackupMs || getFirstUseAt();
+    if (Date.now() - since < BACKUP_REMINDER_STALE_MS) {
+        hideBackupReminderBanner();
+        return;
+    }
+    if (Date.now() < getBackupReminderSnoozedUntil()) return;
+
+    showBackupReminderBanner();
+}
+
+function showBackupReminderBanner() {
+    const badge = document.getElementById('backup-reminder-badge');
+    if (badge) badge.style.display = 'flex';
+}
+
+function hideBackupReminderBanner() {
+    const badge = document.getElementById('backup-reminder-badge');
+    if (badge) badge.style.display = 'none';
+}
+
+window.goToBackupSettings = function() {
+    switchView('view-settings', 'nav-settings', 'desktop-nav-settings');
+    const section = document.getElementById('settings-section-account');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+window.dismissBackupReminderBadge = function(event) {
+    if (event) event.stopPropagation(); // the badge itself is also clickable
+    snoozeBackupReminder(Date.now() + BACKUP_REMINDER_SNOOZE_MS);
+    hideBackupReminderBanner();
+};
+
+/**
+ * Builds a one-line "what's today, what's the state" summary for the
+ * desktop notification, and reports whether today carries an actual event
+ * (a recorded sighting/hefsek/tevilah/check, or a computed concern) — the
+ * 'event' mode only ever notifies when this is true.
+ */
+function buildNotificationStatus(todayAbs) {
+    const hebToday = new HDate(todayAbs).renderGematriya();
+    const record = db[todayAbs];
+    const recordLabels = { reiyah: 'ראייה', hefsek: 'הפסק טהרה', tevilah: 'טבילה', check: 'בדיקה' };
+
+    if (record && recordLabels[record.type]) {
+        return { hasEvent: true, text: `היום ${hebToday}: נרשם/ה ${recordLabels[record.type]}.` };
+    }
+
+    const engineData = calculateEngine(db, isOrZaruaEnabled(), engineOptions());
+    const concerns = (engineData.computed.prishot && engineData.computed.prishot[todayAbs]) || [];
+    if (concerns.length) {
+        return { hasEvent: true, text: `היום ${hebToday}: ${concerns[0].reason || 'חשש וסת'}.` };
+    }
+
+    const pending = (engineData.computed.pendingChecks || []).filter(p => p.abs === todayAbs);
+    if (pending.length) {
+        return { hasEvent: true, text: `היום ${hebToday}: ממתינה לבדיקה.` };
+    }
+
+    return { hasEvent: false, text: `היום ${hebToday}. אין חשש וסת הידוע היום.` };
+}
+
+/**
+ * Shows a desktop notification once a day at most, per the chosen mode:
+ * 'daily' always announces the day and state; 'event' only when there is
+ * an actual event/concern today. Runs off the same main-process minute tick
+ * used for the Google/local auto-backups.
+ */
+function tickDesktopNotification() {
+    const mode = getNotificationsMode();
+    if (mode === 'off' || !window.api || !window.api.showNotification) return;
+
+    const todayAbs = halachicTodayAbs(locationById(getSavedLocation()));
+    if (getNotificationsLast() === todayAbs) return; // already notified today
+
+    const status = buildNotificationStatus(todayAbs);
+    if (mode === 'event' && !status.hasEvent) return;
+
+    window.api.showNotification('לוח טהרת המשפחה', status.text).then(result => {
+        if (result && result.ok) setNotificationsLast(todayAbs);
+    }).catch(() => { /* best-effort; will retry on the next minute's tick */ });
+}
+
+window.saveNotificationsSetting = function() {
+    const mode = document.getElementById('setting-notifications-mode').value;
+    saveNotificationsMode(mode);
+    showToast(mode === 'off'
+        ? 'התראות המחשב כובו.'
+        : 'הגדרת התראות המחשב נשמרה.');
+    if (mode !== 'off' && window.api && window.api.showNotification) tickDesktopNotification();
+};
+
+/**
+ * Writes a local backup file once per day, when the setting is on. Mirrors
+ * the 24h-interval pattern already used for the Google auto-backup tick.
+ */
+const LOCAL_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+function tickLocalBackup() {
+    if (!isLocalBackupEnabled() || !window.api || !window.api.localBackupWrite) return;
+    const last = getLocalBackupLast() ? Date.parse(getLocalBackupLast()) : 0;
+    if (Date.now() - last < LOCAL_BACKUP_INTERVAL_MS) return;
+
+    window.api.localBackupWrite(JSON.stringify(getDb())).then(result => {
+        if (result && result.ok) {
+            setLocalBackupLast(result.savedAt);
+            updateLocalBackupUI();
+        }
+    }).catch(() => { /* best-effort; will retry on the next minute's tick */ });
+}
+
+/**
+ * Populates the local-backup settings card: the toggle state and a
+ * human-readable "last backup" line.
+ */
+function updateLocalBackupUI() {
+    const toggle = document.getElementById('setting-local-backup');
+    if (toggle) toggle.checked = isLocalBackupEnabled();
+
+    const statusEl = document.getElementById('local-backup-status');
+    if (!statusEl) return;
+    const last = getLocalBackupLast();
+    if (!window.api || !window.api.localBackupWrite) {
+        statusEl.innerText = 'זמין רק באפליקציית שולחן העבודה (Electron), לא בגרסת האתר.';
+    } else if (!last) {
+        statusEl.innerText = 'עדיין לא בוצע גיבוי מקומי אוטומטי.';
+    } else {
+        statusEl.innerText = `גיבוי אוטומטי אחרון: ${new Date(last).toLocaleString('he-IL')}`;
+    }
+}
+
+window.saveLocalBackupSetting = function() {
+    const isChecked = document.getElementById('setting-local-backup').checked;
+    saveLocalBackupEnabled(isChecked);
+    if (isChecked) tickLocalBackup();
+    updateLocalBackupUI();
+    showToast(isChecked
+        ? 'גיבוי יומי אוטומטי לקובץ במחשב הופעל.'
+        : 'גיבוי יומי אוטומטי לקובץ במחשב כובה.');
+};
+
+window.openLocalBackupFolder = function() {
+    if (window.api && window.api.localBackupOpenFolder) {
+        window.api.localBackupOpenFolder();
+    } else {
+        showAlert('פתיחת תיקיית הגיבוי זמינה רק באפליקציית שולחן העבודה.');
+    }
+};
 
 /**
  * Updates the Google connection card in the settings screen.
@@ -617,6 +986,226 @@ async function updateGoogleStatusUI() {
     } catch (e) {
         console.error('Google status check failed:', e);
     }
+}
+
+/**
+ * Updates the Google Calendar sync card in the settings screen (rides on the
+ * same connection as the backup card - shown once that account is connected).
+ */
+async function updateGoogleCalendarUI() {
+    const group = document.getElementById('google-calendar-group');
+    const statusText = document.getElementById('google-calendar-status-text');
+    const reconsentBox = document.getElementById('google-calendar-reconsent');
+    const fieldsBox = document.getElementById('google-calendar-settings-fields');
+    const syncToggle = document.getElementById('setting-calendar-sync');
+    if (!group || !statusText || !(window.api && window.api.oauthStatus)) return;
+
+    try {
+        const status = await refreshConnectionState();
+        if (!status.connected) {
+            group.style.display = 'none';
+            return;
+        }
+        group.style.display = 'block';
+
+        const enabled = isCalendarSyncEnabled();
+        if (syncToggle) syncToggle.checked = enabled;
+
+        const scopeOk = hasCalendarScope(status);
+        if (reconsentBox) reconsentBox.style.display = (enabled && !scopeOk) ? 'block' : 'none';
+        const showFields = enabled && scopeOk;
+        if (fieldsBox) fieldsBox.style.display = showFields ? 'block' : 'none';
+
+        const lastStr = status.calendarLastSyncAt ? new Date(status.calendarLastSyncAt).toLocaleString('he-IL') : '';
+        if (!enabled) {
+            statusText.innerText = 'הפעילו את המתג כדי לקבל תזכורות בדיקה ועונות פרישה ביומן Google ובדוא"ל, בלוח נפרד ופרטי משלכן.';
+        } else if (!scopeOk) {
+            statusText.innerText = 'החיבור לחשבון הגוגל קיים, אך עדיין לא אושרה גישה ליומן.';
+        } else {
+            statusText.innerHTML = `מחובר ליומן <b>${CALENDAR_SUMMARY}</b>.${lastStr ? '<br>סנכרון אחרון: ' + lastStr : ' עדיין לא בוצע סנכרון.'}`;
+        }
+
+        if (showFields) {
+            const discretion = getCalendarDiscretion();
+            const discretionSelect = document.getElementById('setting-calendar-discretion');
+            if (discretionSelect) discretionSelect.value = discretion;
+            const prefixWrap = document.getElementById('calendar-discreet-prefix-wrap');
+            if (prefixWrap) prefixWrap.style.display = discretion === 'discreet' ? 'block' : 'none';
+            const prefixInput = document.getElementById('setting-calendar-discreet-prefix');
+            if (prefixInput) prefixInput.value = getCalendarDiscreetPrefix();
+            const emailBox = document.getElementById('setting-calendar-notify-email');
+            if (emailBox) emailBox.checked = isCalendarNotifyEmail();
+            const popupBox = document.getElementById('setting-calendar-notify-popup');
+            if (popupBox) popupBox.checked = isCalendarNotifyPopup();
+            const morningInput = document.getElementById('setting-calendar-morning-time');
+            if (morningInput) morningInput.value = getCalendarMorningTime();
+            const mochBox = document.getElementById('setting-calendar-moch');
+            if (mochBox) mochBox.checked = isMochDachukEnabled();
+        }
+    } catch (e) {
+        console.error('Google Calendar status check failed:', e);
+    }
+}
+
+/**
+ * Gathers what a calendar sync needs from the current app state - the
+ * settings snapshot buildExpectedEvents() takes as its `settings` param.
+ */
+function calendarSyncSettings() {
+    return {
+        discretion: getCalendarDiscretion(),
+        discreetPrefix: getCalendarDiscreetPrefix(),
+        notifyEmail: isCalendarNotifyEmail(),
+        notifyPopup: isCalendarNotifyPopup(),
+        morningTime: getCalendarMorningTime(),
+        hefsekAdvisoryDays: getCalendarHefsekAdvisoryDays(),
+        mochDachukEnabled: isMochDachukEnabled()
+    };
+}
+
+/**
+ * Runs a calendar sync using the app's current state, and reports the
+ * outcome. Shared by the manual "סנכרן כעת" button and the automatic
+ * triggers (spec §6ב) below.
+ */
+async function runCalendarSync() {
+    const engineResult = calculateEngine(db, isOrZaruaEnabled(), engineOptions());
+    const location = locationById(getSavedLocation());
+    const todayAbs = halachicTodayAbs(location);
+    return syncCalendarNow(db, engineResult, location, todayAbs, calendarSyncSettings());
+}
+
+window.saveCalendarSyncSetting = async function() {
+    const enabled = document.getElementById('setting-calendar-sync').checked;
+    saveCalendarSyncEnabled(enabled);
+    await updateGoogleCalendarUI();
+    if (enabled) {
+        const status = await refreshConnectionState();
+        if (hasCalendarScope(status)) {
+            window.googleCalendarSyncNow();
+        }
+    }
+    showToast(enabled ? 'סנכרון יומן גוגל הופעל.' : 'סנכרון יומן גוגל כובה.');
+};
+
+window.saveCalendarDiscretionSetting = function() {
+    saveCalendarDiscretion(document.getElementById('setting-calendar-discretion').value);
+    updateGoogleCalendarUI();
+    showToast('רמת הדיסקרטיות נשמרה. לחצו "סנכרן כעת" כדי לעדכן אירועים קיימים.');
+};
+
+window.saveCalendarDiscreetPrefixSetting = function() {
+    saveCalendarDiscreetPrefix(document.getElementById('setting-calendar-discreet-prefix').value);
+};
+
+window.saveCalendarChannelsSetting = function() {
+    saveCalendarNotifyEmail(document.getElementById('setting-calendar-notify-email').checked);
+    saveCalendarNotifyPopup(document.getElementById('setting-calendar-notify-popup').checked);
+};
+
+window.saveCalendarMorningTimeSetting = function() {
+    saveCalendarMorningTime(document.getElementById('setting-calendar-morning-time').value);
+};
+
+window.saveCalendarMochSetting = function() {
+    saveMochDachukEnabled(document.getElementById('setting-calendar-moch').checked);
+};
+
+window.googleCalendarReconsent = async function() {
+    try {
+        await connectGoogle(() => getGoogleBackupData(db, getRecoveryEmail));
+        await updateGoogleStatusUI();
+        await updateGoogleCalendarUI();
+        showToast('הגישה ליומן אושרה.');
+        window.googleCalendarSyncNow();
+    } catch (e) {
+        console.error('Calendar re-consent failed:', e);
+        showAlert(explainGoogleError(e));
+    }
+};
+
+window.googleCalendarSyncNow = function() {
+    const btn = document.getElementById('calendar-sync-now-btn');
+    if (btn) { btn.disabled = true; btn.innerText = 'מסנכרן...'; }
+    runCalendarSync()
+        .then(async (result) => {
+            await updateGoogleCalendarUI();
+            showToast(result.ok
+                ? `סונכרן: ${result.created} נוצרו, ${result.updated} עודכנו, ${result.deleted} נמחקו.`
+                : `הסנכרון הסתיים עם ${result.errors.length} שגיאות. נסו שוב מאוחר יותר.`);
+        })
+        .catch((e) => {
+            console.error('Calendar sync failed:', e);
+            showAlert('הסנכרון ליומן נכשל.\n\nבדקו את החיבור לאינטרנט ונסו שוב.\n' + explainGoogleError(e));
+        })
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.innerText = 'סנכרן כעת'; }
+        });
+};
+
+window.googleCalendarOpenBrowser = function() {
+    // In Electron, main.js's setWindowOpenHandler already redirects any
+    // http(s) window.open to the OS's default browser; in the web/PWA build
+    // this just opens a normal new tab. No separate IPC channel needed.
+    window.open('https://calendar.google.com/', '_blank');
+};
+
+window.googleCalendarClearConfirm = function() {
+    showConfirm(
+        'למחוק את כל תזכורות האפליקציה מיומן גוגל? הלוח עצמו יישאר, ואפשר לסנכרן מחדש בכל עת.',
+        async () => {
+            try {
+                const result = await clearAllAppEvents();
+                showToast(result.ok ? `נמחקו ${result.deleted} תזכורות.` : 'הניקוי נכשל.');
+            } catch (e) {
+                showAlert('ניקוי התזכורות נכשל.\n\n' + explainGoogleError(e));
+            }
+        },
+        () => {}
+    );
+};
+
+// ---------- Calendar sync triggers (spec §6ב) ----------
+
+const CALENDAR_SYNC_INTERVAL_MS = 12 * 60 * 60 * 1000;
+
+/** "טריגר פתיחה": once per app open, if 12h+ passed since the last sync. */
+function tickCalendarAutoSync() {
+    if (!isCalendarSyncEnabled() || !(window.api && window.api.oauthStatus)) return;
+    window.api.oauthStatus().then(async status => {
+        if (!status.connected || !hasCalendarScope(status)) return;
+        const last = status.calendarLastSyncAt ? Date.parse(status.calendarLastSyncAt) : 0;
+        if (Date.now() - last < CALENDAR_SYNC_INTERVAL_MS) return;
+        await runCalendarSync();
+        await updateGoogleCalendarUI();
+    }).catch(() => { /* offline attempt - will retry on the next minute's tick */ });
+}
+
+let calendarSyncDebounceTimer = null;
+
+/** "טריגר מיידי": debounced 3s after any save, so a burst of edits syncs once. */
+function scheduleCalendarSyncDebounced() {
+    if (!isCalendarSyncEnabled() || !(window.api && window.api.oauthStatus)) return;
+    clearTimeout(calendarSyncDebounceTimer);
+    calendarSyncDebounceTimer = setTimeout(async () => {
+        try {
+            const status = await refreshConnectionState();
+            if (!status.connected || !hasCalendarScope(status)) return;
+            await runCalendarSync();
+            await updateGoogleCalendarUI();
+        } catch (e) {
+            console.error('Debounced calendar sync failed:', e);
+        }
+    }, 3000);
+}
+
+/**
+ * Every place that used to call `onDataChanged(...)` alone now calls this
+ * instead, so a save also (independently) considers a calendar re-sync.
+ */
+function notifyDataChanged() {
+    onDataChanged(() => getGoogleBackupData(db, getRecoveryEmail));
+    scheduleCalendarSyncDebounced();
 }
 
 /**
@@ -664,7 +1253,7 @@ window.googleConnect = async function() {
     const statusText = document.getElementById('google-status-text');
     try {
         if (statusText) statusText.innerText = 'נפתח חלון ההתחברות של גוגל... השלימו את ההתחברות בדפדפן.';
-        await connectGoogle(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+        await connectGoogle(() => getGoogleBackupData(db, getRecoveryEmail));
         await updateGoogleStatusUI();
         showAlert('חשבון הגוגל חובר בהצלחה!\n\nנוצר גיליון "לוח טהרת המשפחה - גיבוי" ב-Drive שלכם, והגיבוי יתבצע אוטומטית פעם ביום.');
     } catch (e) {
@@ -675,7 +1264,7 @@ window.googleConnect = async function() {
 };
 
 window.googleBackupNow = function() {
-    backupNow(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail))
+    backupNow(() => getGoogleBackupData(db, getRecoveryEmail))
         .then(() => updateGoogleStatusUI())
         .catch((e) => showAlert('הגיבוי נכשל.\n\nבדקו את החיבור לאינטרנט ונסו שוב.\n' + explainGoogleError(e)));
 };
@@ -767,7 +1356,7 @@ window.googleRestoreApply = async function(mode) {
         // Push the restored state back up so the sheet matches this device
         // immediately instead of waiting for the next scheduled backup.
         try {
-            const data = await getGoogleBackupData(db, getSavedPin, getRecoveryEmail);
+            const data = await getGoogleBackupData(db, getRecoveryEmail);
             await backupNow(() => Promise.resolve(data));
             await updateGoogleStatusUI();
         } catch (e) {
@@ -931,7 +1520,7 @@ function navigateMonth(direction) {
 function updateThemeIcon(theme) {
     const btn = document.getElementById('theme-btn');
     if (btn) {
-        btn.innerText = theme === 'dark' ? '☀️' : '🌙';
+        btn.innerHTML = theme === 'dark' ? ICONS.SUN : ICONS.MOON;
     }
 }
 
@@ -945,8 +1534,46 @@ window.toggleTheme = function() {
     updateThemeIcon(newTheme);
 };
 
+// --- Global zoom (spec: "כפתורי זום גלובליים בכל התוכנה") ---
+const ZOOM_MIN = 70;
+const ZOOM_MAX = 160;
+const ZOOM_STEP = 10;
+
+function applyZoom(level) {
+    document.body.style.zoom = level / 100;
+    const label = document.getElementById('zoom-level-label');
+    if (label) label.innerText = level + '%';
+}
+
+window.zoomIn = function() {
+    const level = Math.min(ZOOM_MAX, getZoomLevel() + ZOOM_STEP);
+    saveZoomLevel(level);
+    applyZoom(level);
+};
+
+window.zoomOut = function() {
+    const level = Math.max(ZOOM_MIN, getZoomLevel() - ZOOM_STEP);
+    saveZoomLevel(level);
+    applyZoom(level);
+};
+
+window.zoomReset = function() {
+    saveZoomLevel(100);
+    applyZoom(100);
+};
+
 window.switchView = function(viewId, activeTabId, desktopNavId) {
     switchView(viewId, activeTabId);
+};
+
+/**
+ * Settings sub-nav (index.html `.settings-subnav`): jumps to a section inside
+ * the currently-open settings tab instead of navigating away from it.
+ */
+window.jumpToSettingsSection = function(event, sectionId) {
+    if (event) event.preventDefault();
+    const target = document.getElementById(sectionId);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 window.openModal = function(id) {
@@ -1142,12 +1769,14 @@ window.handleBackspace = function(t, e) {};
 window.setupNewPin = function() {
     setupNewPin(() => {
         refreshCalendar();
+        requestPersistentStorage();
     });
 };
 
 window.verifyPin = function() {
     verifyPin(() => {
         refreshCalendar();
+        requestPersistentStorage();
     });
 };
 
@@ -1176,29 +1805,10 @@ window.saveRecoveryEmailSetting = function() {
     const email = document.getElementById('setting-recovery-email').value.trim();
     if (email && email.includes('@')) {
         saveRecoveryEmail(email);
-        
-        // Sync passcode to Sheets in plain-text
-        let savedPinCipher = getSavedPin();
-        if (savedPinCipher) {
-            (async () => {
-                let pin = savedPinCipher;
-                if (window.api && window.api.decrypt) {
-                    try {
-                        pin = await window.api.decrypt(savedPinCipher);
-                    } catch (e) {
-                        console.error("Decryption failed:", e);
-                    }
-                }
-                
-                fetch("https://script.google.com/macros/s/AKfycbx12cd3z-y3qg1hZl5_aorJbKEIUArS2gC9Wu6gx_ct1wxme0KN4MVSNvBj1SC2Bg40Ng/exec", {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "save", email: email, password: pin })
-                });
-            })();
-        }
-        showToast("כתובת האימייל לשחזור נשמרה וסונכרנה.");
+        // The PIN is one-way hashed (js/pinCrypto.js) and cannot be read back
+        // here to sync it to the recovery sheet - it syncs automatically the
+        // next time the PIN itself is set or changed (js/security.js).
+        showToast("כתובת האימייל לשחזור נשמרה.");
     } else {
         showAlert("נא להזין כתובת אימייל תקינה.");
     }
@@ -1214,25 +1824,9 @@ window.removeRecoveryEmailSetting = function() {
 window.saveOrZaruaSetting = function() {
     const isChecked = document.getElementById('setting-or-zarua').checked;
     saveOrZarua(isChecked);
+    const profileSelect = document.getElementById('setting-minhag-profile');
+    if (profileSelect) profileSelect.value = detectMinhagProfile(currentMinhagState());
     showToast("הגדרות עונת אור זרוע התעדכנו בהצלחה.");
-    refreshCalendar();
-};
-
-window.saveAkirotSetting = function() {
-    const isChecked = document.getElementById('setting-akirot').checked;
-    saveAkirot(isChecked);
-    showToast(isChecked
-        ? "מנוע העקירה הופעל — וסת שעבר זמנו אינו מוצג עוד כחשש."
-        : "מנוע העקירה כובה — כל החששות יוצגו, לרבות מי שעבר זמנם.");
-    refreshCalendar();
-};
-
-window.saveChazakaSetting = function() {
-    const isChecked = document.getElementById('setting-chazaka').checked;
-    saveChazaka(isChecked);
-    showToast(isChecked
-        ? "מנוע החזקה הופעל — וסת קבוע מחליף מעתה את שאר החששות."
-        : "מנוע החזקה כובה — כל החששות יוצגו לכל ראייה.");
     refreshCalendar();
 };
 
@@ -1273,7 +1867,9 @@ window.toggleYearlyView = function() {
     
     btns.forEach(btn => {
         if (!btn) return;
-        btn.innerText = isYearlyView ? "תצוגה חודשית 🔽" : "תצוגה שנתית 📅";
+        btn.innerHTML = isYearlyView
+            ? `${ICONS.CHEVRON_DOWN} תצוגה חודשית`
+            : `${ICONS.CALENDAR} תצוגה שנתית`;
     });
     
     const mSelects = [document.getElementById('jump-month'), document.getElementById('mobile-jump-month')];
@@ -1299,6 +1895,13 @@ window.openDayModal = function(hdate) {
     const savedEntry = db[selectedAbsDate];
     if (second && savedEntry && savedEntry.type === 'check' && checkPartsOf(savedEntry).length > 1) {
         second.value = checkPartsOf(savedEntry)[1];
+    }
+
+    // "נמצא דם בבדיקה" (וסת מעד בדיקה) — כמו הבדיקה השנייה, חוזר לברירת המחדל
+    // בכל פתיחה, ומסומן מחדש אם היום הזה כבר נרשם כך.
+    const bloodFoundBox = document.getElementById('check-blood-found');
+    if (bloodFoundBox) {
+        bloodFoundBox.checked = !!(savedEntry && savedEntry.type === 'check' && savedEntry.bloodFound === true);
     }
 
     // סימוני היום — חוזרים ומסומנים ממה שנשמר, שאחרת עריכה היתה מוחקת אותם.
@@ -1409,7 +2012,7 @@ function renderDayPrishaHint() {
         ? []
         : (engineData.computed.pendingChecks || []).filter(p => p.abs === selectedAbsDate);
     if (pending.length) {
-        lines.push('⚠️ <b>זמן הוסת הזה עבר בלא בדיקה כדין.</b> כל עוד לא נבדק — לא נברר שלא ראתה, והדין הוא שאסורה לבעלה עד שתבדק <span style="white-space:nowrap;">[שט כ\"ד | עמ\' 7]</span>');
+        lines.push(`${ICONS.ALERT} <b>זמן הוסת הזה עבר בלא בדיקה כדין.</b> כל עוד לא נבדק — לא נברר שלא ראתה, והדין הוא שאסורה לבעלה עד שתבדק <span style="white-space:nowrap;">[שט כ"ד | עמ' 7]</span>`);
     }
 
     // זמני הנץ והשקיעה מצטרפים לרמז היום (ספק עונה — B6) — אך רק כשיש מה לומר
@@ -1461,7 +2064,7 @@ window.saveNote = function() {
     db[selectedAbsDate].note = document.getElementById('day-note').value;
     
     saveDb(db);
-    onDataChanged(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+    notifyDataChanged();
     closeModal('modal');
     refreshCalendar();
     showToast("ההערה נשמרה");
@@ -1492,6 +2095,10 @@ window.requestSaveEvent = function(type, ona, depth) {
             extra.checkParts = [FIRST_CHECK_PART[checkOna], second];
             extra.twice = true;
         }
+        // "וסת מעד בדיקה" (מתג vesetFromBedika) — הסימון נשמר בכל מקרה, ומשפיע
+        // על החישוב רק כשהמתג בהגדרות דלוק (js/calculations.js).
+        const bloodFound = document.getElementById('check-blood-found');
+        if (bloodFound && bloodFound.checked) extra.bloodFound = true;
         executeSaveEvent('check', checkOna, extra);
         return;
     }
@@ -1553,7 +2160,7 @@ function executeSaveEvent(type, ona, extra) {
     }
 
     saveDb(db);
-    onDataChanged(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+    notifyDataChanged();
     closeModal('modal');
     refreshCalendar();
     showToast("האירוע נשמר בלוח");
@@ -1605,7 +2212,7 @@ window.saveDayMarks = function() {
     if (noteArea && noteArea.value) entry.note = noteArea.value;
 
     saveDb(db);
-    onDataChanged(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+    notifyDataChanged();
     refreshCalendar();
 
     if (marks.indexOf('fright') !== -1) {
@@ -1860,6 +2467,14 @@ function openSignDetailsConfirm(ona, preset) {
         if (confirm) confirm.checked = true;
     }
 
+    // דרגת ודאות — חוזרת לברירת המחדל "בטוחה" בכל פתיחה, ומשוחזרת אם קיימת.
+    const certaintyDefault = document.querySelector('input[name="sign-certainty"][value="certain"]');
+    if (certaintyDefault) certaintyDefault.checked = true;
+    if (existing.signCertainty) {
+        const savedCertainty = document.querySelector(`input[name="sign-certainty"][value="${existing.signCertainty}"]`);
+        if (savedCertainty) savedCertainty.checked = true;
+    }
+
     // מסלול "אכלתי מאכל חריף" (A6): אותו מסלול של וסת הגוף, אלא שהמקרה הוא
     // האכילה — "ומדעתה ולהנאתה אין זה נקרא אונס... וקובעת וסת כמו וסת הגוף"
     // `[שט כ"ז | עמ' 41]`. ההסכמה מסומנת ממילא, ואין כאן "מיחוש משונה".
@@ -1915,11 +2530,15 @@ window.saveSignDetails = function() {
     entry.ona = pendingSignOna;
     entry.signs = signs;
     entry.standaloneSign = true;
+    // דרגת ודאות (2026-09-20, מסמכי "יסודות הבית") — קובעת רק את חומרת התביעה
+    // של הרגע הזה, לא את קביעות וסת הגוף. ברירת המחדל "certain" = ההתנהגות המקורית.
+    const certaintyInput = document.querySelector('input[name="sign-certainty"]:checked');
+    entry.signCertainty = certaintyInput ? certaintyInput.value : 'certain';
     const noteArea = document.getElementById('day-note');
     if (noteArea && noteArea.value) entry.note = noteArea.value;
 
     saveDb(db);
-    onDataChanged(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+    notifyDataChanged();
     closeModal('sign-modal');
     refreshCalendar();
     showToast('המיחוש נרשם — משעה שבא המיחוש אסורה כדין שעת הוסת, ואם עבר ולא נבדקה אסורה עד שתבדוק');
@@ -1930,7 +2549,7 @@ window.deleteEvent = function() {
     delete db[selectedAbsDate];
     
     saveDb(db);
-    onDataChanged(() => getGoogleBackupData(db, getSavedPin, getRecoveryEmail));
+    notifyDataChanged();
     closeModal('modal');
     refreshCalendar();
     showToast("היום נוקה לחלוטין");
