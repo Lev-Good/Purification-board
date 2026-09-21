@@ -26,7 +26,7 @@ import {
 import { STRINGENCY_DEFS, normalizeStringencies, stringencyOn } from './stringencies.js';
 import { DILUG_CODE } from './vesetDilug.js';
 import { DAY_MARKS, DAY_MARK_RULES, marksOf } from './dayMarks.js';
-import { LOCATIONS, locationById, timesLine } from './zmanim.js';
+import { LOCATIONS, locationById, timesLine, effectiveTodayAbs } from './zmanim.js';
 import { getGoogleBackupData, mergeDb, fetchBackup, fetchRestorePoints } from './googleBackup.js';
 import { getTopic, topicsByCategory, SOURCE_LEGEND } from './halachaHelp.js';
 import { 
@@ -235,6 +235,15 @@ let db = {};
 window.HDateLocal = HDate;
 
 /**
+ * "היום" לפי שקיעה ולא לפי חצות אזרחי (`js/zmanim.js`): בלא מיקום שמור מתנהג
+ * בדיוק כמו `new HDate().abs()` שהיה קודם. נקודה אחת, כדי שהמנוע, הדשבורד וסימון
+ * "היום" בלוח לעולם לא יחלקו על מהו היום הנוכחי.
+ */
+function currentTodayAbs() {
+    return effectiveTodayAbs(locationById(getSavedLocation()));
+}
+
+/**
  * The engine options that come from the user's settings. Centralised so a
  * calculation can never run with different settings than the calendar shows.
  */
@@ -245,7 +254,8 @@ function engineOptions() {
         chazaka: isChazakaEnabled(),
         akirot: isAkirotEnabled(),
         life: getLifeState(),
-        stringencies: normalizeStringencies(getStringencies())
+        stringencies: normalizeStringencies(getStringencies()),
+        today: currentTodayAbs()
     };
 }
 
@@ -356,7 +366,7 @@ function renderPillsList() {
         box.innerHTML = '<p style="color: var(--text-muted); margin: 0;">לא נרשמו תקופות נטילה.</p>';
         return;
     }
-    const todayAbs = new HDate().abs();
+    const todayAbs = currentTodayAbs();
     box.innerHTML = pills.map((p, index) => {
         const start = new HDate(p.startAbs).renderGematriya();
         const end = Number.isFinite(p.endAbs)
@@ -498,16 +508,16 @@ function refreshCalendar() {
 function announceBodyReminder(engineData) {
     if (!engineData || !engineData.computed) return;
 
+    const todayAbs = currentTodayAbs();
     const reminder = bodyReminder({
         bodyVeset: engineData.bodyVeset,
         prishot: engineData.computed.prishot,
         pendingChecks: engineData.computed.pendingChecks,
-        today: new HDate().abs()
+        today: todayAbs
     });
     if (!reminder.active || (reminder.level !== 'pending' && reminder.level !== 'today')) return;
 
     const shownOn = getBodyReminderSeen();
-    const todayAbs = new HDate().abs();
     if (shownOn === todayAbs) return;
 
     const lockScreen = document.getElementById('lock-screen');

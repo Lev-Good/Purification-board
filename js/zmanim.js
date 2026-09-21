@@ -76,14 +76,12 @@ function formatTime(date, tzid) {
 }
 
 /**
- * זמני עונת היום ועונת הלילה של תאריך עברי.
+ * זמני הנץ/שקיעה הגולמיים (אובייקטי `Date`) של תאריך עברי — הבסיס המשותף
+ * ל-`dayTimes` (תצוגה מעוצבת) ול-`effectiveTodayAbs`/`elapsedOnotOf` (השוואת זמנים).
  *
- * @param {number} abs - היום המוחלט (כמו בכל המערכת)
- * @param {Object} location - מוקד מתוך `LOCATIONS` (או `null`)
- * @returns {?{day: {sunrise: string, sunset: string}, night: {sunset: string, sunrise: string}}}
- *          `null` כשאין מיקום או שאין זמנים באותו יום (למשל בקווי רוחב קיצוניים)
+ * @returns {?{sunrise: Date, sunset: Date, nightSunset: Date}}
  */
-export function dayTimes(abs, location) {
+function rawDayTimes(abs, location) {
     if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.long)) return null;
 
     let greg;
@@ -99,16 +97,75 @@ export function dayTimes(abs, location) {
     const nightSunset = new Zmanim(previous, location.lat, location.long).sunset();
     if (!sunrise || !sunset) return null;
 
+    return { sunrise, sunset, nightSunset };
+}
+
+/**
+ * זמני עונת היום ועונת הלילה של תאריך עברי.
+ *
+ * @param {number} abs - היום המוחלט (כמו בכל המערכת)
+ * @param {Object} location - מוקד מתוך `LOCATIONS` (או `null`)
+ * @returns {?{day: {sunrise: string, sunset: string}, night: {sunset: string, sunrise: string}}}
+ *          `null` כשאין מיקום או שאין זמנים באותו יום (למשל בקווי רוחב קיצוניים)
+ */
+export function dayTimes(abs, location) {
+    const t = rawDayTimes(abs, location);
+    if (!t) return null;
+
     return {
         day: {
-            sunrise: formatTime(sunrise, location.tzid),
-            sunset: formatTime(sunset, location.tzid)
+            sunrise: formatTime(t.sunrise, location.tzid),
+            sunset: formatTime(t.sunset, location.tzid)
         },
         night: {
             // עונת הלילה של התאריך העברי אינה אלא הלילה שלפני יום שלו.
-            sunset: formatTime(nightSunset, location.tzid),
-            sunrise: formatTime(sunrise, location.tzid)
+            sunset: formatTime(t.nightSunset, location.tzid),
+            sunrise: formatTime(t.sunrise, location.tzid)
         }
+    };
+}
+
+/**
+ * "היום" לפי שקיעה, ולא לפי חצות אזרחי.
+ *
+ * הדין אינו תלוי בשעון: היממה העברית נפתחת בשקיעה, ולכן משעת השקיעה ועד חצות
+ * הלילה האזרחי כבר החל התאריך העברי הבא (ליל התאריך הבא). המודול הזה **אינו
+ * קובע עונה** ואינו משנה דין — הוא רק עונה על "מהו התאריך העברי שממנו נגזר
+ * 'היום'", בדיוק כפי ש-`new HDate()` היה עונה, אלא שהוא גם בודק אם השקיעה כבר
+ * חלפה.
+ *
+ * בלא מיקום שמור אין נתון לבדוק מולו, ולכן ההתנהגות חוזרת בדיוק למה שהיתה —
+ * מעבר בחצות האזרחי — וזה עצמו אינו שינוי דין: אין נתון, אין בירור.
+ *
+ * @param {?Object} location - מוקד מתוך `LOCATIONS` (או `null`/`undefined`)
+ * @param {Date} [now] - לבדיקות דטרמיניסטיות
+ * @returns {number} abs
+ */
+export function effectiveTodayAbs(location, now = new Date()) {
+    const civilAbs = new HDate(now).abs();
+    const t = rawDayTimes(civilAbs, location);
+    if (!t) return civilAbs;
+    return now.getTime() >= t.sunset.getTime() ? civilAbs + 1 : civilAbs;
+}
+
+/**
+ * אילו עונות מתוך `abs` (כפי שנגזר מ-`effectiveTodayAbs`) כבר חלפו נכון ל-`now`.
+ *
+ * עונת הלילה קודמת לעונת היום באותו תאריך עברי — ולכן היא יכולה לחלוף באמצע
+ * היממה (עם הנץ) בלי ש-`abs` עצמו יתקדם (זה קורה רק עם השקיעה). עונת היום
+ * חולפת בשקיעה, ואז `abs` כבר התקדם ממילא — הבדיקה כאן היא להשלמת התמונה בלבד,
+ * ולא אמורה להתרחש בפועל בזרימה הרגילה.
+ *
+ * בלא מיקום — שום עונה אינה "חולפת" (אין נתון לבדוק מולו), וזה עצמו אינו שינוי דין.
+ *
+ * @returns {{night: boolean, day: boolean}}
+ */
+export function elapsedOnotOf(abs, location, now = new Date()) {
+    const t = rawDayTimes(abs, location);
+    if (!t) return { night: false, day: false };
+    return {
+        night: now.getTime() >= t.sunrise.getTime(),
+        day: now.getTime() >= t.sunset.getTime()
     };
 }
 

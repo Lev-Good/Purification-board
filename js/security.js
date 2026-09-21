@@ -20,8 +20,17 @@ export function setupPinInputListeners() {
                 if (input.value.length === 1 && index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 }
+
+                // מסך הנעילה בלבד: מילוי הספרה השישית מפעיל את הבדיקה מיד, בלי
+                // לחייב לחיצה נוספת על "כניסה ליומן". שגיאה עדיין מוצגת (גבול
+                // אדום + הודעה) בדיוק כמו בבדיקה בלחיצה — verifyPin לא השתנה.
+                if (containerId === 'unlock-pin-container'
+                    && Array.from(inputs).every(i => i.value.length === 1)
+                    && typeof window.verifyPin === 'function') {
+                    window.verifyPin();
+                }
             });
-            
+
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Backspace') {
                     if (input.value === '' && index > 0) {

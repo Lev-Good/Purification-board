@@ -7,6 +7,26 @@ import { checkPartsOf, checkPartLabel } from './akira.js';
 import { bodySignLabel, bodyReminder } from './vesetGuf.js';
 import { DAY_MARKS, DAY_MARK_RULES, marksOf } from './dayMarks.js';
 import { ICONS } from './icons.js';
+import { getSavedLocation } from './storage.js';
+import { locationById, effectiveTodayAbs, elapsedOnotOf } from './zmanim.js';
+
+/**
+ * המיקום השמור, אם יש. בסביבת בדיקות (Node, בלי `localStorage` גלובלי)
+ * `getSavedLocation` זורק — וזה עצמו שקול ל"אין מיקום": בלי נתון לבדוק מולו,
+ * ההתנהגות חוזרת בדיוק למה שהיתה (חצות אזרחי, בלי סינון עונה שחלפה).
+ */
+function currentLocation() {
+    try {
+        return locationById(getSavedLocation());
+    } catch (e) {
+        return null;
+    }
+}
+
+/** "היום" לפי שקיעה ולא לפי חצות אזרחי (`js/zmanim.js`) — ראו `js/app.js: currentTodayAbs`. */
+function currentTodayAbs() {
+    return effectiveTodayAbs(currentLocation());
+}
 
 const HEB_DAYS = ["", "א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ז'", "ח'", "ט'", "י'", "י\"א", "י\"ב", "י\"ג", "י\"ד", "ט\"ו", "ט\"ז", "י\"ז", "י\"ח", "י\"ט", "כ'", "כ\"א", "כ\"ב", "כ\"ג", "כ\"ד", "כ\"ה", "כ\"ו", "כ\"ז", "כ\"ח", "כ\"ט", "ל'"];
 
@@ -141,9 +161,17 @@ export function syncSelectors(currentHDate) {
 function renderBaseDashboard(dashContainer, db, engineData, todayAbs) {
     dashContainer.className = 'dashboard';
 
-    // 1. Retirement warnings take first priority
-    if (engineData.computed.prishot[todayAbs]) {
-        const list = engineData.computed.prishot[todayAbs];
+    // 1. Retirement warnings take first priority — but only for an ona that
+    // hasn't actually elapsed yet. `todayAbs` itself only advances at sunset
+    // (effectiveTodayAbs), so a night-prisha whose sunrise already passed, while
+    // still the same todayAbs, is no longer live — it's history, and continuing
+    // to flash "today is a prisha ona" for it is a false alarm. Without a saved
+    // location there is nothing to check this against, so nothing is filtered —
+    // exactly the previous behavior.
+    const prishotToday = engineData.computed.prishot[todayAbs];
+    const elapsed = elapsedOnotOf(todayAbs, currentLocation(), new Date());
+    const list = prishotToday ? prishotToday.filter(p => !elapsed[p.ona]) : null;
+    if (list && list.length > 0) {
         const names = [...new Set(list.map(p => p.code))].join(', ');
         dashContainer.innerHTML = `
             <div class="dashboard-text">
@@ -294,7 +322,7 @@ function buildBodyReminderCard(body, appended = false) {
  * @param {number} [todayAbsOverride] - היום שלפיו נבחנת התזכורת (לבדיקות דטרמיניסטיות)
  */
 export function updateDashboard(db, engineData, todayAbsOverride) {
-    const todayAbs = Number.isFinite(todayAbsOverride) ? todayAbsOverride : new HDate().abs();
+    const todayAbs = Number.isFinite(todayAbsOverride) ? todayAbsOverride : currentTodayAbs();
     const dashContainer = document.getElementById('dashboard-container');
     if (!dashContainer) return;
 
@@ -374,6 +402,7 @@ function buildPrishaMarker(list, label) {
  */
 export function buildMonthGridHTML(month, year, db, engineData, isYearly = false) {
     const computed = engineData.computed;
+    const todayAbs = currentTodayAbs();
     const daysInMonth = HDate.daysInMonth(month, year);
     const firstDayOfMonth = new HDate(1, month, year);
     const startingDayOfWeek = firstDayOfMonth.greg().getDay(); 
@@ -479,7 +508,7 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
         }
 
         // Highlight today
-        const isToday = abs === new HDate().abs();
+        const isToday = abs === todayAbs;
         if (isToday) {
             classes.push("day-today");
             ariaBits.push('היום');
@@ -510,6 +539,7 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
  */
 export function buildYearlyRowHTML(month, year, db, engineData) {
     const computed = engineData.computed;
+    const todayAbs = currentTodayAbs();
     const daysInMonth = HDate.daysInMonth(month, year);
     const firstDayOfMonth = new HDate(1, month, year);
     const monthName = translateMonth(firstDayOfMonth.getMonthName());
@@ -540,7 +570,7 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
         const dateHeb = HEB_DAYS_CLEAN[day];
 
         let cellClasses = ["yearly-day-cell"];
-        if (abs === new HDate().abs()) {
+        if (abs === todayAbs) {
             cellClasses.push("day-today");
         }
 
@@ -846,6 +876,18 @@ export function updateLifePanel(engineData) {
                 <span>עד ${new HDate(life.pregnant.silekFromAbs).renderGematriya()}
                 (תשעים יום מתחילת ההריון) אין סילוק דמים, והיא חוששת לוסתות שהיו לה קודם.
                 <button class="help-dot" data-help="life_state" type="button" aria-label="ההסבר ההלכתי ומקורות">?</button></span>
+            </div>
+        `);
+    }
+
+    // 2b. שבוע ההריון ותאריך הלידה המשוער — הערכה כללית בלבד, לא קביעה הלכתית
+    // או רפואית; מוצג כל עוד לא נרשמה לידה (js/lifeState.js: gestationalWeek).
+    if (life.pregnant && life.pregnant.gestationalWeek !== null) {
+        blocks.push(`
+            <div class="dashboard-text">
+                <strong>שבוע הריון ${life.pregnant.gestationalWeek} (משוער)</strong>
+                <span>תאריך לידה משוער: ${new HDate(life.pregnant.dueDateAbs).renderGematriya()}.
+                הערכה כללית בלבד (כ-266 יום מתאריך תחילת ההריון) — אינה קביעה הלכתית ואינה תחליף לייעוץ רפואי.</span>
             </div>
         `);
     }

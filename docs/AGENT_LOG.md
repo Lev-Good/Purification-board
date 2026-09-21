@@ -2091,3 +2091,72 @@ npm test — כל הבדיקות עוברות: 68 imports, 8 IPC, 37 handlers, 1
 
 ### סטטוס
 הושלם — M3/B5 נאספים ונשמרים. **המנוע טרם צורך אותם** (ממתין למנוע החזקה, סעיפים ג–ד ב-`TASKS.md`).
+
+---
+
+## 2026-09-22 — "היום" לפי שקיעה, ותיקוני ממשק (בעקבות ניתוח שהעביר המשתמש)
+
+### מטרה
+המשתמש העביר ניתוח מפורט (לא מסמך — הודעת צ'אט) עם שבע הצעות בשני תחומים: דיוק
+הלכתי בזמני היום (מעבר "היום" לפי שקיעה, התאמת התראת הפרישה לעונה הפעילה, שבוע
+הריון/תאריך לידה משוער) וממשק (הפרדה חזותית יום/לילה במשבצת, מיקום מדויק של
+הפסק/נקיים/טבילה, אימות PIN אוטומטי, גלילת מודאל היום). נשאל תחילה כיצד לחלק את
+סבב העבודה — המשתמש בחר "הכל באותו סבב".
+
+### בוצע
+- לפני מימוש: נבדק הקוד הקיים מול כל סעיף. שניים מהם התבררו **כבר ממומשים
+  נכון** ולא נגעו בהם: מיקום הטבילה (`hefsekAbs+8`, ראש המשבצת — כבר בקוד, עם
+  הערה מפורשת ב-`calculations.js`) והפסק טהרה (כבר בחצי התחתון/עונת יום).
+  שני סעיפים סומנו כ"אולי כבר ממומשים" ואומתו כ**לא** ממומשים בפועל: אימות PIN
+  אוטומטי וגלילת מודאל.
+- **`js/zmanim.js`:** `rawDayTimes()` פנימית (בסיס משותף), `effectiveTodayAbs(location, now)`
+  ו-`elapsedOnotOf(abs, location, now)` חדשות. בלא מיקום — מתנהגות בדיוק כמו קודם.
+- **`js/app.js`:** `currentTodayAbs()` חדשה; הוחלף כל `new HDate().abs()` שייצג
+  "היום" — `engineOptions()` (מזריקה `today` למנוע, מקום שלא היה בו קודם),
+  `renderPillsList`, `announceBodyReminder`.
+- **`js/ui.js`:** `currentTodayAbs()` מקבילה (עם `try/catch` סביב `getSavedLocation`,
+  כי הקובץ נטען גם בבדיקות Node בלי `localStorage`); הוחלף ב-`buildMonthGridHTML`,
+  `buildYearlyRowHTML` (סימון "היום"), ו-`updateDashboard` (ברירת מחדל).
+  `renderBaseDashboard` מסננת את `computed.prishot[todayAbs]` דרך `elapsedOnotOf`
+  לפני הצגת "היום עונת פרישה!".
+- **`js/lifeState.js`:** `PREGNANCY_ESTIMATED_TERM_DAYS = 266`; `pregnant.gestationalWeek`
+  ו-`pregnant.dueDateAbs` (מוצגים רק כל עוד לא נרשמה לידה). `js/ui.js: updateLifePanel`
+  מציג אותם עם לשון "משוער" ואזהרה מפורשת שאינה תחליף לייעוץ רפואי.
+- **`css/style.css`:** משתנה `--cell-night-tint` (בערך שונה ל-`[data-theme="dark"]`),
+  גרדיאנט חצי-עליון/חצי-תחתון על `.day` ו-`.yearly-cell-inner`; `.modal-content`
+  קיבל `max-height: 85vh; overflow-y: auto` וסקרולבר עדין.
+- **`js/security.js`:** `setupPinInputListeners` קוראת ל-`window.verifyPin()`
+  אוטומטית כשכל 6 השדות ב-`unlock-pin-container` מלאים (רק שם — לא בהתקנה/שינוי).
+
+### קבצים שהושפעו
+- `js/zmanim.js`, `js/app.js`, `js/ui.js`, `js/lifeState.js`, `js/security.js`,
+  `css/style.css`, `tests/zmanim.test.js`, `docs/DECISIONS.md`, `docs/ARCHITECTURE.md`,
+  `docs/TASKS.md`, `docs/CHANGELOG.md`
+
+### בדיקות
+- `node --check` על חמשת קבצי ה-JS שנערכו ✓
+- `npm test`: **740/740 עברו** (731 קודמות + 9 בדיקות חדשות ל-`effectiveTodayAbs`/
+  `elapsedOnotOf` ב-`tests/zmanim.test.js`, מיקום ירושלים, לפני/אחרי שקיעה ונץ).
+- **אימות ידני בדפדפן** (שרת סטטי מקומי, `python3 -m http.server`, דרך `preview_start`):
+  - סימון "היום" בלוח תואם לתאריך הנכון (`אֵל"א תשרי תשפ"ז, 22.9.2026`), בלא מיקום שמור.
+  - הפרדת יום/לילה: `getComputedStyle` על משבצת "היום" הראתה את הגרדיאנט הצפוי.
+  - מודאל פעולות היום: `scrollHeight` (675) גדול מ-`clientHeight` (611) — הגלילה
+    נדרשת בפועל ופעילה (`overflow-y: auto`, `max-height` בפועל 612px = 85% מ-720).
+  - PIN אוטומטי: הזנת 6 ספרות נכונות (הקלדה אמיתית דרך `computer`, לא הזרקת ערך)
+    סגרה את מסך הנעילה בלי לחיצה על הכפתור; קוד שגוי הציג "קוד שגוי. נסה שוב." ולא
+    ננעל (זרימת השגיאה הקיימת פועלת כרגיל).
+  - שבוע הריון/תאריך לידה: עם `pregnancyAbs = today-40` הפאנל הציג "שבוע הריון 6
+    (משוער)" ותאריך לידה משוער תואם (`conceptionAbs + 266`).
+  - `read_console_messages` — אין שגיאות קונסול לאורך כל הבדיקה.
+  - **לא בוצע צילום מסך חזותי** — ה-pane לא התרנדר בסביבה הזו ("Browser pane is not
+    displayed"); האימות נעשה כולו דרך DOM/computed-style/הקלדה אמיתית.
+  - קובץ `.claude/launch.json` הזמני (שרת התצוגה) נמחק בסוף הבדיקה — אינו חלק מהאפליקציה.
+
+### בעיות
+לא נמצאו בעיות בזמן המימוש. הוחלט במפורש **לא** לגעת בברירת המחדל הפנימית של
+`js/calculations.js` (`new HDate().abs()`) — המודול מתועד כטהור וניתן-לבדיקה, ו-
+`app.js` הוא שמזריק את `today` הנכון; ראו נימוק מלא ב-`docs/DECISIONS.md`.
+
+### סטטוס
+הושלם — שבעת הסעיפים מיושמים (שניים התבררו כבר קיימים). `npm test` ירוק במלואו,
+ואומת ידנית בדפדפן (למעט צילום מסך, שלא היה זמין בסביבה).
