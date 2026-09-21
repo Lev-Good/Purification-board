@@ -167,7 +167,8 @@ export const BODY_VESET_RULES = {
     checkDispute: {
         title: 'מחלוקת — האם נדרשת בדיקה בוסת הגוף שאינו קבוע',
         text: 'הש"ך בנקודות הכסף חולק על הט"ז וסובר שאין חומרא בוסת הגוף יותר מבשאר וסתות. '
-            + 'האפליקציה נוקטת כדעת הט"ז (מחמירה), ומציגה את המחלוקת במפורש.',
+            + 'ברירת המחדל של האפליקציה כדעת הט"ז (מחמירה); מתג בהגדרות '
+            + 'מאפשר לכבות זאת ולנהוג כדעת הש"ך.',
         source: '[שט ל\"ט | עמ\' 160]'
     },
     classicDispute: {
@@ -221,6 +222,29 @@ export const BODY_VESET_RULES = {
 
 /** מזהה נושא העזרה של וסת הגוף — לתזכורת היומית ולסימון בלוח (מקור אחד). */
 export const BODY_HELP_TOPIC = 'veset_haguf';
+
+/**
+ * דרגת הוודאות של מיחוש **בלא ראייה** (2026-09-20, בקשת המשתמש) — כמה בטוחה
+ * היא שהמיחוש הזה מבשר ראייה מיידית. שדה עתידי בלבד: אינו נוגע כלל לקביעת
+ * וסת הגוף עצמה (עדיין ג' פעמים לאותו מיחוש, בלי קשר לדרגה) — הוא קובע רק
+ * את **חומרת התביעה של הרגע הזה**: `certain` (ברירת המחדל) שומר על ההתנהגות
+ * הקיימת (אסורה מיד, ועד שתבדוק); `likely`/`vague` הן חדשות ומקילות.
+ *
+ * מקור: מסמכי "יסודות הבית" (מקור משני — לא אומת מול הספר הראשי "שיעורי
+ * טהרה", ולכן אין כאן מראה מקום לספר עצמו).
+ */
+export const SIGN_CERTAINTY = {
+    certain: { label: 'בטוחה שהוסת בא מיד', order: 0 },
+    likely: { label: 'סביר שהוסת יבוא בין שעה ליממה', order: 1 },
+    vague: { label: 'מיחוש רחוק / מסופק', order: 2 }
+};
+
+export const SIGN_CERTAINTY_DEFAULT = 'certain';
+
+/** דרגת הוודאות התקנית — כל מה שאינו מוכר חוזר לברירת המחדל המחמירה. */
+export function normalizeSignCertainty(value) {
+    return SIGN_CERTAINTY[value] ? value : SIGN_CERTAINTY_DEFAULT;
+}
 
 /** האם לראייה זו סומן מיחוש גופני כלשהו. */
 export function signsOf(reiya) {
@@ -355,7 +379,9 @@ export function analyzeBodyVeset({ reiyot, counted, signRecords }) {
             abs: r.abs,
             ona: r.ona || 'day',
             signs: signsOf(r),
-            checked: r.checked === true
+            checked: r.checked === true,
+            // דרגת ודאות (2026-09-20) — קובעת רק את חומרת התביעה, לא את הקביעות עצמה.
+            certainty: normalizeSignCertainty(r.certainty)
         }))
         .sort((a, b) => a.abs - b.abs);
     if (withSigns.length === 0 && standaloneSigns.length === 0) return empty;
@@ -528,10 +554,18 @@ export function bodyReminder({ bodyVeset, prishot, pendingChecks, today }) {
     // 2. מיחוש שתועד **בלא ראייה** ולא נבדקה: לתביעה הזו יש תאריך — הואיל והמיחוש
     // עצמו הוא שאסר. זה הפער שהיה פתוח: "מיחוש שיבוא לבדו אינו ידוע למנוע ואין לו
     // תזכורת מתוארכת".
-    const uncheckedSigns = (bodyVeset.standaloneSigns || [])
+    //
+    // דרגת הוודאות (2026-09-20, מסמכי "יסודות הבית" — מקור משני) קובעת רק את
+    // **חומרת התביעה של הרגע הזה**, לא את הקביעות עצמה: `certain` (ברירת המחדל)
+    // הוא ההתנהגות המקורית ("אסורה עד שתבדוק"); `likely`/`vague` מקילים, ואינם
+    // אוסרים אלא תובעים בדיקה בקרוב, או בדיקה קלה בלבד.
+    const allUnchecked = (bodyVeset.standaloneSigns || [])
         .filter(s => !s.checked && s.abs <= today);
+    const uncheckedSigns = allUnchecked.filter(s => s.certainty === 'certain');
+    const likelySigns = allUnchecked.filter(s => s.certainty === 'likely');
+    const vagueSigns = allUnchecked.filter(s => s.certainty === 'vague');
+
     if (uncheckedSigns.length) {
-        const latest = uncheckedSigns[uncheckedSigns.length - 1];
         return {
             active: true,
             level: 'pending',
@@ -547,6 +581,48 @@ export function bodyReminder({ bodyVeset, prishot, pendingChecks, today }) {
             source: '[שט ל\'ט | עמ\' 158] · [שט ל\"ט | עמ\' 160] · [שט מ"א | עמ\' 182]',
             dues: uncheckedSigns.map(s => ({
                 abs: s.abs, ona: s.ona, code: 'מיחוש', reason: 'מיחוש בלא ראייה שתועד'
+            })),
+            signs: signLabels,
+            help: BODY_HELP_TOPIC
+        };
+    }
+
+    // 2ב. מיחוש שסומן "סביר" — מותרת בינתיים, אך תובעת בדיקה בקרוב (לא "אסורה").
+    if (likelySigns.length) {
+        return {
+            active: true,
+            level: 'likely',
+            title: 'מיחוש שתועד — סביר שהוסת קרובה',
+            lines: [
+                'המיחוש סומן בדרגת ודאות "סביר" — לא בטוחה שהוסת בא מיד, אך יש סבירות שיבוא '
+                    + 'בין שעה ליממה. מותרת בינתיים, אך רצוי לבדוק בקרוב.',
+                'דרגת ודאות היא תוספת תפעולית (מקור: מסמכי "יסודות הבית" — לא אומת מול הספר '
+                    + 'הראשי), ואינה משנה את קביעות וסת הגוף עצמה: ג\' פעמים לאותו מיחוש עדיין קובעות וסת.'
+            ],
+            source: 'מסמכי "יסודות הבית" (מקור משני — לא אומת מול הספר הראשי)',
+            dues: likelySigns.map(s => ({
+                abs: s.abs, ona: s.ona, code: 'מיחוש', reason: 'מיחוש בלא ראייה — דרגת ודאות "סביר"'
+            })),
+            signs: signLabels,
+            help: BODY_HELP_TOPIC
+        };
+    }
+
+    // 2ג. מיחוש שסומן "מסופק" — מותרת, רק בדיקת בגד וקינוח חיצוני לפני תשמיש.
+    if (vagueSigns.length) {
+        return {
+            active: true,
+            level: 'vague',
+            title: 'מיחוש שתועד — מיחוש רחוק / מסופק',
+            lines: [
+                'המיחוש סומן בדרגת ודאות "מסופק" — מיחוש רחוק, בלא בטחון שהוא מבשר ראייה '
+                    + 'מיידית. מותרת בתשמיש, ומומלץ לבדוק בגד תחתון ולקנח קינוח חיצוני קודם.',
+                'דרגת ודאות היא תוספת תפעולית (מקור: מסמכי "יסודות הבית" — לא אומת מול הספר '
+                    + 'הראשי), ואינה משנה את קביעות וסת הגוף עצמה: ג\' פעמים לאותו מיחוש עדיין קובעות וסת.'
+            ],
+            source: 'מסמכי "יסודות הבית" (מקור משני — לא אומת מול הספר הראשי)',
+            dues: vagueSigns.map(s => ({
+                abs: s.abs, ona: s.ona, code: 'מיחוש', reason: 'מיחוש בלא ראייה — דרגת ודאות "מסופק"'
             })),
             signs: signLabels,
             help: BODY_HELP_TOPIC

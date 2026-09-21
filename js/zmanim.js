@@ -77,9 +77,10 @@ function formatTime(date, tzid) {
 
 /**
  * זמני הנץ/שקיעה הגולמיים (אובייקטי `Date`) של תאריך עברי — הבסיס המשותף
- * ל-`dayTimes` (תצוגה מעוצבת) ול-`effectiveTodayAbs`/`elapsedOnotOf` (השוואת זמנים).
+ * ל-`dayTimes` (תצוגה מעוצבת), ל-`dayTimesRaw`/`js/googleCalendar.js` (בניית
+ * `dateTime` לאירועים), ול-`halachicTodayAbs`/`elapsedOnotOf` (השוואות זמן).
  *
- * @returns {?{sunrise: Date, sunset: Date, nightSunset: Date}}
+ * @returns {?{day: {sunrise: Date, sunset: Date}, night: {sunset: Date, sunrise: Date}}}
  */
 function rawDayTimes(abs, location) {
     if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.long)) return null;
@@ -97,7 +98,11 @@ function rawDayTimes(abs, location) {
     const nightSunset = new Zmanim(previous, location.lat, location.long).sunset();
     if (!sunrise || !sunset) return null;
 
-    return { sunrise, sunset, nightSunset };
+    return {
+        day: { sunrise, sunset },
+        // עונת הלילה של התאריך העברי אינה אלא הלילה שלפני יום שלו.
+        night: { sunset: nightSunset, sunrise }
+    };
 }
 
 /**
@@ -109,47 +114,58 @@ function rawDayTimes(abs, location) {
  *          `null` כשאין מיקום או שאין זמנים באותו יום (למשל בקווי רוחב קיצוניים)
  */
 export function dayTimes(abs, location) {
-    const t = rawDayTimes(abs, location);
-    if (!t) return null;
+    const raw = rawDayTimes(abs, location);
+    if (!raw) return null;
 
     return {
         day: {
-            sunrise: formatTime(t.sunrise, location.tzid),
-            sunset: formatTime(t.sunset, location.tzid)
+            sunrise: formatTime(raw.day.sunrise, location.tzid),
+            sunset: formatTime(raw.day.sunset, location.tzid)
         },
         night: {
             // עונת הלילה של התאריך העברי אינה אלא הלילה שלפני יום שלו.
-            sunset: formatTime(t.nightSunset, location.tzid),
-            sunrise: formatTime(t.sunrise, location.tzid)
+            sunset: formatTime(raw.night.sunset, location.tzid),
+            sunrise: formatTime(raw.night.sunrise, location.tzid)
         }
     };
 }
 
 /**
- * "היום" לפי שקיעה, ולא לפי חצות אזרחי.
+ * כמו `dayTimes`, אבל מחזיר אובייקטי `Date` אמיתיים ולא מחרוזות תצוגה —
+ * לשימוש בכל מקום שצריך לחשב זמן בפועל (בניית `dateTime` לאירועי יומן גוגל,
+ * `js/googleCalendar.js`; והשוואות זמן ב-`elapsedOnotOf` להלן), ולא רק להציג אותו.
+ */
+export function dayTimesRaw(abs, location) {
+    return rawDayTimes(abs, location);
+}
+
+/**
+ * "היום" ההלכתי הנוכחי — abs, מתחשב בכך שהיום העברי מתחלף בשקיעה ולא בחצות.
  *
- * הדין אינו תלוי בשעון: היממה העברית נפתחת בשקיעה, ולכן משעת השקיעה ועד חצות
- * הלילה האזרחי כבר החל התאריך העברי הבא (ליל התאריך הבא). המודול הזה **אינו
- * קובע עונה** ואינו משנה דין — הוא רק עונה על "מהו התאריך העברי שממנו נגזר
- * 'היום'", בדיוק כפי ש-`new HDate()` היה עונה, אלא שהוא גם בודק אם השקיעה כבר
- * חלפה.
+ * `new HDate().abs()` (בלי ארגומנט) גוזר את התאריך העברי מהתאריך הלועזי הנוכחי
+ * לפי חצות, ולכן בין השקיעה לחצות הלילה הוא עדיין "אתמול" עברית, בזמן שהיום
+ * העברי כבר התחלף. הפער הזה משפיע על כל התראה או חשש שנבחן "האם היום הוא יום
+ * הוסת" (למשל תזכורת וסת הגוף, `js/app.js` `announceBodyReminder`), ועל
+ * `calculateEngine` עצמו כברירת המחדל של `options.today`.
  *
- * בלא מיקום שמור אין נתון לבדוק מולו, ולכן ההתנהגות חוזרת בדיוק למה שהיתה —
- * מעבר בחצות האזרחי — וזה עצמו אינו שינוי דין: אין נתון, אין בירור.
+ * כשיש מיקום מוגדר — הזמן הנוכחי נבדק מול שקיעת התאריך הלועזי הנוכחי במיקום זה,
+ * ואם השקיעה כבר עברה, "היום" מוקדם ביום אחד. **בלא מיקום מוגדר אין דרך לחשב
+ * שקיעה אמיתית**, ולכן מוחזר התאריך לפי חצות (ההתנהגות הקודמת) — פער ידוע
+ * ומתועד, ולא ניחוש שגוי.
  *
  * @param {?Object} location - מוקד מתוך `LOCATIONS` (או `null`/`undefined`)
  * @param {Date} [now] - לבדיקות דטרמיניסטיות
  * @returns {number} abs
  */
-export function effectiveTodayAbs(location, now = new Date()) {
-    const civilAbs = new HDate(now).abs();
-    const t = rawDayTimes(civilAbs, location);
-    if (!t) return civilAbs;
-    return now.getTime() >= t.sunset.getTime() ? civilAbs + 1 : civilAbs;
+export function halachicTodayAbs(location, now = new Date()) {
+    const gregorianAbs = new HDate(now).abs();
+    const raw = rawDayTimes(gregorianAbs, location);
+    if (!raw) return gregorianAbs;
+    return now.getTime() >= raw.day.sunset.getTime() ? gregorianAbs + 1 : gregorianAbs;
 }
 
 /**
- * אילו עונות מתוך `abs` (כפי שנגזר מ-`effectiveTodayAbs`) כבר חלפו נכון ל-`now`.
+ * אילו עונות מתוך `abs` (כפי שנגזר מ-`halachicTodayAbs`) כבר חלפו נכון ל-`now`.
  *
  * עונת הלילה קודמת לעונת היום באותו תאריך עברי — ולכן היא יכולה לחלוף באמצע
  * היממה (עם הנץ) בלי ש-`abs` עצמו יתקדם (זה קורה רק עם השקיעה). עונת היום
@@ -161,11 +177,11 @@ export function effectiveTodayAbs(location, now = new Date()) {
  * @returns {{night: boolean, day: boolean}}
  */
 export function elapsedOnotOf(abs, location, now = new Date()) {
-    const t = rawDayTimes(abs, location);
-    if (!t) return { night: false, day: false };
+    const raw = rawDayTimes(abs, location);
+    if (!raw) return { night: false, day: false };
     return {
-        night: now.getTime() >= t.sunrise.getTime(),
-        day: now.getTime() >= t.sunset.getTime()
+        night: now.getTime() >= raw.day.sunrise.getTime(),
+        day: now.getTime() >= raw.day.sunset.getTime()
     };
 }
 

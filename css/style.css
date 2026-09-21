@@ -253,9 +253,24 @@ body {
 
 .sidebar-actions-grid {
     display: flex;
-    justify-content: space-around;
+    flex-direction: column;
+    gap: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
+}
+
+/* שתי שורות נפרדות: עיצוב/הדפסה/מייל מול זום — לא עוד קבוצה שטוחה אחת
+   שגולשת לשתי שורות באקראי לפי רוחב הסיידבר. */
+.sidebar-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    row-gap: 10px;
+}
+
+.sidebar-actions-row + .sidebar-actions-row {
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
 }
 
 .sidebar-action {
@@ -680,6 +695,13 @@ tr:hover {
     margin-bottom: 16px;
     box-shadow: var(--shadow-sm);
     line-height: 1.6;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.about-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
 }
 
 .about-card h3 {
@@ -712,9 +734,98 @@ tr:hover {
     margin-bottom: 8px;
 }
 
+/* --------------------------------------------------------------------
+   סרגל צד קבוע לניווט — לשוניות "הגדרות" ו"אודות". אותו מנגנון בשתי
+   הלשוניות (.side-nav-layout), כדי שהתחושה תהיה אחידה בכל האפליקציה.
+   מתקפל לשורת "פצפוצים" אופקית ברוחב מסך צר (כמו שהיה קודם), ונשאר
+   סרגל צד אמיתי, דביק (sticky), ברוחב דסקטופ.
+   -------------------------------------------------------------------- */
+.side-nav-layout {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+}
+
+.side-nav {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: 12px;
+}
+
+.side-nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.9em;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+}
+
+.side-nav a:hover,
+.side-nav a:focus-visible {
+    background: var(--input-bg);
+    color: var(--text-main);
+    border-color: var(--border-color);
+    transform: translateX(-3px);
+}
+
+.side-nav a.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.side-nav-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* מתחת לרוחב מסוים אין מקום לסרגל צד אמיתי — חוזר לשורת פצפוצים אופקית
+   שגוללת בעצמה, בדיוק כמו ההתנהגות הקודמת. */
+@media (max-width: 900px) {
+    .side-nav-layout {
+        flex-direction: column;
+    }
+
+    .side-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        position: static;
+        width: 100%;
+        gap: 8px;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .side-nav a {
+        flex: 0 0 auto;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border-color: var(--border-color);
+        background: var(--surface);
+    }
+
+    .side-nav a.active {
+        transform: none;
+    }
+}
+
 /* Settings items */
 .settings-section {
     margin-bottom: 28px;
+    scroll-margin-top: 12px;
 }
 
 .settings-section-title {
@@ -753,6 +864,13 @@ tr:hover {
     border-radius: var(--radius);
     padding: 16px;
     box-shadow: var(--shadow-sm);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.settings-group:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
 }
 
 /* כרטיסי הגדרות ארוכים/נדירים עטופים כ-<details> — "מצב חיים" (ארוך משמעותית
@@ -1341,6 +1459,70 @@ tr:hover {
 }
 
 /* Bottom Navigation (Mobile Tab-bar) */
+/* Global "software update available" mark — floats above every tab, spec:
+   "מציגה באופן גלובלי בתוכנה סימון קטן... ולחיצה עליו מובילה לדף ההגדרות". */
+.update-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 600;
+    background: var(--primary);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+}
+
+.update-badge .icon {
+    width: 15px;
+    height: 15px;
+}
+
+.update-badge-close {
+    background: rgba(255, 255, 255, 0.25);
+    border: none;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    line-height: 1;
+    font-size: 0.95em;
+    cursor: pointer;
+    margin-inline-start: 2px;
+}
+
+/* Same shape as .update-badge, opposite corner (right instead of left) so
+   the two can never overlap when both a software update and a stale-backup
+   reminder are true at the same time. */
+.backup-reminder-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 600;
+    background: var(--orange);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+}
+
+.backup-reminder-badge .icon {
+    width: 15px;
+    height: 15px;
+}
+
 .bottom-nav {
     display: none;
     position: fixed;
@@ -1410,6 +1592,7 @@ tr:hover {
     .modal-content {
         width: 100%;
         max-width: 100%;
+        max-height: 80vh;
         border-radius: 20px 20px 0 0;
         padding-bottom: max(24px, env(safe-area-inset-bottom));
         animation: bottomSheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1618,6 +1801,7 @@ tr:hover {
 /* Guide tab: one card per topic, grouped by category. */
 .guide-category {
     margin-bottom: 22px;
+    scroll-margin-top: 12px;
 }
 
 .guide-category > h3 {
@@ -1681,3 +1865,4 @@ tr:hover {
     font-size: 0.9em;
     line-height: 1.6;
 }
+

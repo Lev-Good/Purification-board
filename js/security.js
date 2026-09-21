@@ -1,4 +1,5 @@
-import { getSavedPin, savePin, hasSavedPin, saveRecoveryEmail, getRecoveryEmail, saveDb } from './storage.js';
+import { getPinRecord, savePinRecord, clearSavedPin, hasSavedPin, saveRecoveryEmail, getRecoveryEmail, saveDb, getLegacyPinValue, unlockDatabase, rekeyDatabase } from './storage.js';
+import { createPinRecord, verifyPinRecord } from './pinCrypto.js';
 import { showToast } from './notifications.js';
 import { refreshConnectionState, fetchBackup } from './googleBackup.js';
 
@@ -21,12 +22,11 @@ export function setupPinInputListeners() {
                     inputs[index + 1].focus();
                 }
 
-                // מסך הנעילה בלבד: מילוי הספרה השישית מפעיל את הבדיקה מיד, בלי
-                // לחייב לחיצה נוספת על "כניסה ליומן". שגיאה עדיין מוצגת (גבול
-                // אדום + הודעה) בדיוק כמו בבדיקה בלחיצה — verifyPin לא השתנה.
-                if (containerId === 'unlock-pin-container'
-                    && Array.from(inputs).every(i => i.value.length === 1)
-                    && typeof window.verifyPin === 'function') {
+                // Auto-submit the unlock screen once all 6 digits are entered —
+                // "כניסה ליומן" then happens automatically without a click.
+                if (containerId === 'unlock-pin-container' &&
+                    Array.from(inputs).every(i => i.value.length === 1) &&
+                    typeof window.verifyPin === 'function') {
                     window.verifyPin();
                 }
             });
@@ -46,24 +46,13 @@ export function setupPinInputListeners() {
  * Checks if the application should be locked or open for setup.
  */
 export async function checkInitialLock() {
-    if (hasSavedPin()) {
-        const savedPinCipher = getSavedPin();
-        let savedPin = savedPinCipher;
-        if (window.api && window.api.decrypt && savedPinCipher) {
-            try {
-                savedPin = await window.api.decrypt(savedPinCipher);
-            } catch (err) {
-                console.error("Initial decryption check failed:", err);
-            }
-        }
-        
-        // If the decrypted PIN is not a valid 6-digit number, it is corrupted or legacy.
-        // Automatically clear it so the user can set a new one.
-        const isValidPin = /^\d{6}$/.test(savedPin);
-        if (!isValidPin) {
-            console.warn("Detected invalid/corrupted PIN format. Resetting PIN storage.");
-            localStorage.removeItem('taharahPIN');
-        }
+    // A PIN saved before the move to one-way hashing (plain 6 digits, or the
+    // old reversibly-encrypted cipher text) cannot be verified against the
+    // new scheme, and by design is never decrypted again. The user's data
+    // (taharahDB etc.) is untouched - she just sets a fresh PIN once.
+    if (hasSavedPin() && getLegacyPinValue()) {
+        clearSavedPin();
+        showToast("שודרגה אבטחת קוד הגישה — נא להגדיר קוד גישה חדש (הנתונים שלך לא נפגעו).");
     }
 
     // Desktop only: if a Google account is already connected on this machine,
@@ -138,17 +127,15 @@ export async function setupNewPin(onUnlockedCallback) {
             sendToGoogleSheets(email, pin);
         }
         
-        // 2. Encrypt and save PIN
-        let pinToSave = pin;
-        if (window.api && window.api.encrypt) {
-            try {
-                pinToSave = await window.api.encrypt(pin);
-            } catch (err) {
-                console.error("Native encryption failed:", err);
-            }
-        }
-        savePin(pinToSave);
-        
+        // 2. Hash and save PIN (one-way - the digits themselves are never stored)
+        savePinRecord(await createPinRecord(pin));
+
+        // 3. Establish this session's database encryption key. Also migrates
+        // any plaintext data left over from before this encryption existed
+        // (a pre-update install, or a database a Google restore just wrote
+        // because no PIN existed yet at that moment) - see unlockDatabase().
+        await unlockDatabase(pin);
+
         const setupScreen = document.getElementById('setup-screen');
         setupScreen.style.opacity = '0';
         setupScreen.style.transition = 'opacity 0.4s ease';
@@ -175,18 +162,24 @@ export async function setupNewPin(onUnlockedCallback) {
 export async function verifyPin(onUnlockedCallback) {
     const inputs = document.querySelectorAll('#unlock-pin-container .pin-digit');
     const enteredPin = Array.from(inputs).map(i => i.value).join('');
-    const savedPinCipher = getSavedPin();
-    
-    let savedPin = savedPinCipher;
-    if (window.api && window.api.decrypt && savedPinCipher) {
+    const record = getPinRecord();
+    const isCorrect = record ? await verifyPinRecord(enteredPin, record) : false;
+
+    if (isCorrect) {
         try {
-            savedPin = await window.api.decrypt(savedPinCipher);
+            await unlockDatabase(enteredPin);
         } catch (err) {
-            console.error("Native decryption failed:", err);
+            // Wrong key (GCM auth-tag mismatch) or corrupted data - never
+            // silently show an empty calendar. The PIN itself was already
+            // confirmed correct, so this means the stored data is unreadable;
+            // stay on the lock screen rather than risk losing anything.
+            console.error("Database decryption failed:", err);
+            const errorEl = document.getElementById('pin-error');
+            if (errorEl) errorEl.innerText = "שגיאה בטעינת הנתונים. נסה לסגור ולפתוח את האפליקציה מחדש.";
+            inputs.forEach(i => i.value = '');
+            return;
         }
-    }
-    
-    if (enteredPin === savedPin) {
+
         const lockScreen = document.getElementById('lock-screen');
         lockScreen.style.opacity = '0';
         lockScreen.style.transition = 'opacity 0.4s ease';
@@ -222,15 +215,8 @@ export async function updatePinSetting() {
             sendToGoogleSheets(recoveryEmail, pin);
         }
         
-        let pinToSave = pin;
-        if (window.api && window.api.encrypt) {
-            try {
-                pinToSave = await window.api.encrypt(pin);
-            } catch (err) {
-                console.error("Native encryption failed:", err);
-            }
-        }
-        savePin(pinToSave);
+        savePinRecord(await createPinRecord(pin));
+        await rekeyDatabase(pin); // re-encrypts the database under the new PIN
         showToast("הקוד התעדכן בהצלחה. היומן יינעל בכניסה הבאה.");
         inputs.forEach(i => i.value = '');
     } else {
@@ -341,7 +327,19 @@ export async function restoreFromGoogleAndEnter() {
         const { db, pin, recoveryEmail } = await fetchBackup();
 
         if (db && Object.keys(db).length > 0) saveDb(db);
-        if (pin && /^\d{6}$/.test(pin)) savePin(pin);
+        // Only backups made before the move to one-way hashing carry a plain
+        // PIN; a newer backup never does. Either way this device must not be
+        // left with a PIN the user cannot enter: a recovered plain PIN is
+        // hashed and saved, and otherwise whatever PIN this device had is
+        // cleared outright - restoreFromGoogleAndEnter exists specifically
+        // for "I don't know the PIN", so she sets a fresh one after reload
+        // (checkInitialLock's setup-screen fallback) rather than being stuck
+        // on the lock screen with no way to satisfy it.
+        if (pin && /^\d{6}$/.test(pin)) {
+            savePinRecord(await createPinRecord(pin));
+        } else {
+            clearSavedPin();
+        }
         if (recoveryEmail) saveRecoveryEmail(recoveryEmail);
 
         showToast('הנתונים שוחזרו מהגיבוי בהצלחה!');

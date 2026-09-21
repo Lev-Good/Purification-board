@@ -1,12 +1,13 @@
 {
   "name": "purification-board",
-  "version": "2.0.0",
+  "version": "3.1.0",
   "description": "אפליקציית חישוב ימי הטהרה ולוח שנה עברי",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node tests/engine.test.js && node tests/chazaka.test.js && node tests/chiburLemafrea.test.js && node tests/vesetWeek.test.js && node tests/vesetMevucha.test.js && node tests/vesetDilug.test.js && node tests/reiyaDuration.test.js && node tests/onotMeuravot.test.js && node tests/akira.test.js && node tests/dayMarks.test.js && node tests/lifeState.test.js && node tests/silekReturn.test.js && node tests/pillPause.test.js && node tests/vesetGuf.test.js && node tests/signOnly.test.js && node tests/checkTwice.test.js && node tests/zmanim.test.js && node tests/googleBackup.test.js && node tests/integrity.test.js",
+    "test": "node tests/engine.test.js && node tests/stringencies.test.js && node tests/pinCrypto.test.js && node tests/dbCrypto.test.js && node tests/backupReminder.test.js && node tests/chazaka.test.js && node tests/chiburLemafrea.test.js && node tests/vesetWeek.test.js && node tests/vesetMevucha.test.js && node tests/vesetDilug.test.js && node tests/reiyaDuration.test.js && node tests/onotMeuravot.test.js && node tests/akira.test.js && node tests/dayMarks.test.js && node tests/nekiim.test.js && node tests/lifeState.test.js && node tests/silekReturn.test.js && node tests/pillPause.test.js && node tests/vesetGuf.test.js && node tests/signOnly.test.js && node tests/checkTwice.test.js && node tests/zmanim.test.js && node tests/updateCheck.test.js && node tests/errorLog.test.js && node tests/googleBackup.test.js && node tests/googleCalendar.test.js && node tests/integrity.test.js",
     "verify:sources": "node tools/verify_citations.mjs",
+    "test:e2e": "playwright test",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -14,8 +15,9 @@
   "author": "Lev Good",
   "license": "GPL-2.0-or-later",
   "devDependencies": {
-    "electron": "^25.3.0",
-    "electron-builder": "^24.6.3"
+    "@playwright/test": "^1.63.0",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.taharah.board",
@@ -52,7 +54,10 @@
       "css/**/*",
       "js/**/*",
       "icon.png",
- "google-oauth.local.json"
+      "google-oauth.local.json"
     ]
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true
   }
 }

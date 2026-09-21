@@ -9,7 +9,7 @@
  *  3. **עונת הלילה של תאריך עברי היא הלילה שלפני יום שלו** — ולכן שקיעת הלילה
  *     הזו היא של היום הלועזי שלפניו (ולא של היום שאחריו) `[שט כ"ז | עמ' 49]`.
  *  4. הזמן מוצג לפי אזור הזמן של המוקד, ולא לפי שעון המחשב.
- *  5. **"היום" לפי שקיעה** (`effectiveTodayAbs`) — בלא מיקום מתנהג כמו
+ *  5. **"היום" לפי שקיעה** (`halachicTodayAbs`) — בלא מיקום מתנהג כמו
  *     `new HDate().abs()` (חצות אזרחי); עם מיקום, מתקדם ביום אחד ברגע שהשקיעה
  *     חלפה, גם אם החצות האזרחי עוד לא הגיע.
  *  6. **עונות שחלפו** (`elapsedOnotOf`) — עונת הלילה חולפת עם הנץ (גם באמצע
@@ -18,7 +18,7 @@
 import { HDate, Zmanim } from '../hebcal.js';
 import {
     LOCATIONS, locationById, dayTimes, timesLine, NO_LOCATION,
-    effectiveTodayAbs, elapsedOnotOf
+    halachicTodayAbs, elapsedOnotOf
 } from '../js/zmanim.js';
 
 let failures = 0;
@@ -77,7 +77,9 @@ const nyTimes = dayTimes(abs, newYork);
 assert(nyTimes && nyTimes.day.sunrise !== times.day.sunrise,
     'a different timezone yields its own local clock times');
 
-// ---------- "היום" לפי שקיעה (effectiveTodayAbs) ----------
+// ---------- "היום" לפי שקיעה (halachicTodayAbs) ----------
+// הבדיקה החשובה מכולן: היום העברי מתחלף בשקיעה, לא בחצות
+// `[הבאג שדווח ב-"אפיון תוספות עתידיות מתוכננות.txt"]`.
 
 // יום עברי אזרחי שרחוק מראש השנה/מעברי חודש, כדי שחיבור abs+1 יהיה פשוט לבדיקה.
 const refAbs = new HDate(15, 'Sivan', 5785).abs();
@@ -85,19 +87,19 @@ const refGreg = new HDate(refAbs).greg();
 const refSunrise = new Zmanim(refGreg, jerusalem.lat, jerusalem.long).sunrise();
 const refSunset = new Zmanim(refGreg, jerusalem.lat, jerusalem.long).sunset();
 
-assert(effectiveTodayAbs(null, refGreg) === new HDate(refGreg).abs(),
-    'without a location, effectiveTodayAbs falls back to plain civil-midnight rollover');
+assert(halachicTodayAbs(null, refGreg) === new HDate(refGreg).abs(),
+    'without a location, halachicTodayAbs falls back to plain civil-midnight rollover (documented limitation)');
 
 const beforeSunset = new Date(refSunrise.getTime() + 60 * 60 * 1000); // שעה אחרי הנץ - ודאי לפני השקיעה
-assert(effectiveTodayAbs(jerusalem, beforeSunset) === refAbs,
-    'before sunset, the effective Hebrew day is still the civil day (day ona not elapsed)');
+assert(halachicTodayAbs(jerusalem, beforeSunset) === refAbs,
+    'before sunset, the halachic day is still the civil day (day ona not elapsed)');
 
 const afterSunset = new Date(refSunset.getTime() + 60 * 1000); // דקה אחרי השקיעה
-assert(effectiveTodayAbs(jerusalem, afterSunset) === refAbs + 1,
-    'once sunset has passed, the effective Hebrew day already advances - civil midnight has not come yet');
+assert(halachicTodayAbs(jerusalem, afterSunset) === refAbs + 1,
+    'once sunset has passed, the halachic day already advances - civil midnight has not come yet');
 
 const rightBeforeSunset = new Date(refSunset.getTime() - 60 * 1000);
-assert(effectiveTodayAbs(jerusalem, rightBeforeSunset) === refAbs,
+assert(halachicTodayAbs(jerusalem, rightBeforeSunset) === refAbs,
     'a minute before sunset it has not advanced yet');
 
 // ---------- עונות שחלפו (elapsedOnotOf) ----------
