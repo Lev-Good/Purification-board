@@ -1,65 +1,67 @@
-﻿<!DOCTYPE html>
-<html lang=he dir=rtl>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
 <head>
-  <meta charset=UTF-8>
-  <meta name=viewport content=width=device-width, initial-scale=1.0>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>מדיניות פרטיות - לוח טהרה (Privacy Policy)</title>
-  <link rel=icon type=image/png href=./icon.png>
-  <link rel=stylesheet href=./style.css>
+  <link rel="icon" type="image/png" href="./icon.png">
+  <link rel="stylesheet" href="./style.css">
   
   <script>
     (function() {
-      const theme = localStorage.getItem('taharah_theme');
-      if (theme === 'dark' || theme === 'light') {
-        document.documentElement.setAttribute('data-theme', theme);
-      }
+      try {
+        var theme = localStorage.getItem('taharah_theme');
+        if (theme === 'dark' || theme === 'light') {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      } catch (e) {}
     })();
   </script>
 </head>
 <body>
 
   <!-- Header & Navigation -->
-  <header class=header>
-    <div class=nav-container>
-      <a href=./index.html class=brand>
-        <img src=./icon.png alt=לוגו לוח טהרה class=brand-icon>
-        <span class=brand-title>לוח טהרה</span>
+  <header class="header">
+    <div class="nav-container">
+      <a href="./index.html" class="brand">
+        <img src="./icon.png" alt="לוגו לוח טהרה" class="brand-icon">
+        <span class="brand-title">לוח טהרה</span>
       </a>
 
-      <div class=nav-actions>
+      <div class="nav-actions">
         <!-- Theme Switcher -->
-        <div class=theme-switch role=group aria-label=בחירת ערכת נושא>
-          <button class=theme-btn active data-theme-value=system title=מערכת (אוטומטי) aria-label=מערכת>
-            <svg class=svg-icon viewBox=0 0 24 24>
-              <rect x=2 y=3 width=20 height=14 rx=2 ry=2></rect>
-              <line x1=8 y1=21 x2=16 y2=21></line>
-              <line x1=12 y1=17 x2=12 y2=21></line>
+        <div class="theme-switch" role="group" aria-label="בחירת ערכת נושא">
+          <button type="button" class="theme-btn active" data-theme-value="system" title="מערכת (אוטומטי)" aria-label="מערכת">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
           </button>
-          <button class=theme-btn data-theme-value=light title=מצב בהיר aria-label=בהיר>
-            <svg class=svg-icon viewBox=0 0 24 24>
-              <circle cx=12 cy=12 r=5></circle>
-              <line x1=12 y1=1 x2=12 y2=3></line>
-              <line x1=12 y1=21 x2=12 y2=23></line>
-              <line x1=4.22 y1=4.22 x2=5.64 y2=5.64></line>
-              <line x1=18.36 y1=18.36 x2=19.78 y2=19.78></line>
-              <line x1=1 y1=12 x2=3 y2=12></line>
-              <line x1=21 y1=12 x2=23 y2=12></line>
-              <line x1=4.22 y1=19.78 x2=5.64 y2=18.36></line>
-              <line x1=18.36 y1=5.64 x2=19.78 y2=4.22></line>
+          <button type="button" class="theme-btn" data-theme-value="light" title="מצב בהיר" aria-label="בהיר">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
           </button>
-          <button class=theme-btn data-theme-value=dark title=מצב כהה aria-label=כהה>
-            <svg class=svg-icon viewBox=0 0 24 24>
-              <path d=M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z></path>
+          <button type="button" class="theme-btn" data-theme-value="dark" title="מצב כהה" aria-label="כהה">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
         </div>
 
-        <a href=./index.html class=nav-link>
-          <svg class=svg-icon viewBox=0 0 24 24>
-            <line x1=19 y1=12 x2=5 y2=12></line>
-            <polyline points=12 19 5 12 12 5></polyline>
+        <a href="./index.html" class="nav-link">
+          <svg class="svg-icon" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
           <span>דף הבית</span>
         </a>
@@ -67,16 +69,16 @@
     </div>
   </header>
 
-  <main class=page-container>
-    <div class=content-card>
-      <div class=page-header>
-        <h1 class=page-title>מדיניות פרטיות / Privacy Policy</h1>
+  <main class="page-container">
+    <div class="content-card">
+      <div class="page-header">
+        <h1 class="page-title">מדיניות פרטיות / Privacy Policy</h1>
         <p>לוח טהרת המשפחה (Taharah Board) — עודכן לאחרונה: ספטמבר 2026</p>
       </div>
 
       <h2>1. מבוא ועקרונות יסוד</h2>
       <p>
-        אפליקציית <strong>לוח טהרת המשפחה (Taharah Board)</strong> מעמידה בראש סדר העדיפויות את פרטיות המשתמשים ואת אבטחת המידע הרגיש.
+        אפליקציית <strong>"לוח טהרת המשפחה" (Taharah Board)</strong> מעמידה בראש סדר העדיפויות את פרטיות המשתמשים ואת אבטחת המידע הרגיש.
         האפליקציה פותחה במודל <strong>Local-First</strong> (מקומי תחילה): כל נתוני המשתמש (ראיות, בדיקות, תאריכים והערות) נשמרים אך ורק במכשיר המקומי של המשתמש. 
         אין למפתחי האפליקציה שרת מרכזי, ואין לנו כל גישה, יכולת צפייה, ניטור או שיתוף של הנתונים האישיים שלכם.
       </p>
@@ -94,99 +96,99 @@
         </li>
         <li>
           <strong>Google Calendar API (הרשאת <code>calendar</code>):</strong>
-          האפליקציה יוצרת לוח שנה משני ייעודי (לוח טהרה - תזכורות אישיות) בחשבון ה-Google Calendar של המשתמש, ומוסיפה אליו אירועי תזכורת עבור מועדי בדיקות וימי פרישה.
-          באמצעות תכונה זו, שרתי Google שולחים למשתמש התראות בדואל ובנייד בדיוק בזמן הרלוונטי, גם כאשר תוכנת המחשב סגורה.
- </li>
- </ul>
+          האפליקציה יוצרת לוח שנה משני ייעודי ("לוח טהרה - תזכורות אישיות") בחשבון ה-Google Calendar של המשתמש, ומוסיפה אליו אירועי תזכורת עבור מועדי בדיקות וימי פרישה.
+          באמצעות תכונה זו, שרתי Google שולחים למשתמש התראות בדוא"ל ובנייד בדיוק בזמן הרלוונטי, גם כאשר תוכנת המחשב סגורה.
+        </li>
+      </ul>
 
- <h2>3. אי-שיתוף מידע והגבלת שימוש</h2>
- <p>
- אנו מתחייבים באופן חד-משמעי:
- </p>
- <ul>
- <li>נתוני המשתמש אינם מועברים, אינם נמכרים ואינם משותפים עם שום גורם שלישי.</li>
- <li>נתוני Google אינם משמשים להצגת פרסומות, למיקוד שיווקי, לכריית מידע או לאימון מודלים של בינה מלאכותית (AI).</li>
- <li>המידע אינו נשמר באף מסד נתונים חיצוני שאינו החשבון האישי של המשתמש עצמו.</li>
- </ul>
+      <h2>3. אי-שיתוף מידע והגבלת שימוש</h2>
+      <p>
+        אנו מתחייבים באופן חד-משמעי:
+      </p>
+      <ul>
+        <li>נתוני המשתמש אינם מועברים, אינם נמכרים ואינם משותפים עם שום גורם שלישי.</li>
+        <li>נתוני Google אינם משמשים להצגת פרסומות, למיקוד שיווקי, לכריית מידע או לאימון מודלים של בינה מלאכותית (AI).</li>
+        <li>המידע אינו נשמר באף מסד נתונים חיצוני שאינו החשבון האישי של המשתמש עצמו.</li>
+      </ul>
 
- <h2>4. ניתוק חשבון ומחיקת נתונים</h2>
- <p>
- המשתמש שולט באופן מלא בחיבור לחשבון Google ובמידע שלו:
- </p>
- <ul>
- <li>ניתן לנתק את החשבון בכל עת דרך מסך ההגדרות באפליקציה (נתק חשבון גוגל). בעת הניתוק, כל טוקני הגישה נמחקים מיידית מהמחשב.</li>
- <li>ניתן להסיר את הרשאות האפליקציה ישירות דרך הגדרות האבטחה של חשבון Google בכתובת: <a href=https://myaccount.google.com/permissions target=_blank rel=noopener>myaccount.google.com/permissions</a>.</li>
- <li>המשתמש יכול למחוק את קובץ הגיבוי ואת יומן התזכורות בכל עת ישירות מ-Google Drive ו-Google Calendar.</li>
- </ul>
+      <h2>4. ניתוק חשבון ומחיקת נתונים</h2>
+      <p>
+        המשתמש שולט באופן מלא בחיבור לחשבון Google ובמידע שלו:
+      </p>
+      <ul>
+        <li>ניתן לנתק את החשבון בכל עת דרך מסך ההגדרות באפליקציה ("נתק חשבון גוגל"). בעת הניתוק, כל טוקני הגישה נמחקים מיידית מהמחשב.</li>
+        <li>ניתן להסיר את הרשאות האפליקציה ישירות דרך הגדרות האבטחה של חשבון Google בכתובת: <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</li>
+        <li>המשתמש יכול למחוק את קובץ הגיבוי ואת יומן התזכורות בכל עת ישירות מ-Google Drive ו-Google Calendar.</li>
+      </ul>
 
- <div class=notice-box>
- <strong>הצהרת תאימות למדיניות Google:</strong><br>
- השימוש של אפליקציית Taharah Board במידע המתקבל מממשקי ה-API של Google כפוף באופן מלא ל-<a href=https://developers.google.com/terms/api-services-user-data-policy target=_blank rel=noopener>מדיניות נתוני המשתמש של שירותי Google API</a>, לרבות דרישות השימוש המוגבל (Limited Use).
- </div>
+      <div class="notice-box">
+        <strong>הצהרת תאימות למדיניות Google:</strong><br>
+        השימוש של אפליקציית Taharah Board במידע המתקבל מממשקי ה-API של Google כפוף באופן מלא ל-<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">מדיניות נתוני המשתמש של שירותי Google API</a>, לרבות דרישות השימוש המוגבל (Limited Use).
+      </div>
 
- <!-- English Section (Required for Google Verification) -->
- <div class=en-section>
- <h2>Privacy Policy (English Version)</h2>
- <p><strong>Last Updated: September 2026</strong></p>
- 
- <p>
- <strong>Taharah Board</strong> (we, our, or the app) is a desktop application designed to assist users in tracking family purity (Taharat Hamishpacha) schedules, halachic calculation dates, and reminders.
- We are strictly committed to user privacy. Taharah Board operates under a <strong>Local-First architecture</strong>: all personal entries, calculation records, and logs are stored exclusively on the user's local machine. We do not operate a central server, and we have no access to your personal data.
- </p>
+      <!-- English Section (Required for Google Verification) -->
+      <div class="en-section">
+        <h2>Privacy Policy (English Version)</h2>
+        <p><strong>Last Updated: September 2026</strong></p>
+        
+        <p>
+          <strong>Taharah Board</strong> ("we", "our", or "the app") is a desktop application designed to assist users in tracking family purity (Taharat Hamishpacha) schedules, halachic calculation dates, and reminders.
+          We are strictly committed to user privacy. Taharah Board operates under a <strong>Local-First architecture</strong>: all personal entries, calculation records, and logs are stored exclusively on the user's local machine. We do not operate a central server, and we have no access to your personal data.
+        </p>
 
- <h3>Google API Access and Data Usage</h3>
- <p>
- Taharah Board provides optional integrations with Google services via OAuth 2.0. When you choose to connect your Google account, the application interacts directly between your local device and Google APIs:
- </p>
- <ul>
- <li>
- <strong>Google Drive API (<code>drive.file</code> scope):</strong> Used exclusively to create and update a single private backup spreadsheet in your personal Google Drive account. The app cannot read, modify, or access any other files in your Google Drive.
- </li>
- <li>
- <strong>Google Calendar API (<code>calendar</code> scope):</strong> Used exclusively to manage a dedicated secondary calendar (Taharah Board Reminders) in your Google Calendar account. The app inserts reminders and schedules email notifications for upcoming examinations and separation dates so you receive timely notifications even when your desktop computer is off.
- </li>
- </ul>
+        <h3>Google API Access and Data Usage</h3>
+        <p>
+          Taharah Board provides optional integrations with Google services via OAuth 2.0. When you choose to connect your Google account, the application interacts directly between your local device and Google APIs:
+        </p>
+        <ul>
+          <li>
+            <strong>Google Drive API (<code>drive.file</code> scope):</strong> Used exclusively to create and update a single private backup spreadsheet in your personal Google Drive account. The app cannot read, modify, or access any other files in your Google Drive.
+          </li>
+          <li>
+            <strong>Google Calendar API (<code>calendar</code> scope):</strong> Used exclusively to manage a dedicated secondary calendar ("Taharah Board Reminders") in your Google Calendar account. The app inserts reminders and schedules email notifications for upcoming examinations and separation dates so you receive timely notifications even when your desktop computer is off.
+          </li>
+        </ul>
 
- <h3>Limited Use Disclosure</h3>
- <p class=notice-box>
- <strong>Taharah Board's use and transfer to any other app of information received from Google APIs will adhere to the <a href=https://developers.google.com/terms/api-services-user-data-policy target=_blank rel=noopener>Google API Services User Data Policy</a>, including the Limited Use requirements.</strong>
- </p>
+        <h3>Limited Use Disclosure</h3>
+        <p class="notice-box">
+          <strong>Taharah Board's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</strong>
+        </p>
 
- <h3>Data Sharing, Advertising, and AI</h3>
- <ul>
- <li>We do NOT sell, rent, or transfer user data to third parties.</li>
- <li>We do NOT use Google user data for advertising, marketing, or retargeting.</li>
- <li>We do NOT use Google user data to train generalized AI or machine learning models.</li>
- <li>Google tokens are stored locally on your device in secure app storage and are never transmitted to us.</li>
- </ul>
+        <h3>Data Sharing, Advertising, and AI</h3>
+        <ul>
+          <li>We do NOT sell, rent, or transfer user data to third parties.</li>
+          <li>We do NOT use Google user data for advertising, marketing, or retargeting.</li>
+          <li>We do NOT use Google user data to train generalized AI or machine learning models.</li>
+          <li>Google tokens are stored locally on your device in secure app storage and are never transmitted to us.</li>
+        </ul>
 
- <h3>Revocation and Data Deletion</h3>
- <p>
- You can disconnect your Google account at any time via the app's settings menu, which immediately deletes all locally stored access tokens. You can also revoke access directly through your Google Account settings at <a href=https://myaccount.google.com/permissions target=_blank rel=noopener>myaccount.google.com/permissions</a>. You have full ownership to delete the backup file in Google Drive or the secondary calendar in Google Calendar at any time.
- </p>
+        <h3>Revocation and Data Deletion</h3>
+        <p>
+          You can disconnect your Google account at any time via the app's settings menu, which immediately deletes all locally stored access tokens. You can also revoke access directly through your Google Account settings at <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>. You have full ownership to delete the backup file in Google Drive or the secondary calendar in Google Calendar at any time.
+        </p>
 
- <h3>Contact Us</h3>
- <p>
- If you have questions regarding this Privacy Policy, you may contact the maintainers via the project repository or support channel.
- </p>
- </div>
+        <h3>Contact Us</h3>
+        <p>
+          If you have questions regarding this Privacy Policy, you may contact the maintainers via the project repository or support channel.
+        </p>
+      </div>
 
- </div>
- </main>
+    </div>
+  </main>
 
- <footer class=footer>
- <div class=footer-container>
- <div>
- <span>לוח טהרת המשפחה &copy; 2026</span>
- </div>
- <div class=footer-links>
- <a href=./index.html class=footer-link>דף הבית</a>
- <a href=./terms.html class=footer-link>תנאי שימוש</a>
- <a href=https://github.com/Lev-Good/Purification-board target=_blank rel=noopener noreferrer class=footer-link>GitHub</a>
- </div>
- </div>
- </footer>
+  <footer class="footer">
+    <div class="footer-container">
+      <div>
+        <span>לוח טהרת המשפחה &copy; 2026</span>
+      </div>
+      <div class="footer-links">
+        <a href="./index.html" class="footer-link">דף הבית</a>
+        <a href="./terms.html" class="footer-link">תנאי שימוש</a>
+        <a href="https://github.com/Lev-Good/Purification-board" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+      </div>
+    </div>
+  </footer>
 
- <script src=./script.js></script>
+  <script src="./script.js"></script>
 </body>
 </html>

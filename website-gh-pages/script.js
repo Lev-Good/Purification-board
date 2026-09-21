@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Taharah Board - Landing Page & Auto-Release Handler
  * Features:
  * - Theme Switcher: System (default) / Light / Dark
@@ -9,16 +9,20 @@
   'use strict';
 
   // --- Configuration ---
-  const REPO_OWNER = 'Lev-Good';
-  const REPO_NAME = 'Purification-board';
-  const FALLBACK_DOWNLOAD_URL = https://github.com///releases/latest;
+  var REPO_OWNER = 'Lev-Good';
+  var REPO_NAME = 'Purification-board';
+  var FALLBACK_DOWNLOAD_URL = 'https://github.com/' + REPO_OWNER + '/' + REPO_NAME + '/releases/latest';
 
   // --- Theme Management ---
-  const THEME_STORAGE_KEY = 'taharah_theme';
-  const themeButtons = document.querySelectorAll('[data-theme-value]');
+  var THEME_STORAGE_KEY = 'taharah_theme';
+  var themeButtons = document.querySelectorAll('[data-theme-value]');
 
   function getStoredTheme() {
-    return localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+    } catch (e) {
+      return 'system';
+    }
   }
 
   function applyTheme(theme) {
@@ -30,33 +34,34 @@
       document.documentElement.removeAttribute('data-theme');
     }
 
-    themeButtons.forEach(btn => {
-      const val = btn.getAttribute('data-theme-value');
-      const isActive = val === theme;
+    themeButtons.forEach(function (btn) {
+      var val = btn.getAttribute('data-theme-value');
+      var isActive = (val === theme);
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
   }
 
   function initTheme() {
-    const currentTheme = getStoredTheme();
+    var currentTheme = getStoredTheme();
     applyTheme(currentTheme);
 
-    themeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const selected = btn.getAttribute('data-theme-value');
-        if (selected === 'system') {
-          localStorage.removeItem(THEME_STORAGE_KEY);
-        } else {
-          localStorage.setItem(THEME_STORAGE_KEY, selected);
-        }
+    themeButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var selected = btn.getAttribute('data-theme-value');
+        try {
+          if (selected === 'system') {
+            localStorage.removeItem(THEME_STORAGE_KEY);
+          } else {
+            localStorage.setItem(THEME_STORAGE_KEY, selected);
+          }
+        } catch (e) {}
         applyTheme(selected);
       });
     });
 
-    // Listen to OS system color-scheme changes when in 'system' mode
     if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
         if (getStoredTheme() === 'system') {
           applyTheme('system');
         }
@@ -66,66 +71,73 @@
 
   // --- GitHub Releases Fetcher ---
   async function fetchLatestRelease() {
-    const btnDownload = document.getElementById('primary-download-btn');
-    const metaContainer = document.getElementById('download-meta-info');
-    const portableLink = document.getElementById('portable-download-link');
-    const specVersion = document.getElementById('spec-current-version');
+    var btnDownload = document.getElementById('primary-download-btn');
+    var metaContainer = document.getElementById('download-meta-info');
+    var portableLink = document.getElementById('portable-download-link');
+    var specVersion = document.getElementById('spec-current-version');
 
     if (!btnDownload) return;
 
     try {
-      const response = await fetch(https://api.github.com/repos///releases, {
-        headers: { Accept: 'application/vnd.github.v3+json' }
+      var apiUrl = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/releases';
+      var response = await fetch(apiUrl, {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
       });
 
       if (!response.ok) {
-        throw new Error(GitHub API error: );
+        throw new Error('GitHub API HTTP error: ' + response.status);
       }
 
-      const releases = await response.json();
+      var releases = await response.json();
       if (!Array.isArray(releases) || releases.length === 0) {
         throw new Error('No releases found');
       }
 
       // Find newest release that contains .exe assets
-      let targetRelease = null;
-      let installerAsset = null;
-      let portableAsset = null;
+      var targetRelease = null;
+      var installerAsset = null;
+      var portableAsset = null;
 
-      for (const rel of releases) {
+      for (var i = 0; i < releases.length; i++) {
+        var rel = releases[i];
         if (rel.assets && rel.assets.length > 0) {
-          const exes = rel.assets.filter(a => a.name.toLowerCase().endsWith('.exe'));
+          var exes = rel.assets.filter(function (a) {
+            return a.name && a.name.toLowerCase().endsWith('.exe');
+          });
           if (exes.length > 0) {
             targetRelease = rel;
-            installerAsset = exes.find(a => a.name.toLowerCase().includes('setup')) || exes[0];
-            portableAsset = exes.find(a => a !== installerAsset && a.name.toLowerCase().endsWith('.exe')) || null;
+            installerAsset = exes.find(function (a) {
+              return a.name.toLowerCase().includes('setup');
+            }) || exes[0];
+            portableAsset = exes.find(function (a) {
+              return a !== installerAsset && a.name.toLowerCase().endsWith('.exe');
+            }) || null;
             break;
           }
         }
       }
 
       if (!targetRelease || !installerAsset) {
-        // Fallback to latest tag if no exe found
         targetRelease = releases[0];
       }
 
-      const version = targetRelease.tag_name || 'v3.1.0';
-      const cleanVer = version.replace(/^v/, '');
+      var version = targetRelease.tag_name || 'v3.1.0';
+      var cleanVer = version.replace(/^v/, '');
 
       // Set direct installer link
       if (installerAsset && installerAsset.browser_download_url) {
         btnDownload.href = installerAsset.browser_download_url;
         btnDownload.setAttribute('download', installerAsset.name);
 
-        const sizeMB = installerAsset.size ? (installerAsset.size / (1024 * 1024)).toFixed(0) + ' MB' : '';
+        var sizeMB = installerAsset.size ? (installerAsset.size / (1024 * 1024)).toFixed(0) + ' MB' : '';
         if (metaContainer) {
-          metaContainer.innerHTML = 
-            <span class=status-dot></span>
-            <span>גרסה  • Windows 10/11 (64-bit)</span>
-          ;
+          metaContainer.innerHTML = '<span class="status-dot"></span><span>גרסה ' + cleanVer + (sizeMB ? ' • ' + sizeMB : '') + ' • Windows 10/11 (64-bit)</span>';
         }
       } else {
         btnDownload.href = targetRelease.html_url || FALLBACK_DOWNLOAD_URL;
+        if (metaContainer) {
+          metaContainer.innerHTML = '<span class="status-dot"></span><span>גרסה ' + cleanVer + ' • Windows 10/11 (64-bit)</span>';
+        }
       }
 
       // Set portable link if available
@@ -137,18 +149,21 @@
 
       // Update specs version
       if (specVersion) {
-        specVersion.textContent = גרסה ;
+        specVersion.textContent = 'גרסה ' + cleanVer;
       }
 
     } catch (err) {
       console.warn('Unable to retrieve dynamic release data from GitHub:', err);
-      // Fallback stays as default defined in HTML
+      // Fallback display
+      if (metaContainer) {
+        metaContainer.innerHTML = '<span class="status-dot"></span><span>גרסה 3.1.0 • 108 MB • Windows 10/11 (64-bit)</span>';
+      }
     }
   }
 
   // Initialize on DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', function () {
       initTheme();
       fetchLatestRelease();
     });

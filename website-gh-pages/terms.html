@@ -1,65 +1,67 @@
-﻿<!DOCTYPE html>
-<html lang=he dir=rtl>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
 <head>
-  <meta charset=UTF-8>
-  <meta name=viewport content=width=device-width, initial-scale=1.0>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>תנאי שימוש - לוח טהרה (Terms of Service)</title>
-  <link rel=icon type=image/png href=./icon.png>
-  <link rel=stylesheet href=./style.css>
+  <link rel="icon" type="image/png" href="./icon.png">
+  <link rel="stylesheet" href="./style.css">
   
   <script>
     (function() {
-      const theme = localStorage.getItem('taharah_theme');
-      if (theme === 'dark' || theme === 'light') {
-        document.documentElement.setAttribute('data-theme', theme);
-      }
+      try {
+        var theme = localStorage.getItem('taharah_theme');
+        if (theme === 'dark' || theme === 'light') {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      } catch (e) {}
     })();
   </script>
 </head>
 <body>
 
   <!-- Header & Navigation -->
-  <header class=header>
-    <div class=nav-container>
-      <a href=./index.html class=brand>
-        <img src=./icon.png alt=לוגו לוח טהרה class=brand-icon>
-        <span class=brand-title>לוח טהרה</span>
+  <header class="header">
+    <div class="nav-container">
+      <a href="./index.html" class="brand">
+        <img src="./icon.png" alt="לוגו לוח טהרה" class="brand-icon">
+        <span class="brand-title">לוח טהרה</span>
       </a>
 
-      <div class=nav-actions>
+      <div class="nav-actions">
         <!-- Theme Switcher -->
-        <div class=theme-switch role=group aria-label=בחירת ערכת נושא>
-          <button class=theme-btn active data-theme-value=system title=מערכת (אוטומטי) aria-label=מערכת>
-            <svg class=svg-icon viewBox=0 0 24 24>
-              <rect x=2 y=3 width=20 height=14 rx=2 ry=2></rect>
-              <line x1=8 y1=21 x2=16 y2=21></line>
-              <line x1=12 y1=17 x2=12 y2=21></line>
+        <div class="theme-switch" role="group" aria-label="בחירת ערכת נושא">
+          <button type="button" class="theme-btn active" data-theme-value="system" title="מערכת (אוטומטי)" aria-label="מערכת">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
           </button>
-          <button class=theme-btn data-theme-value=light title=מצב בהיר aria-label=בהיר>
-            <svg class=svg-icon viewBox=0 0 24 24>
-              <circle cx=12 cy=12 r=5></circle>
-              <line x1=12 y1=1 x2=12 y2=3></line>
-              <line x1=12 y1=21 x2=12 y2=23></line>
-              <line x1=4.22 y1=4.22 x2=5.64 y2=5.64></line>
-              <line x1=18.36 y1=18.36 x2=19.78 y2=19.78></line>
-              <line x1=1 y1=12 x2=3 y2=12></line>
-              <line x1=21 y1=12 x2=23 y2=12></line>
-              <line x1=4.22 y1=19.78 x2=5.64 y2=18.36></line>
-              <line x1=18.36 y1=5.64 x2=19.78 y2=4.22></line>
+          <button type="button" class="theme-btn" data-theme-value="light" title="מצב בהיר" aria-label="בהיר">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
           </button>
-          <button class=theme-btn data-theme-value=dark title=מצב כהה aria-label=כהה>
-            <svg class=svg-icon viewBox=0 0 24 24>
-              <path d=M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z></path>
+          <button type="button" class="theme-btn" data-theme-value="dark" title="מצב כהה" aria-label="כהה">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
         </div>
 
-        <a href=./index.html class=nav-link>
-          <svg class=svg-icon viewBox=0 0 24 24>
-            <line x1=19 y1=12 x2=5 y2=12></line>
-            <polyline points=12 19 5 12 12 5></polyline>
+        <a href="./index.html" class="nav-link">
+          <svg class="svg-icon" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
           <span>דף הבית</span>
         </a>
@@ -67,16 +69,16 @@
     </div>
   </header>
 
-  <main class=page-container>
-    <div class=content-card>
-      <div class=page-header>
-        <h1 class=page-title>תנאי שימוש / Terms of Service</h1>
+  <main class="page-container">
+    <div class="content-card">
+      <div class="page-header">
+        <h1 class="page-title">תנאי שימוש / Terms of Service</h1>
         <p>לוח טהרת המשפחה (Taharah Board) — עודכן לאחרונה: ספטמבר 2026</p>
       </div>
 
       <h2>1. קבלת התנאים</h2>
       <p>
-        השימוש באפליקציית לוח טהרת המשפחה (להלן: האפליקציה) מהווה הסכמה לתנאים המפורטים להלן. אם אינך מסכים לתנאים אלו, הנך מתבקש שלא לעשות שימוש באפליקציה.
+        השימוש באפליקציית "לוח טהרת המשפחה" (להלן: "האפליקציה") מהווה הסכמה לתנאים המפורטים להלן. אם אינך מסכים לתנאים אלו, הנך מתבקש שלא לעשות שימוש באפליקציה.
       </p>
 
       <h2>2. אופי השירות והבהרה הלכתית</h2>
@@ -93,17 +95,17 @@
 
       <h2>4. הגבלת אחריות</h2>
       <p>
-        האפליקציה מסופקת כפי שהיא (AS IS), ללא כל אחריות מפורשת או משתמעת. המפתח לא יישא בכל אחריות לנזק ישיר, עקיף או תוצאתי שייגרם כתוצאה משימוש באפליקציה, אובדן נתונים מקומיים, שגיאות חישוב או אי-הגעת תזכורת.
+        האפליקציה מסופקת כפי שהיא ("AS IS"), ללא כל אחריות מפורשת או משתמעת. המפתח לא יישא בכל אחריות לנזק ישיר, עקיף או תוצאתי שייגרם כתוצאה משימוש באפליקציה, אובדן נתונים מקומיים, שגיאות חישוב או אי-הגעת תזכורת.
       </p>
 
       <!-- English Section -->
-      <div class=en-section>
+      <div class="en-section">
         <h2>Terms of Service (English Version)</h2>
         <p><strong>Last Updated: September 2026</strong></p>
 
         <h3>1. Acceptance of Terms</h3>
         <p>
-          By downloading, installing, or using the Taharah Board application (the App), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.
+          By downloading, installing, or using the Taharah Board application ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.
         </p>
 
         <h3>2. Educational and Calculation Assistance Tool</h3>
@@ -118,26 +120,26 @@
 
         <h3>4. Disclaimer of Warranties and Limitation of Liability</h3>
         <p>
-          The App is provided on an AS IS and AS AVAILABLE basis, without warranty of any kind. To the fullest extent permitted by applicable law, the developers disclaim all warranties, express or implied, and shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use or inability to use the App.
+          The App is provided on an "AS IS" and "AS AVAILABLE" basis, without warranty of any kind. To the fullest extent permitted by applicable law, the developers disclaim all warranties, express or implied, and shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use or inability to use the App.
         </p>
       </div>
 
     </div>
   </main>
 
-  <footer class=footer>
-    <div class=footer-container>
+  <footer class="footer">
+    <div class="footer-container">
       <div>
         <span>לוח טהרת המשפחה &copy; 2026</span>
       </div>
-      <div class=footer-links>
-        <a href=./index.html class=footer-link>דף הבית</a>
-        <a href=./privacy.html class=footer-link>מדיניות פרטיות</a>
-        <a href=https://github.com/Lev-Good/Purification-board target=_blank rel=noopener noreferrer class=footer-link>GitHub</a>
+      <div class="footer-links">
+        <a href="./index.html" class="footer-link">דף הבית</a>
+        <a href="./privacy.html" class="footer-link">מדיניות פרטיות</a>
+        <a href="https://github.com/Lev-Good/Purification-board" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
       </div>
     </div>
   </footer>
 
-  <script src=./script.js></script>
+  <script src="./script.js"></script>
 </body>
 </html>
