@@ -51,7 +51,8 @@ export const REIYA_KIND_LABELS = {
  */
 export const COUNTED_EXCLUSIONS = {
     ones: 'ראייה מחמת אונס או קפיצה — אינה מן המניין לקביעת וסת',
-    continuation: 'המשך דימום — נמנית עם הראייה שקדמה לה, ולא כראייה נפרדת'
+    continuation: 'המשך דימום — נמנית עם הראייה שקדמה לה, ולא כראייה נפרדת',
+    sharp: 'ראייה מחמת מאכל חריף — לפי המתג הפעיל (כדעת הגר"א), דינה כוסת האונס ואינה מן המניין לבדה'
 };
 
 /** ג' ראיות קובעות וסת החודש; ד' ראיות (ג' הפלגות שוות) קובעות וסת ההפלגה. */
@@ -133,17 +134,24 @@ function findContinuedBleeding(reiya, reiyot, index) {
  *     שלא נקבעה (`[שט כ"ז | עמ' 41]`).
  *  2. **המשך דימום** — אינה ראייה חדשה אלא חלק מן הראייה שקדמה לה.
  *
- * ראיות מחמת מאכל חריף או כדורים **כן נספרות**: דינן כוסת הגוף, ולא כוסת האונס
- * (`[שט כ"ז | עמ' 41]`).
+ * ראיות מחמת מאכל חריף או כדורים, **בברירת המחדל, כן נספרות**: הרמ"א (יו"ד קפ"ט
+ * סעיף כ"ג) מביא **שתי דעות סותרות** בדבר — "יש אומרים" שדינן כוסת הגוף (קובעות
+ * וסת לבדן), ו"יש אומרים" שדינן כוסת האונס (כקפיצה — אינן קובעות וסת אלא בוסת
+ * מורכב, יום קבוע וגם אכילה יחד). הגר"א (ביאורו על יו"ד שם) נוקט **כדעה השנייה**
+ * כעיקר, ואף כתב שזו דעת השו"ע עצמו. הבחירה כאן (כברירת מחדל: כוסת הגוף) היא
+ * הדעה המקילה שבמחלוקת; מתג `sharpFoodOnes` (`js/stringencies.js`) מחיל את הדעה
+ * החולקת — ראייה מחמת מאכל חריף מוחרגת אז בדיוק כמו אונס/קפיצה (`[שט כ"ז | עמ' 41]`).
  *
  * @param {Array<{abs: number, ona: string, hdate: HDate, kind?: string, durationDays?: number, closedFountain?: boolean}>} reiyot
+ * @param {{sharpFoodAsOnes?: boolean}} [options]
  * @returns {{
  *   counted: Array,
  *   excluded: Array<{abs: number, reason: string, text: string, mergedInto: number|null}>,
  *   warnings: Array<{abs: number, text: string}>
  * }}
  */
-export function classifyReiyot(reiyot) {
+export function classifyReiyot(reiyot, options) {
+    const sharpFoodAsOnes = !!(options && options.sharpFoodAsOnes);
     const counted = [];
     const excluded = [];
     const warnings = [];
@@ -154,6 +162,16 @@ export function classifyReiyot(reiyot) {
                 abs: reiya.abs,
                 reason: 'ones',
                 text: COUNTED_EXCLUSIONS.ones,
+                mergedInto: null
+            });
+            return;
+        }
+
+        if (reiya.kind === 'sharp' && sharpFoodAsOnes) {
+            excluded.push({
+                abs: reiya.abs,
+                reason: 'sharp',
+                text: COUNTED_EXCLUSIONS.sharp,
                 mergedInto: null
             });
             return;
@@ -448,6 +466,9 @@ function trailingSameWeekdayRun(counted) {
  * מזהה איזו וסת קבועה הוקבעה מתוך הראיות שנספרות.
  *
  * @param {Array} reiyot - כל הראיות לפי סדר כרונולוגי
+ * @param {{sharpFoodAsOnes?: boolean}} [options] - `sharpFoodAsOnes`: מתג
+ *   `sharpFoodOnes` (`js/stringencies.js`) — ראייה מחמת מאכל חריף מוחרגת
+ *   מהחזקה כדין אונס, כדעת הגר"א שהובאה במחלוקת הרמ"א (יו"ד קפ"ט כ"ג).
  * @returns {{
  *   counted: Array, excluded: Array, established: Array,
  *   warnings: Array<{abs: number, text: string}>,
@@ -459,8 +480,8 @@ function trailingSameWeekdayRun(counted) {
  *              week: {have: number, need: number}}
  * }}
  */
-export function analyzeChazaka(reiyot) {
-    const { counted, excluded, warnings } = classifyReiyot(reiyot || []);
+export function analyzeChazaka(reiyot, options) {
+    const { counted, excluded, warnings } = classifyReiyot(reiyot || [], options);
     const established = [];
     const lastCounted = counted.length ? counted[counted.length - 1] : null;
 

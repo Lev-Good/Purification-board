@@ -10,8 +10,8 @@
  *     הזו היא של היום הלועזי שלפניו (ולא של היום שאחריו) `[שט כ"ז | עמ' 49]`.
  *  4. הזמן מוצג לפי אזור הזמן של המוקד, ולא לפי שעון המחשב.
  */
-import { HDate } from '../hebcal.js';
-import { LOCATIONS, locationById, dayTimes, timesLine, NO_LOCATION } from '../js/zmanim.js';
+import { HDate, Zmanim } from '../hebcal.js';
+import { LOCATIONS, locationById, dayTimes, timesLine, NO_LOCATION, halachicTodayAbs } from '../js/zmanim.js';
 
 let failures = 0;
 function assert(condition, message) {
@@ -68,6 +68,22 @@ const newYork = locationById('newyork');
 const nyTimes = dayTimes(abs, newYork);
 assert(nyTimes && nyTimes.day.sunrise !== times.day.sunrise,
     'a different timezone yields its own local clock times');
+
+// "היום" ההלכתי (halachicTodayAbs) — הבדיקה החשובה מכולן: היום העברי מתחלף
+// בשקיעה, לא בחצות `[הבאג שדווח ב-"אפיון תוספות עתידיות מתוכננות.txt"]`.
+const civilDay = new Date(2025, 5, 10); // 10-Jun-2025 at local midnight
+const civilDayAbs = new HDate(civilDay).abs();
+const civilSunset = new Zmanim(civilDay, jerusalem.lat, jerusalem.long).sunset();
+
+const beforeSunset = new Date(civilSunset.getTime() - 60 * 60 * 1000);
+const afterSunset = new Date(civilSunset.getTime() + 60 * 60 * 1000);
+
+assert(halachicTodayAbs(jerusalem, beforeSunset) === civilDayAbs,
+    'before sunset, the halachic day still matches the civil day');
+assert(halachicTodayAbs(jerusalem, afterSunset) === civilDayAbs + 1,
+    'after sunset, the halachic day has already rolled over to the next one');
+assert(halachicTodayAbs(null, afterSunset) === civilDayAbs,
+    'without a location there is no sunset to test against, so it falls back to the civil day (documented limitation)');
 
 if (failures > 0) {
     console.error(`\n${failures} zmanim test(s) failed.`);
