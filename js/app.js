@@ -32,6 +32,7 @@ import {
     isCalendarNotifyEmail, saveCalendarNotifyEmail,
     isCalendarNotifyPopup, saveCalendarNotifyPopup,
     getCalendarMorningTime, saveCalendarMorningTime,
+    getCalendarSunsetLeadMinutes, saveCalendarSunsetLeadMinutes,
     getCalendarHefsekAdvisoryDays, isMochDachukEnabled, saveMochDachukEnabled
 } from './storage.js';
 import { STRINGENCY_DEFS, normalizeStringencies, stringencyOn, MINHAG_PROFILES, detectMinhagProfile } from './stringencies.js';
@@ -1089,6 +1090,8 @@ async function updateGoogleCalendarUI() {
             if (popupBox) popupBox.checked = isCalendarNotifyPopup();
             const morningInput = document.getElementById('setting-calendar-morning-time');
             if (morningInput) morningInput.value = getCalendarMorningTime();
+            const sunsetLeadSelect = document.getElementById('setting-calendar-sunset-lead');
+            if (sunsetLeadSelect) sunsetLeadSelect.value = String(getCalendarSunsetLeadMinutes());
             const mochBox = document.getElementById('setting-calendar-moch');
             if (mochBox) mochBox.checked = isMochDachukEnabled();
         }
@@ -1108,6 +1111,7 @@ function calendarSyncSettings() {
         notifyEmail: isCalendarNotifyEmail(),
         notifyPopup: isCalendarNotifyPopup(),
         morningTime: getCalendarMorningTime(),
+        sunsetLeadMinutes: getCalendarSunsetLeadMinutes(),
         hefsekAdvisoryDays: getCalendarHefsekAdvisoryDays(),
         mochDachukEnabled: isMochDachukEnabled()
     };
@@ -1155,6 +1159,10 @@ window.saveCalendarChannelsSetting = function() {
 
 window.saveCalendarMorningTimeSetting = function() {
     saveCalendarMorningTime(document.getElementById('setting-calendar-morning-time').value);
+};
+
+window.saveCalendarSunsetLeadSetting = function() {
+    saveCalendarSunsetLeadMinutes(Number(document.getElementById('setting-calendar-sunset-lead').value));
 };
 
 window.saveCalendarMochSetting = function() {

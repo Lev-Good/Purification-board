@@ -2814,3 +2814,98 @@ npm test — כל הבדיקות עוברות: 68 imports, 8 IPC, 37 handlers, 1
 בוצע commit למיזוג עצמו (הבא בתור) וטרם נסקרו לעומק המסכים החדשים שלא היו
 בקונפליקט (סרגלי צד בהגדרות, יומן תקלות, בדיקת עדכון גרסה) — מומלץ סיור
 ויזואלי בהזדמנות הבאה.
+
+---
+
+## 2026-09-22 (3) — השלמת חיווט "זמן תזכורת לפני השקיעה" בסנכרון יומן גוגל
+
+### מטרה
+בשיחה קודמת (לפני המיזוג) נבדק `docs/GOOGLE_CALENDAR_SPEC.md` מול המימוש
+ונמצא פער אחד אמיתי: §8.5 מבקש תיבת בחירה ל"זמן תזכורת לפני השקיעה", והשדה
+(`getCalendarSunsetLeadMinutes`/`saveCalendarSunsetLeadMinutes`) כבר היה
+קיים ב-`js/storage.js` — אבל לא מחובר לשום מקום. המשתמש אז ביקש דיווח בלבד;
+אחרי המיזוג ביקש להשלים את התיקון בפועל.
+
+### בוצע
+1. אומת שהפער עדיין קיים זהה אחרי המיזוג (אותו קוד בדיוק הגיע משם).
+2. `js/app.js`: יובאו `getCalendarSunsetLeadMinutes`/`saveCalendarSunsetLeadMinutes`;
+   נוסף `sunsetLeadMinutes` ל-`calendarSyncSettings()`; נוסף
+   `window.saveCalendarSunsetLeadSetting()`; `updateGoogleCalendarUI()`
+   ממלאת את הבחירה הנוכחית בפתיחת המסך.
+3. `js/googleCalendar.js`: הוחלף הקבוע `120` ב-`settings.sunsetLeadMinutes`
+   בשני המקומות הרלוונטיים בלבד — תזכורת המייל של `check_afternoon` (בדיקת
+   מנחה) ו-`hefsek_advisory` (הצעת הפסק טהרה) — לפי תיעוד הפונקציה המקורי
+   ב-`storage.js` ("Minutes before sunset for the hefsek/prisha email lead
+   time"). זמני ה-popup (45 דק') ותזכורות אחרות (בוקר, טבילה, פרישה) **לא**
+   נגעו בהם — אינם באותו קטגוריה סמנטית.
+4. `index.html`: נוספה תיבת בחירה (`setting-calendar-sunset-lead`) עם
+   30/45/60/120 דקות, מיד אחרי שדה "שעת בדיקת בוקר" הקיים.
+5. `tests/googleCalendar.test.js`: `sunsetLeadMinutes: 120` נוסף ל-
+   `baseSettings`; 4 בדיקות חדשות — ברירת המחדל, שינוי הערך משפיע על
+   `check_afternoon`, ה-popup נשאר קבוע, ו-`hefsek_advisory` מכבד את ההגדרה
+   גם הוא.
+
+### קבצים שהושפעו
+`js/app.js`, `js/googleCalendar.js`, `index.html`, `tests/googleCalendar.test.js`,
+`docs/CHANGELOG.md`, `docs/TASKS.md`, `docs/AGENT_LOG.md` (רשומה זו).
+
+### בדיקות
+`npm test`: **883/883 עברו** (879 + 4 חדשות). `node --check` על שני קובצי
+ה-JS שנערכו. אומת ידנית בדפדפן: תיבת הבחירה קיימת עם 4 האפשרויות הנכונות,
+`window.saveCalendarSunsetLeadSetting` רשומה, אין שגיאות קונסול.
+
+### בעיות
+לא נמצאו.
+
+### סטטוס
+הושלם. פער §8.5 סגור. הפער המשני (תזמון "בבוקר" לטבילה/פרישת-לילה, מגבלת
+API) **נשאר פתוח במכוון** — הוסבר למשתמש שהוא דורש עיצוב נפרד (אירוע-תזכורת
+נוסף בשעה קבועה), לא רק חיבור הגדרה קיימת.
+
+---
+
+## 2026-09-22 (4) — תזכורות "בוקר/ערב" אמיתיות (תיקון הפער המשני)
+
+### מטרה
+המשתמש ביקש לתקן את הפער המשני שנותר פתוח מהמשימה הקודמת: תזכורת המייל של
+טבילה ועונת פרישה-לילה יצאה בפועל **בזמן האירוע עצמו**, לא "בבוקר" כמו
+שמבקש `docs/GOOGLE_CALENDAR_SPEC.md` §4; ועונת פרישה-יום קירבה "20:00 הערב
+הקודם" בהיסט-דקות יחסי לנץ שסוטה עד כשעתיים לפי עונת השנה.
+
+### בוצע
+1. אומת שהמגבלה אמיתית ולא ניתנת לעקיפה בתוך אותו אירוע: Google Calendar
+   `reminders.overrides` תומך רק ב-`{method, minutes}` יחסי לתחילת האירוע —
+   אין מנגנון "שעה קבועה ביום" ב-API.
+2. `js/googleCalendar.js`: נוספה `clockTimeOnSameDayAs(refDate, hhmm)` —
+   בונה זמן-שעון על גבי יום היעד לפי `Date` קיים (לא מחשבת Gregorian מחדש
+   מ-abs, למניעת סטייה כפולה). נוסף `pushHeadsUp(eventType, ctx, dateAbs,
+   anchorDate, hhmm, description)` — אירוע-פינג קצר (5 דק') בשעה קבועה,
+   מדלג לגמרי כש-`notifyEmail` כבוי.
+3. הוסרה תזכורת ה-`email` הישנה משלושת האירועים הראשיים (`tevilah`,
+   `prisha_day`, `prisha_night`); ה-`popup` שלהם נשאר בדיוק כפי שהיה (כבר
+   היה נכון — יחסי לאירוע עצמו הוא בדיוק מה שהספר מבקש שם).
+4. נוספו שלושה סוגי אירוע: `tevilah_headsup` (בוקר יום הטבילה, לפי
+   `settings.morningTime`, על אותו יום כמו האירוע הראשי — לא היום שאחריו),
+   `prisha_night_headsup` (בוקר אותו יום), `prisha_day_headsup` (20:00 בדיוק
+   הערב הקודם — `addMinutes(raw.day.sunrise, -1440)` + `clockTimeOnSameDayAs`).
+5. `tests/googleCalendar.test.js`: נוספו `hmInZone`/`ymdInZone` (השוואת
+   שעה/תאריך לפי אזור זמן, לא שעון המערכת של הריצה — כמו `formatTime` ב-
+   `js/zmanim.js`), ו-14 בדיקות חדשות: תוכן/מיקום מדויק לכל אחד משלושת סוגי
+   הפינג, שהיום הנכון (לא יום אחרי), החרגה מלאה כש-`notifyEmail` כבוי,
+   והחרגה לחשש שנעקר (נוסף לבדיקה הקיימת בסעיף 5 של הקובץ).
+
+### קבצים שהושפעו
+`js/googleCalendar.js`, `tests/googleCalendar.test.js`, `docs/CHANGELOG.md`,
+`docs/TASKS.md`, `docs/DECISIONS.md`, `docs/AGENT_LOG.md` (רשומה זו).
+
+### בדיקות
+`npm test`: **897/897 עברו** (883 + 14 חדשות). `node --check` על שני
+הקבצים שנערכו.
+
+### בעיות
+לא נמצאו.
+
+### סטטוס
+הושלם. שני הפערים שאותרו במסמך `docs/GOOGLE_CALENDAR_SPEC.md` (זמן תזכורת
+לפני השקיעה, ותזמון "בוקר/ערב" קבוע) סגורים כעת. לא בוצע commit — נשאר
+בעבודה בתיקייה.

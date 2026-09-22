@@ -109,6 +109,19 @@ function clockTimeFor(abs, hhmm, location) {
     return local;
 }
 
+/**
+ * "HH:MM" wall-clock time on the SAME calendar day as `refDate` already is -
+ * unlike `clockTimeFor`, this does not re-derive the Gregorian date from a
+ * Hebrew abs; it reads it straight off a `Date` that some other זמן
+ * computation (sunset, tzeit) already anchored to the right day. Used only
+ * by the "morning/evening heads-up" events below (see `pushHeadsUp`).
+ */
+function clockTimeOnSameDayAs(refDate, hhmm) {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+    return new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), h, m, 0);
+}
+
 // ---------- Discretion-level labels ----------
 
 const LABELS = {
@@ -118,7 +131,10 @@ const LABELS = {
     check_afternoon: { detailed: (n) => `בדיקת מנחה — יום ${n} לשבעה נקיים`, subtle: 'בדיקה - מנחה' },
     tevilah: { detailed: 'טבילה (ליל מקווה)', subtle: 'טבילה' },
     prisha_day: { detailed: (code) => `עונת פרישה (יום) — ${code}`, subtle: 'עונת פרישה (יום)' },
-    prisha_night: { detailed: (code) => `עונת פרישה (לילה) — ${code}`, subtle: 'עונת פרישה (לילה)' }
+    prisha_night: { detailed: (code) => `עונת פרישה (לילה) — ${code}`, subtle: 'עונת פרישה (לילה)' },
+    tevilah_headsup: { detailed: 'תזכורת בוקר — טבילה הערב', subtle: 'תזכורת' },
+    prisha_day_headsup: { detailed: (code) => `תזכורת ערב — עונת פרישה מחר (יום) — ${code}`, subtle: 'תזכורת' },
+    prisha_night_headsup: { detailed: (code) => `תזכורת בוקר — עונת פרישה הערב (לילה) — ${code}`, subtle: 'תזכורת' }
 };
 
 /**
@@ -201,6 +217,33 @@ export function buildExpectedEvents(db, engineResult, location, todayAbs, settin
         });
     }
 
+    /**
+     * A "morning/evening heads-up": a short (5-minute) separate calendar
+     * event whose only purpose is to carry an email reminder at a genuine
+     * FIXED clock time, independent of the main event's own start.
+     *
+     * Google Calendar reminders (`reminders.overrides`) can only ever be "N
+     * minutes before THIS event's start" - there is no way to attach an
+     * absolute-clock-time reminder to an event that itself starts at sunset/
+     * tzeit (which drifts through the year). The spec (§4) nonetheless asks
+     * for three such fixed-time emails - tevilah/prisha-night "in the
+     * morning", prisha-day "at 20:00 the evening before" - so a genuinely
+     * fixed-time PING event is the only way to honor that literally, rather
+     * than approximating it with a sunrise/sunset-relative offset (which is
+     * what the main event's own `minutes` override did before this, and
+     * drifted by up to ~2 hours depending on the season).
+     *
+     * Skipped entirely when email notifications are off - its only job is
+     * carrying that one reminder, so an event with none would just be noise.
+     */
+    function pushHeadsUp(eventType, ctx, dateAbs, anchorDate, hhmm, description) {
+        if (!settings.notifyEmail || !anchorDate) return;
+        const start = clockTimeOnSameDayAs(anchorDate, hhmm);
+        if (!start) return;
+        push(eventType, ctx, dateAbs, null, start, addMinutes(start, 5),
+            [{ method: 'email', minutes: 0 }], description);
+    }
+
     // --- שבעה נקיים: בדיקת שחרית ומנחה, ימים 1–7 (computed.nekiim) ---
     (computed.nekiim || []).forEach(abs => {
         if (abs < todayAbs || abs > horizonEnd) return;
@@ -219,19 +262,24 @@ export function buildExpectedEvents(db, engineResult, location, todayAbs, settin
         const afternoonStart = addMinutes(raw.day.sunset, -60);
         push('check_afternoon', dayNum, abs, 'day',
             afternoonStart, raw.day.sunset,
-            [{ method: 'email', minutes: 120 }, { method: 'popup', minutes: 45 }],
+            [{ method: 'email', minutes: settings.sunsetLeadMinutes }, { method: 'popup', minutes: 45 }],
             'תזכורת בדיקת שבעה נקיים\nהופק ע"י לוח טהרה');
     });
 
     // --- טבילה (ליל מקווה): computed.tevilot - צאת הכוכבים ומשך שעתיים ---
+    // המייל יוצא בבוקר יום הטבילה (§4) - אירוע-פינג נפרד (pushHeadsUp), לא
+    // היסט יחסי לצאת הכוכבים; ה-popup נשאר על האירוע הראשי (שעה לפני צאת
+    // הכוכבים - היסט יחסי תקין, כי זו התראה "קרובה לאירוע" מטבעה).
     (computed.tevilot || []).forEach(abs => {
         if (abs < todayAbs || abs > horizonEnd) return;
         const tzeit = tzeitFor(abs, location);
         if (!tzeit) return;
         push('tevilah', null, abs, 'night',
             tzeit, addMinutes(tzeit, 120),
-            [{ method: 'email', minutes: 0 }, { method: 'popup', minutes: 60 }],
+            [{ method: 'popup', minutes: 60 }],
             'תזכורת טבילה\nהופק ע"י לוח טהרה');
+        pushHeadsUp('tevilah_headsup', null, abs, tzeit, settings.morningTime,
+            'תזכורת בוקר לקראת הטבילה הערב\nהופק ע"י לוח טהרה');
     });
 
     // --- עונות פרישה: computed.prishot, מסוננות לימים העתידיים בטווח בלבד ---
@@ -247,15 +295,24 @@ export function buildExpectedEvents(db, engineResult, location, todayAbs, settin
             // must never be created for it - the concern no longer applies.
             if (p.uprooted) return;
             if (p.ona === 'day') {
+                // המייל יוצא ב-20:00 הערב הקודם (§4, שעה קבועה) - אירוע-פינג
+                // נפרד, לא היסט-דקות יחסי לנץ (שהיה "צף" עם עונות השנה).
+                // ה-popup נשאר יחסי לאירוע (בנץ עצמו - minutes:0 כבר מדויק).
                 push('prisha_day', p.code, abs, 'day',
                     raw.day.sunrise, raw.day.sunset,
-                    [{ method: 'email', minutes: 720 }, { method: 'popup', minutes: 0 }], // ~20:00 the evening before
+                    [{ method: 'popup', minutes: 0 }],
                     `עונת פרישה — ${p.reason}\nהופק ע"י לוח טהרה`);
+                pushHeadsUp('prisha_day_headsup', p.code, abs, addMinutes(raw.day.sunrise, -1440), '20:00',
+                    `תזכורת ערב לקראת עונת פרישה מחר (יום) — ${p.reason}\nהופק ע"י לוח טהרה`);
             } else {
+                // המייל יוצא בבוקר אותו יום (§4) - אירוע-פינג נפרד; ה-popup
+                // נשאר יחסי לאירוע (חצי שעה לפני השקיעה - minutes:30 מדויק).
                 push('prisha_night', p.code, abs, 'night',
                     raw.night.sunset, raw.night.sunrise,
-                    [{ method: 'email', minutes: 0 }, { method: 'popup', minutes: 30 }],
+                    [{ method: 'popup', minutes: 30 }],
                     `עונת פרישה — ${p.reason}\nהופק ע"י לוח טהרה`);
+                pushHeadsUp('prisha_night_headsup', p.code, abs, raw.night.sunset, settings.morningTime,
+                    `תזכורת בוקר לקראת עונת פרישה הערב (לילה) — ${p.reason}\nהופק ע"י לוח טהרה`);
             }
         });
     });
@@ -272,7 +329,7 @@ export function buildExpectedEvents(db, engineResult, location, todayAbs, settin
         if (raw) {
             push('hefsek_advisory', null, todayAbs, 'day',
                 addMinutes(raw.day.sunset, -60), raw.day.sunset,
-                [{ method: 'email', minutes: 120 }, { method: 'popup', minutes: 45 }],
+                [{ method: 'email', minutes: settings.sunsetLeadMinutes }, { method: 'popup', minutes: 45 }],
                 'לא נרשם הפסק טהרה עדיין - כדאי לבדוק אם הגיע הזמן (הצעה בלבד, לא הוראה הלכתית)\nהופק ע"י לוח טהרה');
 
             if (settings.mochDachukEnabled) {

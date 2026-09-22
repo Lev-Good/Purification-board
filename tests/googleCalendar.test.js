@@ -30,10 +30,21 @@ function assert(condition, message) {
     }
 }
 
+/** "HH:MM" of a Date in a given IANA zone - environment-independent (doesn't
+ * assume the test runner's own system timezone), matching js/zmanim.js's
+ * own formatTime() approach. */
+function hmInZone(date, tzid) {
+    return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tzid, hour12: false }).format(date);
+}
+/** "YYYY-MM-DD" of a Date in a given IANA zone. */
+function ymdInZone(date, tzid) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: tzid }).format(date);
+}
+
 const jerusalem = LOCATIONS.find(l => l.id === 'jerusalem');
 const baseSettings = {
     discretion: 'subtle', discreetPrefix: '', notifyEmail: true, notifyPopup: true,
-    morningTime: '08:30', hefsekAdvisoryDays: 5, mochDachukEnabled: false
+    morningTime: '08:30', sunsetLeadMinutes: 120, hefsekAdvisoryDays: 5, mochDachukEnabled: false
 };
 
 // ---------- 1. נקיים + טבילה, מהפסק שנרשם ----------
@@ -97,6 +108,65 @@ const noneEvents = buildExpectedEvents(nekiimDb, nekiimEngine, jerusalem, hefsek
 assert(noneEvents.every(e => e.reminders.overrides.length === 0),
     'turning off both channels leaves every event with no reminder overrides at all');
 
+// ---------- 3b. זמן תזכורת דוא"ל לפני השקיעה (settings.sunsetLeadMinutes, spec §8.5) ----------
+
+const afternoonEvent = nekiimEvents.find(e => e.eventType === 'check_afternoon');
+assert(afternoonEvent.reminders.overrides.find(o => o.method === 'email').minutes === 120,
+    'the afternoon-check email reminder uses the configured sunset lead time (default 120)');
+
+const shortLeadEvents = buildExpectedEvents(nekiimDb, nekiimEngine, jerusalem, hefsekAbs,
+    { ...baseSettings, sunsetLeadMinutes: 30 });
+const shortLeadAfternoon = shortLeadEvents.find(e => e.eventType === 'check_afternoon');
+assert(shortLeadAfternoon.reminders.overrides.find(o => o.method === 'email').minutes === 30,
+    'changing sunsetLeadMinutes changes the afternoon-check email lead time accordingly');
+assert(shortLeadAfternoon.reminders.overrides.find(o => o.method === 'popup').minutes === 45,
+    'the popup lead time is a separate, fixed value - unaffected by the email setting');
+
+// hefsek_advisory only fires "today", when there is bleeding with no hefsek recorded since.
+const advisoryToday = hefsekAbs - 10;
+const advisoryDb = { [advisoryToday - 6]: { type: 'reiyah', ona: 'day' } };
+const advisoryEngine = calculateEngine(advisoryDb, false, { today: advisoryToday });
+const advisoryEvents = buildExpectedEvents(advisoryDb, advisoryEngine, jerusalem, advisoryToday,
+    { ...baseSettings, sunsetLeadMinutes: 60 });
+const advisoryEvent = advisoryEvents.find(e => e.eventType === 'hefsek_advisory');
+assert(advisoryEvent && advisoryEvent.reminders.overrides.find(o => o.method === 'email').minutes === 60,
+    'the hefsek-advisory email reminder also honors the configured sunset lead time');
+
+// ---------- 3c. תזכורות "בוקר/ערב" בשעה קבועה (pushHeadsUp) ----------
+// Google Calendar reminders are always relative to the event's OWN start -
+// so "email in the morning" / "email at 20:00 the evening before" (spec §4,
+// for tevilah/prisha-day/prisha-night) can only be honored with a genuinely
+// separate, fixed-clock-time ping event; the main event keeps only its
+// (already-correct) popup override.
+
+const tevilahEvent = nekiimEvents.find(e => e.eventType === 'tevilah');
+const tevilahHeadsUp = nekiimEvents.find(e => e.eventType === 'tevilah_headsup');
+assert(!tevilahEvent.reminders.overrides.some(o => o.method === 'email'),
+    'the main tevilah event no longer carries an approximated "at tzeit" email override');
+assert(tevilahEvent.reminders.overrides.some(o => o.method === 'popup' && o.minutes === 60),
+    'the main tevilah event keeps its popup override - that offset was already correct (relative to the event itself)');
+assert(!!tevilahHeadsUp, 'a separate tevilah_headsup event is created');
+assert(tevilahHeadsUp.dateAbs === tevilahEvent.dateAbs,
+    'the heads-up shares the same dateAbs as the tevilah event it announces');
+assert(hmInZone(new Date(tevilahHeadsUp.start.dateTime), jerusalem.tzid) === '08:30',
+    'the heads-up fires at the configured morning time (08:30), not at tzeit');
+assert(ymdInZone(new Date(tevilahHeadsUp.start.dateTime), jerusalem.tzid)
+    === ymdInZone(new Date(tevilahEvent.start.dateTime), jerusalem.tzid),
+    'and lands on the SAME calendar day as the tevilah night itself (the morning before it), not the day after');
+assert(tevilahHeadsUp.reminders.overrides.length === 1 && tevilahHeadsUp.reminders.overrides[0].method === 'email',
+    'the heads-up carries only an email reminder, fired immediately (it IS the reminder)');
+
+// Turning email off skips the heads-up entirely (it exists only to carry one) -
+// but the main events (with only a popup override) are unaffected.
+const noEmailEvents = buildExpectedEvents(nekiimDb, nekiimEngine, jerusalem, hefsekAbs, { ...baseSettings, notifyEmail: false });
+assert(!noEmailEvents.some(e => e.eventType === 'tevilah_headsup'),
+    'with email notifications off, no heads-up event is created at all - it would carry nothing');
+assert(noEmailEvents.some(e => e.eventType === 'tevilah'),
+    'the main tevilah event still exists (it still carries the popup reminder)');
+
+// The prisha_day/prisha_night heads-up pair is checked in section 5 below,
+// once `liveEvents` (a still-live separation concern) exists to test against.
+
 // ---------- 4. חלון הסנכרון (SYNC_HORIZON_DAYS) ----------
 
 const todayAbs = new HDate(1, 1, 5786).abs();
@@ -122,6 +192,29 @@ const liveEvents = buildExpectedEvents(irregularDb, liveEngine, jerusalem, singl
 assert(liveEvents.some(e => e.eventType === 'prisha_day' || e.eventType === 'prisha_night'),
     'a still-live, non-fixed separation concern DOES produce a calendar event (control case)');
 
+// The email side of prisha_day/prisha_night is a fixed-clock-time heads-up
+// (§4: "20:00 the evening before" / "in the morning"), not a sunrise/sunset-
+// relative approximation - see the pushHeadsUp block in section 3c above.
+const dayHeadsUp = liveEvents.find(e => e.eventType === 'prisha_day_headsup');
+const nightHeadsUp = liveEvents.find(e => e.eventType === 'prisha_night_headsup');
+assert(!!dayHeadsUp || !!nightHeadsUp, 'setup check: the control-case sighting produced at least one prisha heads-up');
+if (dayHeadsUp) {
+    const dayMain = liveEvents.find(e => e.eventType === 'prisha_day' && e.dateAbs === dayHeadsUp.dateAbs);
+    assert(!dayMain.reminders.overrides.some(o => o.method === 'email'),
+        'the main prisha_day event no longer carries the ~20:00 approximated email override');
+    assert(hmInZone(new Date(dayHeadsUp.start.dateTime), jerusalem.tzid) === '20:00',
+        'the prisha_day heads-up fires at exactly 20:00 (spec §4), not a sunrise-relative approximation');
+    assert(new Date(dayHeadsUp.start.dateTime).getTime() < new Date(dayMain.start.dateTime).getTime(),
+        'and it falls the evening BEFORE the separation day itself');
+}
+if (nightHeadsUp) {
+    const nightMain = liveEvents.find(e => e.eventType === 'prisha_night' && e.dateAbs === nightHeadsUp.dateAbs);
+    assert(!nightMain.reminders.overrides.some(o => o.method === 'email'),
+        'the main prisha_night event no longer carries the "at sunset" approximated email override');
+    assert(hmInZone(new Date(nightHeadsUp.start.dateTime), jerusalem.tzid) === '08:30',
+        'the prisha_night heads-up fires at the configured morning time');
+}
+
 // Advance far past it with no sighting recorded there - it becomes uprooted
 // (js/calculations.js mutates it in place with p.uprooted = true, but keeps
 // it in computed.prishot so the calendar GRID can still show it happened).
@@ -136,6 +229,8 @@ const uprootedAbsDays = Object.keys(uprootedEngine.computed.prishot)
     .filter(abs => uprootedEngine.computed.prishot[abs].some(p => p.uprooted));
 assert(!uprootedEvents.some(e => uprootedAbsDays.includes(e.dateAbs) && (e.eventType === 'prisha_day' || e.eventType === 'prisha_night')),
     'an uprooted separation concern never becomes a calendar reminder, even though it still sits in computed.prishot');
+assert(!uprootedEvents.some(e => uprootedAbsDays.includes(e.dateAbs) && (e.eventType === 'prisha_day_headsup' || e.eventType === 'prisha_night_headsup')),
+    'nor does it spawn a morning/evening heads-up event - same exclusion applies to both halves of the pair');
 
 // ---------- 6. Reconcile: יצירה / עדכון / מחיקה ----------
 
