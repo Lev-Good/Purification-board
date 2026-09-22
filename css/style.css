@@ -68,7 +68,7 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    padding-bottom: 40px;
+    padding-bottom: 16px;
 }
 
 /* Animations */
@@ -106,8 +106,8 @@ body {
     display: flex;
     max-width: 1300px;
     margin: 0 auto;
-    padding: 20px;
-    gap: 24px;
+    padding: 12px;
+    gap: 14px;
     align-items: flex-start;
     direction: rtl;
 }
@@ -117,15 +117,15 @@ body {
     width: 250px;
     flex-shrink: 0;
     position: sticky;
-    top: 20px;
+    top: 12px;
     background: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 14px;
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     z-index: 10;
 }
 
