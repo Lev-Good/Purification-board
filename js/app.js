@@ -32,6 +32,7 @@ import {
     isCalendarNotifyEmail, saveCalendarNotifyEmail,
     isCalendarNotifyPopup, saveCalendarNotifyPopup,
     getCalendarMorningTime, saveCalendarMorningTime,
+    getCalendarSunsetLeadMinutes, saveCalendarSunsetLeadMinutes,
     getCalendarHefsekAdvisoryDays, isMochDachukEnabled, saveMochDachukEnabled
 } from './storage.js';
 import { STRINGENCY_DEFS, normalizeStringencies, stringencyOn, MINHAG_PROFILES, detectMinhagProfile } from './stringencies.js';
@@ -284,6 +285,15 @@ let db = {};
 window.HDateLocal = HDate;
 
 /**
+ * "היום" לפי שקיעה ולא לפי חצות אזרחי (`js/zmanim.js`): בלא מיקום שמור מתנהג
+ * בדיוק כמו `new HDate().abs()` שהיה קודם. נקודה אחת, כדי שהמנוע, הדשבורד וסימון
+ * "היום" בלוח לעולם לא יחלקו על מהו היום הנוכחי.
+ */
+function currentTodayAbs() {
+    return halachicTodayAbs(locationById(getSavedLocation()));
+}
+
+/**
  * The engine options that come from the user's settings. Centralised so a
  * calculation can never run with different settings than the calendar shows.
  */
@@ -301,8 +311,8 @@ function engineOptions() {
         life: getLifeState(),
         stringencies: normalizeStringencies(getStringencies()),
         // "היום" ההלכתי (מתחשב בשקיעה כשיש מיקום מוגדר) — ולא היום הלועזי לפי
-        // חצות; ראו js/zmanim.js halachicTodayAbs ו-docs/DECISIONS.md (2026-09-19).
-        today: halachicTodayAbs(locationById(getSavedLocation()))
+        // חצות; ראו js/zmanim.js halachicTodayAbs ו-docs/DECISIONS.md.
+        today: currentTodayAbs()
     };
 }
 
@@ -454,7 +464,7 @@ function renderPillsList() {
         box.innerHTML = '<p style="color: var(--text-muted); margin: 0;">לא נרשמו תקופות נטילה.</p>';
         return;
     }
-    const todayAbs = new HDate().abs();
+    const todayAbs = currentTodayAbs();
     box.innerHTML = pills.map((p, index) => {
         const start = new HDate(p.startAbs).renderGematriya();
         const end = Number.isFinite(p.endAbs)
@@ -596,9 +606,7 @@ function refreshCalendar() {
 function announceBodyReminder(engineData) {
     if (!engineData || !engineData.computed) return;
 
-    // "היום" ההלכתי, לא הלועזי — ראו הערה ב-engineOptions() לעיל.
-    const todayAbs = halachicTodayAbs(locationById(getSavedLocation()));
-
+    const todayAbs = currentTodayAbs();
     const reminder = bodyReminder({
         bodyVeset: engineData.bodyVeset,
         prishot: engineData.computed.prishot,
@@ -1082,6 +1090,8 @@ async function updateGoogleCalendarUI() {
             if (popupBox) popupBox.checked = isCalendarNotifyPopup();
             const morningInput = document.getElementById('setting-calendar-morning-time');
             if (morningInput) morningInput.value = getCalendarMorningTime();
+            const sunsetLeadSelect = document.getElementById('setting-calendar-sunset-lead');
+            if (sunsetLeadSelect) sunsetLeadSelect.value = String(getCalendarSunsetLeadMinutes());
             const mochBox = document.getElementById('setting-calendar-moch');
             if (mochBox) mochBox.checked = isMochDachukEnabled();
         }
@@ -1101,6 +1111,7 @@ function calendarSyncSettings() {
         notifyEmail: isCalendarNotifyEmail(),
         notifyPopup: isCalendarNotifyPopup(),
         morningTime: getCalendarMorningTime(),
+        sunsetLeadMinutes: getCalendarSunsetLeadMinutes(),
         hefsekAdvisoryDays: getCalendarHefsekAdvisoryDays(),
         mochDachukEnabled: isMochDachukEnabled()
     };
@@ -1148,6 +1159,10 @@ window.saveCalendarChannelsSetting = function() {
 
 window.saveCalendarMorningTimeSetting = function() {
     saveCalendarMorningTime(document.getElementById('setting-calendar-morning-time').value);
+};
+
+window.saveCalendarSunsetLeadSetting = function() {
+    saveCalendarSunsetLeadMinutes(Number(document.getElementById('setting-calendar-sunset-lead').value));
 };
 
 window.saveCalendarMochSetting = function() {

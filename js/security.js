@@ -30,7 +30,7 @@ export function setupPinInputListeners() {
                     window.verifyPin();
                 }
             });
-            
+
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Backspace') {
                     if (input.value === '' && index > 0) {

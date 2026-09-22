@@ -9,9 +9,17 @@
  *  3. **עונת הלילה של תאריך עברי היא הלילה שלפני יום שלו** — ולכן שקיעת הלילה
  *     הזו היא של היום הלועזי שלפניו (ולא של היום שאחריו) `[שט כ"ז | עמ' 49]`.
  *  4. הזמן מוצג לפי אזור הזמן של המוקד, ולא לפי שעון המחשב.
+ *  5. **"היום" לפי שקיעה** (`halachicTodayAbs`) — בלא מיקום מתנהג כמו
+ *     `new HDate().abs()` (חצות אזרחי); עם מיקום, מתקדם ביום אחד ברגע שהשקיעה
+ *     חלפה, גם אם החצות האזרחי עוד לא הגיע.
+ *  6. **עונות שחלפו** (`elapsedOnotOf`) — עונת הלילה חולפת עם הנץ (גם באמצע
+ *     אותו תאריך עברי, בלי ש-`abs` יתקדם), ועונת היום חולפת עם השקיעה.
  */
 import { HDate, Zmanim } from '../hebcal.js';
-import { LOCATIONS, locationById, dayTimes, timesLine, NO_LOCATION, halachicTodayAbs } from '../js/zmanim.js';
+import {
+    LOCATIONS, locationById, dayTimes, timesLine, NO_LOCATION,
+    halachicTodayAbs, elapsedOnotOf
+} from '../js/zmanim.js';
 
 let failures = 0;
 function assert(condition, message) {
@@ -69,21 +77,46 @@ const nyTimes = dayTimes(abs, newYork);
 assert(nyTimes && nyTimes.day.sunrise !== times.day.sunrise,
     'a different timezone yields its own local clock times');
 
-// "היום" ההלכתי (halachicTodayAbs) — הבדיקה החשובה מכולן: היום העברי מתחלף
-// בשקיעה, לא בחצות `[הבאג שדווח ב-"אפיון תוספות עתידיות מתוכננות.txt"]`.
-const civilDay = new Date(2025, 5, 10); // 10-Jun-2025 at local midnight
-const civilDayAbs = new HDate(civilDay).abs();
-const civilSunset = new Zmanim(civilDay, jerusalem.lat, jerusalem.long).sunset();
+// ---------- "היום" לפי שקיעה (halachicTodayAbs) ----------
+// הבדיקה החשובה מכולן: היום העברי מתחלף בשקיעה, לא בחצות
+// `[הבאג שדווח ב-"אפיון תוספות עתידיות מתוכננות.txt"]`.
 
-const beforeSunset = new Date(civilSunset.getTime() - 60 * 60 * 1000);
-const afterSunset = new Date(civilSunset.getTime() + 60 * 60 * 1000);
+// יום עברי אזרחי שרחוק מראש השנה/מעברי חודש, כדי שחיבור abs+1 יהיה פשוט לבדיקה.
+const refAbs = new HDate(15, 'Sivan', 5785).abs();
+const refGreg = new HDate(refAbs).greg();
+const refSunrise = new Zmanim(refGreg, jerusalem.lat, jerusalem.long).sunrise();
+const refSunset = new Zmanim(refGreg, jerusalem.lat, jerusalem.long).sunset();
 
-assert(halachicTodayAbs(jerusalem, beforeSunset) === civilDayAbs,
-    'before sunset, the halachic day still matches the civil day');
-assert(halachicTodayAbs(jerusalem, afterSunset) === civilDayAbs + 1,
-    'after sunset, the halachic day has already rolled over to the next one');
-assert(halachicTodayAbs(null, afterSunset) === civilDayAbs,
-    'without a location there is no sunset to test against, so it falls back to the civil day (documented limitation)');
+assert(halachicTodayAbs(null, refGreg) === new HDate(refGreg).abs(),
+    'without a location, halachicTodayAbs falls back to plain civil-midnight rollover (documented limitation)');
+
+const beforeSunset = new Date(refSunrise.getTime() + 60 * 60 * 1000); // שעה אחרי הנץ - ודאי לפני השקיעה
+assert(halachicTodayAbs(jerusalem, beforeSunset) === refAbs,
+    'before sunset, the halachic day is still the civil day (day ona not elapsed)');
+
+const afterSunset = new Date(refSunset.getTime() + 60 * 1000); // דקה אחרי השקיעה
+assert(halachicTodayAbs(jerusalem, afterSunset) === refAbs + 1,
+    'once sunset has passed, the halachic day already advances - civil midnight has not come yet');
+
+const rightBeforeSunset = new Date(refSunset.getTime() - 60 * 1000);
+assert(halachicTodayAbs(jerusalem, rightBeforeSunset) === refAbs,
+    'a minute before sunset it has not advanced yet');
+
+// ---------- עונות שחלפו (elapsedOnotOf) ----------
+
+assert(JSON.stringify(elapsedOnotOf(refAbs, null, afterSunset)) === JSON.stringify({ night: false, day: false }),
+    'without a location nothing is ever reported as elapsed - no din change from silence');
+
+const afterSunrise = new Date(refSunrise.getTime() + 60 * 1000);
+const beforeSunrise = new Date(refSunrise.getTime() - 60 * 1000);
+assert(elapsedOnotOf(refAbs, jerusalem, beforeSunrise).night === false,
+    'the night ona has not elapsed yet a minute before sunrise');
+assert(elapsedOnotOf(refAbs, jerusalem, afterSunrise).night === true,
+    'the night ona has elapsed a minute after sunrise - even though abs has not advanced (that only happens at sunset)');
+assert(elapsedOnotOf(refAbs, jerusalem, afterSunrise).day === false,
+    'and the day ona of the same abs has certainly not elapsed yet (sunset is still far off)');
+assert(elapsedOnotOf(refAbs, jerusalem, afterSunset).day === true,
+    'the day ona has elapsed once sunset has passed');
 
 if (failures > 0) {
     console.error(`\n${failures} zmanim test(s) failed.`);

@@ -38,11 +38,14 @@ import { HDate } from '../hebcal.js';
 export const PREGNANCY_SILEK_DAYS = 90;
 
 /**
- * ארבעים שבוע (280 יום) מתחילת ההריון (מניין ליל טבילה) — תאריך לידה צפוי,
- * לפי חישוב ההריון המקובל. זהו מידע מעשי כללי ואינו חלק מהדין המחושב במנוע
- * (אינו משפיע על סילוק דמים או על וסתות) — נתון תומך בלבד.
+ * הערכה כללית בלבד — **אינה מקור הלכתי ואינה קביעה רפואית**: כ-38 שבועות (266
+ * יום) מ"תחילת ההריון" כפי שהיא מוזנת באפליקציה (ליל הטבילה שממנו מתחיל מניין
+ * ימי העיבור), שהוא תאריך ההתעברות ולא תחילת המחזור האחרון — ולכן קרוב ל-40
+ * שבועות מהמניין הרפואי הרגיל (שנמנה מהמחזור, שמקדים את ההתעברות בכ-14 יום).
+ * **לא** 280 יום (40 שבועות) מההתעברות עצמה — זה היה מאחר את התאריך המוצג
+ * בכשבועיים לעומת האומדן הרפואי המקובל. מוצג בממשק תמיד עם לשון "משוער".
  */
-export const PREGNANCY_DUE_DAYS = 280;
+export const PREGNANCY_ESTIMATED_TERM_DAYS = 266;
 
 /** כ"ד חודש אחר הלידה `[שט כ"ט | עמ' 66]`. */
 export const NURSING_MONTHS = 24;
@@ -304,6 +307,14 @@ export function analyzeLifeState({ life, reiyot, today }) {
                 source: '[ד"ט | עמ\' 14] · [שט כ"ט | עמ\' 63, 66]'
             });
         }
+        // שבוע ההריון ותאריך הלידה המשוער — הערכה כללית ולא קביעה הלכתית/רפואית
+        // (ראו PREGNANCY_ESTIMATED_TERM_DAYS); מוצגים רק כל עוד לא נרשמה לידה.
+        const stillPregnant = state.birthAbs === null;
+        const gestationalWeek = (stillPregnant && daysPregnant !== null && daysPregnant >= 0)
+            ? Math.floor(daysPregnant / 7) + 1
+            : null;
+        const dueDateAbs = stillPregnant ? state.pregnancyAbs + PREGNANCY_ESTIMATED_TERM_DAYS : null;
+
         pregnant = {
             active,
             started,
@@ -313,8 +324,8 @@ export function analyzeLifeState({ life, reiyot, today }) {
             daysPregnant,
             firstTrimester: started === false && t !== null && t < silekFromAbs,
             daysLeft: t === null || t >= silekFromAbs ? 0 : silekFromAbs - t,
-            // תאריך לידה צפוי (40 שבועות) — מוצג כמידע כללי; ראו PREGNANCY_DUE_DAYS.
-            dueDateAbs: closedAtAbs === null ? state.pregnancyAbs + PREGNANCY_DUE_DAYS : null
+            gestationalWeek,
+            dueDateAbs
         };
         if (active) starts.push({ id: 'pregnant', short: 'מעוברת', since: silekFromAbs });
         statuses.push({

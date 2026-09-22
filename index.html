@@ -673,6 +673,16 @@
                             <input type="time" id="setting-calendar-morning-time" class="text-input" style="width: 100%; margin-top: 4px;" onchange="saveCalendarMorningTimeSetting()">
                         </label>
 
+                        <label style="display: block; margin-bottom: 10px;">
+                            זמן תזכורת דוא"ל לפני השקיעה (בדיקת מנחה, הצעת הפסק טהרה)
+                            <select id="setting-calendar-sunset-lead" class="text-input" style="width: 100%; margin-top: 4px;" onchange="saveCalendarSunsetLeadSetting()">
+                                <option value="30">30 דקות</option>
+                                <option value="45">45 דקות</option>
+                                <option value="60">שעה</option>
+                                <option value="120">שעתיים</option>
+                            </select>
+                        </label>
+
                         <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 4px; font-size: 0.9em;">
                             <input type="checkbox" id="setting-calendar-moch" style="width: 16px; height: 16px; margin-top: 2px; accent-color: var(--primary);" onchange="saveCalendarMochSetting()">
                             <span>תזכורת מוך דחוק (בנוסף להפסק טהרה)</span>

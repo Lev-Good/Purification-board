@@ -28,6 +28,11 @@
     --dash-blue-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.01));
     --dash-orange-bg: linear-gradient(135deg, rgba(234, 88, 12, 0.08), rgba(234, 88, 12, 0.01));
     --dash-text: #0f172a;
+
+    /* חצי לילה עדין במשבצת היום (top) לעומת חצי יום רגיל (bottom) — היממה
+       העברית נפתחת בלילה, וההפרדה הזו רק משקפת זאת חזותית; אינה משנה מיקום
+       שום סימון (ראו js/ui.js: marker-wrapper עליון/תחתון, ו-css להלן). */
+    --cell-night-tint: rgba(15, 23, 42, 0.055);
 }
 
 [data-theme="dark"] {
@@ -53,6 +58,9 @@
     --dash-blue-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.12), transparent);
     --dash-orange-bg: linear-gradient(135deg, rgba(234, 88, 12, 0.12), transparent);
     --dash-text: #f8fafc;
+
+    /* בכהה ה-surface כבר כהה, ולכן התיחום צריך שכבה כהה יותר (לא בהירה) כדי להיראות. */
+    --cell-night-tint: rgba(0, 0, 0, 0.22);
 }
 
 * {
@@ -530,7 +538,9 @@ h1 {
     flex-direction: column;
     justify-content: space-between;
     min-height: 80px;
-    background: var(--surface);
+    /* חצי עליון (עונת לילה) מגוון עדין, חצי תחתון (עונת יום) רגיל — קו חד באמצע,
+       בלי לגעת ב-marker-wrapper העליון/תחתון שכבר ממוקמים לפי אותה מוסכמה. */
+    background: linear-gradient(to bottom, var(--cell-night-tint) 0%, var(--cell-night-tint) 50%, transparent 50%, transparent 100%), var(--surface);
     cursor: pointer;
     position: relative;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1095,10 +1105,23 @@ tr:hover {
     padding: 24px;
     width: 90%;
     max-width: 400px;
-    max-height: 85vh;
-    overflow-y: auto;
     box-shadow: var(--shadow);
     animation: popIn 0.2s ease-out;
+    /* מודאל פעולות היום (ובכלל: כל מודאל) עלול להיות גבוה ממסך נייד/רזולוציה
+       נמוכה — גלילה פנימית עדינה במקום גלישה מחוץ למסך. */
+    max-height: 85vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
 }
 
 .modal-content h3 {
@@ -1254,7 +1277,9 @@ tr:hover {
     flex-direction: column;
     justify-content: space-between;
     padding: 3px 1px;
-    background: transparent;
+    /* אותה הפרדה עדינה לילה/יום כמו בתצוגת החודש (.day); ריחוף עדיין דורס
+       ל-var(--surface) האחיד למטה, שם הכרטיס נפתח ומוצגים בו פרטים מלאים. */
+    background: linear-gradient(to bottom, var(--cell-night-tint) 0%, var(--cell-night-tint) 50%, transparent 50%, transparent 100%);
     transition: all 0.2s ease;
     z-index: 1;
 }

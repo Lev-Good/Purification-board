@@ -76,12 +76,11 @@ function formatTime(date, tzid) {
 }
 
 /**
- * זמני עונת היום ועונת הלילה של תאריך עברי.
+ * זמני הנץ/שקיעה הגולמיים (אובייקטי `Date`) של תאריך עברי — הבסיס המשותף
+ * ל-`dayTimes` (תצוגה מעוצבת), ל-`dayTimesRaw`/`js/googleCalendar.js` (בניית
+ * `dateTime` לאירועים), ול-`halachicTodayAbs`/`elapsedOnotOf` (השוואות זמן).
  *
- * @param {number} abs - היום המוחלט (כמו בכל המערכת)
- * @param {Object} location - מוקד מתוך `LOCATIONS` (או `null`)
- * @returns {?{day: {sunrise: string, sunset: string}, night: {sunset: string, sunrise: string}}}
- *          `null` כשאין מיקום או שאין זמנים באותו יום (למשל בקווי רוחב קיצוניים)
+ * @returns {?{day: {sunrise: Date, sunset: Date}, night: {sunset: Date, sunrise: Date}}}
  */
 function rawDayTimes(abs, location) {
     if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.long)) return null;
@@ -106,6 +105,14 @@ function rawDayTimes(abs, location) {
     };
 }
 
+/**
+ * זמני עונת היום ועונת הלילה של תאריך עברי.
+ *
+ * @param {number} abs - היום המוחלט (כמו בכל המערכת)
+ * @param {Object} location - מוקד מתוך `LOCATIONS` (או `null`)
+ * @returns {?{day: {sunrise: string, sunset: string}, night: {sunset: string, sunrise: string}}}
+ *          `null` כשאין מיקום או שאין זמנים באותו יום (למשל בקווי רוחב קיצוניים)
+ */
 export function dayTimes(abs, location) {
     const raw = rawDayTimes(abs, location);
     if (!raw) return null;
@@ -116,6 +123,7 @@ export function dayTimes(abs, location) {
             sunset: formatTime(raw.day.sunset, location.tzid)
         },
         night: {
+            // עונת הלילה של התאריך העברי אינה אלא הלילה שלפני יום שלו.
             sunset: formatTime(raw.night.sunset, location.tzid),
             sunrise: formatTime(raw.night.sunrise, location.tzid)
         }
@@ -124,8 +132,8 @@ export function dayTimes(abs, location) {
 
 /**
  * כמו `dayTimes`, אבל מחזיר אובייקטי `Date` אמיתיים ולא מחרוזות תצוגה —
- * לשימוש בכל מקום שצריך לחשב זמן בפועל (למשל בניית `dateTime` לאירועי
- * יומן גוגל, `js/googleCalendar.js`), ולא רק להציג אותו.
+ * לשימוש בכל מקום שצריך לחשב זמן בפועל (בניית `dateTime` לאירועי יומן גוגל,
+ * `js/googleCalendar.js`; והשוואות זמן ב-`elapsedOnotOf` להלן), ולא רק להציג אותו.
  */
 export function dayTimesRaw(abs, location) {
     return rawDayTimes(abs, location);
@@ -144,20 +152,37 @@ export function dayTimesRaw(abs, location) {
  * ואם השקיעה כבר עברה, "היום" מוקדם ביום אחד. **בלא מיקום מוגדר אין דרך לחשב
  * שקיעה אמיתית**, ולכן מוחזר התאריך לפי חצות (ההתנהגות הקודמת) — פער ידוע
  * ומתועד, ולא ניחוש שגוי.
+ *
+ * @param {?Object} location - מוקד מתוך `LOCATIONS` (או `null`/`undefined`)
+ * @param {Date} [now] - לבדיקות דטרמיניסטיות
+ * @returns {number} abs
  */
 export function halachicTodayAbs(location, now = new Date()) {
     const gregorianAbs = new HDate(now).abs();
-    if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.long)) {
-        return gregorianAbs;
-    }
-    let sunset;
-    try {
-        sunset = new Zmanim(now, location.lat, location.long).sunset();
-    } catch (e) {
-        return gregorianAbs;
-    }
-    if (!sunset) return gregorianAbs;
-    return now >= sunset ? gregorianAbs + 1 : gregorianAbs;
+    const raw = rawDayTimes(gregorianAbs, location);
+    if (!raw) return gregorianAbs;
+    return now.getTime() >= raw.day.sunset.getTime() ? gregorianAbs + 1 : gregorianAbs;
+}
+
+/**
+ * אילו עונות מתוך `abs` (כפי שנגזר מ-`halachicTodayAbs`) כבר חלפו נכון ל-`now`.
+ *
+ * עונת הלילה קודמת לעונת היום באותו תאריך עברי — ולכן היא יכולה לחלוף באמצע
+ * היממה (עם הנץ) בלי ש-`abs` עצמו יתקדם (זה קורה רק עם השקיעה). עונת היום
+ * חולפת בשקיעה, ואז `abs` כבר התקדם ממילא — הבדיקה כאן היא להשלמת התמונה בלבד,
+ * ולא אמורה להתרחש בפועל בזרימה הרגילה.
+ *
+ * בלא מיקום — שום עונה אינה "חולפת" (אין נתון לבדוק מולו), וזה עצמו אינו שינוי דין.
+ *
+ * @returns {{night: boolean, day: boolean}}
+ */
+export function elapsedOnotOf(abs, location, now = new Date()) {
+    const raw = rawDayTimes(abs, location);
+    if (!raw) return { night: false, day: false };
+    return {
+        night: now.getTime() >= raw.day.sunrise.getTime(),
+        day: now.getTime() >= raw.day.sunset.getTime()
+    };
 }
 
 /** שורת הזמנים להצגה; מחרוזת ריקה כשאין מיקום או שאין זמנים. */
