@@ -4,6 +4,7 @@ package-lock.json
 
 # סודות מקומיים — סוד הלקוח של גוגל לא נכנס למאגר
 google-oauth.local.json
+client_secret_*.json
 .DS_Store
 *.log
 סקריפט דוגמה לקבלת מייל עם הסיסמה.txt
