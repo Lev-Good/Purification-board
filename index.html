@@ -89,6 +89,10 @@
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 אודות
             </button>
+            <button id="desktop-nav-insights" onclick="switchView('view-insights', 'nav-insights', 'desktop-nav-insights')">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                מדדים ותובנות
+            </button>
             <button id="desktop-nav-settings" onclick="switchView('view-settings', 'nav-settings', 'desktop-nav-settings')">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 הגדרות
@@ -321,6 +325,17 @@
             </div>
         </section>
 
+        <!-- SECTION 3c: מדדים ותובנות (docs/SPEC_FERTILITY_INSIGHTS.md, פרק ב') -->
+        <section id="view-insights" class="section-container">
+            <h2 style="margin-bottom: 16px; color: var(--text-main);">תובנות ומדדים אישיים</h2>
+            <p style="font-size: 0.85em; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px;">
+                <b>הבהרה:</b> המידע המוצג מתבסס על מודלים סטטיסטיים של לוח השנה. חישוב זה הינו
+                משוער בלבד, ואינו מהווה תחליף לייעוץ רפואי, בדיקות מעבדה (ערכות ביוץ/אולטרסאונד),
+                או אמצעי מניעה בטוח.
+            </p>
+            <div id="insights-container"></div>
+        </section>
+
         <!-- SECTION 4: Settings View -->
         <section id="view-settings" class="section-container">
             <h2 style="margin-bottom: 16px; color: var(--text-main);">הגדרות מתקדמות</h2>
@@ -473,6 +488,57 @@
                     </div>
                 </details>
 
+                <!-- חלון ביוץ ופוריות (docs/SPEC_FERTILITY_INSIGHTS.md §3.5) — סגור וכבוי
+                     כברירת מחדל, בניגוד ל"מצב חיים": זו תכונה שהמשתמשת מפעילה ביודעין. -->
+                <details class="settings-group settings-collapsible settings-span-2">
+                    <summary>
+                        <h4>פוריות וביוץ<button class="help-dot" data-help="fertility_window" type="button" aria-label="הסבר הלכתי ומקורות">?</button></h4>
+                    </summary>
+                    <p style="font-size: 0.85em; color: var(--text-muted); line-height: 1.6;">
+                        <b>הבהרה:</b> המידע המוצג מתבסס על מודלים סטטיסטיים של לוח השנה. חישוב זה
+                        הינו משוער בלבד, ואינו מהווה תחליף לייעוץ רפואי, בדיקות מעבדה (ערכות
+                        ביוץ/אולטרסאונד), או אמצעי מניעה בטוח.
+                    </p>
+
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; margin-bottom: 12px;">
+                        <input type="checkbox" id="setting-fertility-enabled" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>הפעל חישוב חלון ביוץ ופוריות</span>
+                    </label>
+
+                    <div style="margin-bottom: 10px;">
+                        <label for="setting-fertility-luteal" style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 4px;">
+                            אורך שלב לוטאלי מותאם אישית (11–16 יום)
+                        </label>
+                        <input type="number" id="setting-fertility-luteal" class="text-input" min="11" max="16" style="max-width: 110px;">
+                        <p style="font-size: 0.85em; color: var(--text-muted); margin: 4px 0 0; line-height: 1.6;">
+                            לנשים שעברו מעקב ביוץ רפואי ויודעות במדויק את מספר הימים מיום הביוץ ועד הדימום.
+                        </p>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-bottom: 10px;">
+                        <label style="display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 6px;">בסיס חישוב המחזור</label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; margin-bottom: 6px;">
+                            <input type="radio" name="fertility-basis" id="setting-fertility-basis-auto" checked onchange="window.toggleFertilityBasisInput()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                            <span>חישוב אוטומטי לפי ממוצע ההפלגות האחרונות</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; margin-bottom: 6px;">
+                            <input type="radio" name="fertility-basis" id="setting-fertility-basis-fixed" onchange="window.toggleFertilityBasisInput()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                            <span>אורך מחזור קבוע ידני</span>
+                        </label>
+                        <input type="number" id="setting-fertility-fixed-length" class="text-input" min="15" max="90" style="max-width: 110px; margin-right: 26px;" disabled>
+                    </div>
+
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; margin-bottom: 12px;">
+                        <input type="checkbox" id="setting-fertility-conflict-alert" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>התרע כאשר הביוץ חל לפני ליל הטבילה ("עקרות הלכתית")</span>
+                    </label>
+
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button class="action-btn btn-blue" style="flex: 1;" onclick="saveFertilitySetting()">שמור הגדרות פוריות</button>
+                        <button class="action-btn btn-clear" style="flex: 1;" onclick="clearFertilitySetting()">נקה הגדרות פוריות</button>
+                    </div>
+                </details>
+
                 </div>
             </div>
 
@@ -580,6 +646,12 @@
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
         </span>
         אודות
+    </div>
+    <div class="nav-item" id="nav-insights" onclick="switchView('view-insights', 'nav-insights')">
+        <span style="display: inline-block; width: 20px; height: 20px;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        </span>
+        תובנות
     </div>
     <div class="nav-item" id="nav-settings" onclick="switchView('view-settings', 'nav-settings')">
         <span style="display: inline-block; width: 20px; height: 20px;">

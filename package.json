@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node tests/engine.test.js && node tests/chazaka.test.js && node tests/chiburLemafrea.test.js && node tests/vesetWeek.test.js && node tests/vesetMevucha.test.js && node tests/vesetDilug.test.js && node tests/reiyaDuration.test.js && node tests/onotMeuravot.test.js && node tests/akira.test.js && node tests/dayMarks.test.js && node tests/lifeState.test.js && node tests/silekReturn.test.js && node tests/pillPause.test.js && node tests/vesetGuf.test.js && node tests/signOnly.test.js && node tests/checkTwice.test.js && node tests/zmanim.test.js && node tests/googleBackup.test.js && node tests/integrity.test.js",
+    "test": "node tests/engine.test.js && node tests/chazaka.test.js && node tests/chiburLemafrea.test.js && node tests/vesetWeek.test.js && node tests/vesetMevucha.test.js && node tests/vesetDilug.test.js && node tests/reiyaDuration.test.js && node tests/onotMeuravot.test.js && node tests/akira.test.js && node tests/dayMarks.test.js && node tests/lifeState.test.js && node tests/silekReturn.test.js && node tests/pillPause.test.js && node tests/vesetGuf.test.js && node tests/signOnly.test.js && node tests/checkTwice.test.js && node tests/zmanim.test.js && node tests/googleBackup.test.js && node tests/integrity.test.js && node tests/fertility.test.js && node tests/insights.test.js",
     "verify:sources": "node tools/verify_citations.mjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"

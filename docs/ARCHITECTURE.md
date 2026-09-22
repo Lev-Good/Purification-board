@@ -28,6 +28,8 @@
 │   ├── stringencies.js   # מתגי החומרא (§5ב): מחלוקות שאינן ננעלות בקוד
 │   ├── dayMarks.js       # סימוני יום: כתם · בעיתותא · חרדה · יציאה לדרך · חופה, ופטורי אור זרוע
 │   ├── zmanim.js         # זמני נץ ושקיעה לפי מיקום — לבירור ספק עונה (B6)
+│   ├── fertility.js      # חלון ביוץ ופוריות משוער + זיהוי "עקרות הלכתית" (כבוי כברירת מחדל)
+│   ├── insights.js       # סטטיסטיקת מחזורים: ממוצע/חציון/יציבות, גרף SVG, דוח הדפסה
 │   ├── ui.js             # לוח שנה, טבלאות, דשבורד
 │   ├── security.js       # PIN: התקנה/נעילה/שחזור-מייל/שחזור-גוגל
 │   ├── storage.js        # localStorage: נתונים, PIN, הגדרות, גיבוי קובץ
@@ -411,6 +413,48 @@ calculateEngine(...) → computed.prishot (סימון פה"כ) · pillPause · p
 - **דילוג על סילוק אחר:** הפסקה שחלה בתוך חלון הריון/הנקה/זקנה/קטנה אינה מייצרת חשש
   (`life.dormancy.windows`).
 
+## חלון ביוץ ופוריות ומסך תובנות (`js/fertility.js`, `js/insights.js`)
+
+שני מודולים **מחוץ** למנוע ההלכתי — אינם נוגעים בחששות, בפרישות, או בעקירה. מסמך
+האפיון המלא: `docs/SPEC_FERTILITY_INSIGHTS.md`; ההכרעות שהתקבלו במימוש: `docs/DECISIONS.md`
+(2026-09-22).
+
+```
+computeEngineData()  [js/app.js — נקודת החישוב היחידה, ליד engineOptions()]
+   ├─ calculateEngine(db, isOrZarua, engineOptions())      → engineData
+   ├─ calculateFertilityWindow(db, engineData, settings)   → engineData.fertility
+   └─ calculateCycleInsights(db, outlierOverrides)         → engineData.insights
+```
+
+- **`js/fertility.js` — `calculateFertilityWindow(db, engineData, settings)`:**
+  כבוי כברירת מחדל (`settings.enabled`). כיבוי אוטומטי נוסף כשיש הריון פתוח
+  (`engineData.life.state.pregnancyAbs !== null && birthAbs === null` — המצב
+  הביולוגי, **לא** סף הסילוק ההלכתי של תשעים יום) או כשנוטלת כדורים כעת
+  (`engineData.life.pills.active`). מחשבת `NextReiyah ← OvulationDay ← חלון
+  הפוריות` (§3.2), ומזהה "עקרות הלכתית" (§3.3) רק כשיש הפסק **מתועד בפועל**
+  במחזור הנוכחי (`engineData.computed.tevilot`, לא ניחוש טבילה עתידית).
+  בסיס החישוב: וסת הפלגה קבוע אם המנוע כבר קבע כזה (`engineData.standingVesets`),
+  אחרת ממוצע 3–6 ההפלגות התקפות האחרונות (מסנן `kind==='ones'|'pills'`), אחרת
+  ברירת מחדל 28 יום.
+- **`js/insights.js` — `calculateCycleInsights(db, {excludedAbs, includedAbs})` +
+  `renderTrendGraphSVG(cyclesList, options)`:** **עצמאי** — בונה `reiyot` ישירות
+  מה-`db` ואינו קורא ל-`calculateEngine`, כדי שהמסך יעבוד גם כשהמנוע ההלכתי כבוי.
+  מחשב ממוצע/חציון/סטיית תקן, משך דימום ויום הפסק שכיח, שיעור הצלחת שבעה נקיים
+  (גזירת נקיים/טבילה מקומית, מקבילה — ולא זהה — ל-`calculations.js:730-781`),
+  פילוח יום/לילה ויום-שבוע, ושכיחות מיחושים. הפלגה חריגה (מעל 3σ או מעל 60 יום)
+  **מוחרגת מהממוצע כברירת מחדל** (לא רק מוצעת) — `includedAbs` מבטל זאת במפורש.
+  `renderTrendGraphSVG` מפיקה SVG טהור (עמודות, קו ייחוס 30, קו ממוצע); האינטראקטיביות
+  (tooltip) ממומשת ב-JS צמוד ב-`js/ui.js` (מאזין מואצל אחד, לא per-rect).
+- **הגדרות (`js/storage.js`):** `getFertilitySettings`/`saveFertilitySettings` +
+  `getFertilityOutlierOverrides`/`saveFertilityOutlierOverrides` — הגדרות ולא
+  רשומות, **אינן** חלק מגיבוי גוגל (כמו מצב חיים ומתגי החומרא).
+- **UI (`js/ui.js`):** סימון תא לוח טורקיז (`bg-teal`, לא תלוי ברשומה אלא בטווח
+  ימים מחושב — `fertilityCellInfo`), כרטיס דשבורד מצטרף (`buildFertilityDashboardCard`),
+  מסך "מדדים ותובנות" מלא (`renderInsightsScreen`) ודוח הדפסה (`buildInsightsPrintHTML`,
+  לתוך `#print-container` המשותף, כמו `prepareAndPrint`).
+- **ההבהרה הרפואית/הלכתית (§2 באפיון) מופיעה בארבעה מקומות בדיוק:** מסך התובנות,
+  מקטע ההגדרות, כרטיס הדשבורד, ותוכן בועת ה-tooltip בתא הלוח.
+
 ## זרימת OAuth (תוכנה למחשב בלבד)
 
 ```
@@ -524,6 +568,8 @@ fetch של הרנדרר ל-sheets.googleapis.com ← main מצרף Authorization
 | `tests/zmanim.test.js` | זמני הנץ והשקיעה: היעדרם בלא מיקום, זמנה של עונת הלילה (של היום שלפניו), ואזורי זמן |
 | `tests/dayMarks.test.js` | סימוני היום: פטורי אור זרוע ואי-פטור של סימון שנכתב ביום אחר, דין הכתם (ומחלוקת עקירתו), הבהלה והחרדה, מאכל חריף בלא ראייה, ומניין ההפלגה בשני המתגים |
 | `tests/integrity.test.js` | סטטי: ייבוא/ייצוא, ערוצי IPC, מזהי DOM, טופלים מופעלים מ-HTML. דינמי: סריקת 594 תאריכים (16 שנים) מול גזירה בלתי-תלויה בדילוג ימים |
+| `tests/fertility.test.js` | חלון ביוץ ופוריות: יום הביוץ במחזור תקני/ארוך/קצר, טווח חלון הפוריות (7 ימים), זיהוי עקרות הלכתית (שני המקרים), כיבוי בהריון/כדורים, בסיס ממוצע-הפלגות מול וסת קבוע, וזיהוי מחזור משתנה |
+| `tests/insights.test.js` | סטטיסטיקת מחזורים: ממוצע וחציון מדויקים, זיהוי הפלגה חריגה והחרגתה מהממוצע כברירת מחדל (וביטולה), יום הפסק שכיח, ותקינות תחביר ה-SVG (כולל רשימה ריקה) |
 
 הערה: הספרייה hebcal אינה זורקת שגיאה על תאריך לא קיים — היא מגלגלת קדימה. לכן כל בניית תאריך עברי עוברת ולידציה מפורשת (`getYomHachodeshAbs`).
 

@@ -7,6 +7,8 @@ import { checkPartsOf, checkPartLabel } from './akira.js';
 import { bodySignLabel, bodyReminder } from './vesetGuf.js';
 import { DAY_MARKS, DAY_MARK_RULES, marksOf } from './dayMarks.js';
 import { ICONS } from './icons.js';
+import { FERTILITY_DISCLAIMER } from './fertility.js';
+import { renderTrendGraphSVG } from './insights.js';
 
 const HEB_DAYS = ["", "א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ז'", "ח'", "ט'", "י'", "י\"א", "י\"ב", "י\"ג", "י\"ד", "ט\"ו", "ט\"ז", "י\"ז", "י\"ח", "י\"ט", "כ'", "כ\"א", "כ\"ב", "כ\"ג", "כ\"ד", "כ\"ה", "כ\"ו", "כ\"ז", "כ\"ח", "כ\"ט", "ל'"];
 
@@ -59,6 +61,11 @@ export function switchView(viewId, activeTabId) {
     } else if (viewId === 'view-settings') {
         const mob = document.getElementById('nav-settings');
         const dsk = document.getElementById('desktop-nav-settings');
+        if (mob) mob.classList.add('active');
+        if (dsk) dsk.classList.add('active-tab');
+    } else if (viewId === 'view-insights') {
+        const mob = document.getElementById('nav-insights');
+        const dsk = document.getElementById('desktop-nav-insights');
         if (mob) mob.classList.add('active');
         if (dsk) dsk.classList.add('active-tab');
     }
@@ -281,6 +288,39 @@ function buildBodyReminderCard(body, appended = false) {
 }
 
 /**
+ * כרטיס חלון הפוריות בדשבורד (§3.4-ב). שתי שורות נפרדות, שכל אחת מוצגת בתנאי
+ * משלה: שורת החלון עצמו (רק כשהיום הנוכחי בתוך החלון) ושורת ההתרעה על "עקרות
+ * הלכתית" (בכל עת שהחשש קיים ומתג ההתרעה דלוק — כדי לתת שהות להיוועץ ברב עוד
+ * לפני שהחלון עצמו מגיע).
+ */
+function buildFertilityDashboardCard(fertility, todayAbs, appended = false) {
+    if (!fertility || !fertility.enabled) return '';
+
+    const inWindow = fertility.windowDays.indexOf(todayAbs) !== -1;
+    const showConflict = fertility.settings.conflictAlert
+        && (fertility.conflict === 'before' || fertility.conflict === 'borderline');
+
+    if (!inWindow && !showConflict) return '';
+
+    let html = `<div class="dashboard-text${appended ? ' dashboard-body-reminder' : ''}">`;
+    if (inWindow) {
+        const ovulationDate = new HDate(fertility.ovulationAbs);
+        html += `${ICONS.LEAF} <strong>חלון פוריות משוער</strong> `
+            + `(שיא הביוץ צפוי ב${ovulationDate.renderGematriya()}).<br>`;
+    }
+    if (showConflict) {
+        html += fertility.conflict === 'before'
+            ? `⚠️ <strong>לתשומת לב:</strong> יום הביוץ המשוער חל לפני ליל הטבילה. `
+                + `מומלץ להתייעץ עם מורה הוראה ורופא/ת נשים.<br>`
+            : `${ICONS.ALERT_CIRCLE} הביוץ המשוער חל בסמוך מאוד לליל הטבילה — כדאי לשים לב.<br>`;
+    }
+    html += `<small>${FERTILITY_DISCLAIMER}</small>`;
+    html += `</div>`;
+    if (!appended) html += `<div class="dashboard-progress" style="color: var(--teal);">${ICONS.LEAF}</div>`;
+    return html;
+}
+
+/**
  * Update the visual cycle status dashboard.
  *
  * Since B2 the card at the head of the screen also carries the **body-veset
@@ -322,6 +362,14 @@ export function updateDashboard(db, engineData, todayAbsOverride) {
         if (dashContainer.className.replace('dash-body', '').trim() === 'dashboard') {
             dashContainer.classList.add('dash-orange');
         }
+    }
+
+    // 3. חלון ביוץ ופוריות (§3.4-ב) — שורה דיסקרטית, אחרונה בסדר העדיפויות כי
+    // מדובר במידע ולא בחובה הלכתית.
+    const fertilityCard = buildFertilityDashboardCard(engineData.fertility, todayAbs, true);
+    if (fertilityCard) {
+        dashContainer.innerHTML += fertilityCard;
+        dashContainer.classList.add('dash-body');
     }
 }
 
@@ -367,6 +415,25 @@ function buildPrishaMarker(list, label) {
         ? ' style="opacity:0.5; border:1px dashed currentColor;"'
         : '';
     return `<div class="marker bg-orange"${faded} title="${tooltipText}">${ICONS.CLOCK}<span>${label} (${codeList})</span></div>`;
+}
+
+/**
+ * חלון ביוץ ופוריות (docs/SPEC_FERTILITY_INSIGHTS.md §3.4-א). שלא כשאר הסימונים
+ * כאן, זה אינו תלוי ברשומה קיימת (`db[abs]`) אלא בטווח ימים מחושב
+ * (`fertility.windowDays`) — ולכן נבדק בנפרד, כמו `computed.nekiim`.
+ */
+function fertilityCellInfo(fertility, abs) {
+    if (!fertility || !fertility.enabled || fertility.windowDays.indexOf(abs) === -1) return null;
+    const isPeak = Array.isArray(fertility.peakAbs) && fertility.peakAbs.indexOf(abs) !== -1;
+    const basisText = `מחזור של ${fertility.cycleLengthUsed} ימים ושלב לוטאלי של ${fertility.lutealPhaseUsed} יום`;
+    const tooltip = (isPeak
+        ? `יום ביוץ משוער (שיא) — מחושב לפי ${basisText}.`
+        : `חלון פוריות משוער — מחושב לפי ${basisText}.`) + ' חישוב סטטיסטי משוער בלבד. ' + FERTILITY_DISCLAIMER;
+    return {
+        bgStyle: `background-color: var(${isPeak ? '--fertility-peak-bg' : '--fertility-window-bg'});`,
+        marker: `<div class="marker bg-teal" title="${tooltip}">${isPeak ? ICONS.TARGET : ICONS.LEAF}<span>${isPeak ? 'ביוץ משוער (שיא)' : 'חלון פוריות'}</span></div>`,
+        ariaText: isPeak ? 'יום ביוץ משוער (שיא)' : 'חלון פוריות משוער'
+    };
 }
 
 /**
@@ -476,6 +543,14 @@ export function buildMonthGridHTML(month, year, db, engineData, isYearly = false
 
             if (nList.length > 0) { topMarkers += buildPrishaMarker(nList, 'פרישת לילה'); ariaBits.push('פרישת לילה'); }
             if (dList.length > 0) { bottomMarkers += buildPrishaMarker(dList, 'פרישת יום'); ariaBits.push('פרישת יום'); }
+        }
+
+        // חלון ביוץ ופוריות (docs/SPEC_FERTILITY_INSIGHTS.md) — לא תלוי ברשומה.
+        const fertilityInfo = fertilityCellInfo(engineData.fertility, abs);
+        if (fertilityInfo) {
+            if (!bgStyle) bgStyle = fertilityInfo.bgStyle;
+            bottomMarkers += fertilityInfo.marker;
+            ariaBits.push(fertilityInfo.ariaText);
         }
 
         // Highlight today
@@ -620,6 +695,14 @@ export function buildYearlyRowHTML(month, year, db, engineData) {
             if (dList.length > 0) { bottomMarkers += buildPrishaMarker(dList, 'פרישת יום'); ariaBits.push('פרישת יום'); }
         }
 
+        // חלון ביוץ ופוריות (docs/SPEC_FERTILITY_INSIGHTS.md) — לא תלוי ברשומה.
+        const fertilityInfoYearly = fertilityCellInfo(engineData.fertility, abs);
+        if (fertilityInfoYearly) {
+            if (!bgStyle) bgStyle = fertilityInfoYearly.bgStyle;
+            bottomMarkers += fertilityInfoYearly.marker;
+            ariaBits.push(fertilityInfoYearly.ariaText);
+        }
+
         if (cellClasses.includes('day-today')) ariaBits.push('היום');
         const ariaLabel = `${hd.renderGematriya()}, ${hd.greg().toLocaleDateString('he-IL')}`
             + (ariaBits.length ? ` — ${ariaBits.join(', ')}` : '');
@@ -696,6 +779,7 @@ export function renderScreenCalendar(currentHDate, db, engineData, isYearlyView)
     updateLifePanel(engineData);
     updateChazakaPanel(engineData);
     updateDayStatePanel(engineData);
+    renderInsightsScreen(engineData.insights);
 }
 
 /**
@@ -1508,4 +1592,201 @@ export function renderSummaryTable(engineData) {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// ---------- מסך סטטיסטיקה ותובנות אישיות (docs/SPEC_FERTILITY_INSIGHTS.md, פרק ב') ----------
+
+function insightsEmptyStateHTML() {
+    return `
+        <div class="empty-state" style="padding: 30px 10px; text-align: center;">
+            <div class="dashboard-empty-icon" style="color: var(--primary); margin-bottom: 10px;">${ICONS.TRENDING_UP}</div>
+            <strong>עדיין אין מספיק נתונים</strong>
+            <p>כדי שנוכל להפיק עבורך מדדים ותובנות סטטיסטיות, יש להזין לפחות שתי ראיות בלוח השנה.</p>
+        </div>
+    `;
+}
+
+function insightCard(icon, title, value, sub) {
+    return `
+        <div class="insight-card">
+            <div class="insight-card-title">${icon}<span>${title}</span></div>
+            <div class="insight-card-value">${value}</div>
+            ${sub ? `<div class="insight-card-sub">${sub}</div>` : ''}
+        </div>
+    `;
+}
+
+const STABILITY_TAG_COLOR = { 'very-regular': 'var(--green)', 'regular': 'var(--blue)', 'variable': 'var(--orange)' };
+
+function insightsKPIGridHTML(insights) {
+    const c = insights.cycleStats, b = insights.bleedStats, n = insights.nekiimStats, s = insights.seasonStats, sg = insights.signStats;
+    const topSign = sg.frequencies[0];
+
+    return `<div class="insights-grid">`
+        + insightCard(ICONS.TRENDING_UP, 'אורך מחזור ממוצע',
+            c.average !== null ? `${c.average} ימים` : '—',
+            c.median !== null ? `חציון: ${c.median} | טווח: ${c.min}-${c.max}` : '')
+        + insightCard(ICONS.WAVES, 'משך דימום ממוצע',
+            b.averageDuration !== null ? `${b.averageDuration} ימים` : '—',
+            b.modeHefsekDay !== null ? `הפסק שכיח: יום ${b.modeHefsekDay}` : '')
+        + insightCard(ICONS.SHIELD, 'הצלחת שבעה נקיים',
+            n.successRate !== null ? `${n.successRate}%` : '—',
+            n.averageDaysToTevilah !== null ? `טבילה ממוצעת: ${Math.round(n.averageDaysToTevilah * 10) / 10} ימים מן ההפסק` : '')
+        + insightCard(ICONS.CHECK, 'יציבות המחזור',
+            c.stabilityLabel
+                ? `<span style="color:${STABILITY_TAG_COLOR[c.stabilityTag] || 'inherit'};">${c.stabilityLabel}</span>`
+                : '—',
+            c.stdDev !== null ? `(סטיית תקן: ${c.stdDev} יום)` : '')
+        + insightCard(ICONS.SUN, 'התפלגות עונות',
+            s.dayPercent !== null ? `${s.dayPercent}% יום / ${s.nightPercent}% לילה` : '—',
+            s.modeWeekday ? `יום שכיח: ${s.modeWeekday}` : '')
+        + insightCard(ICONS.ALERT_CIRCLE, 'מיחוש גופני שכיח',
+            topSign ? `${topSign.label} (ב-${topSign.count} מתוך ${insights.totalSightings})` : 'לא תועדו מיחושים',
+            sg.repeatAlert || '')
+        + `</div>`;
+}
+
+function insightsCyclesTableHTML(cyclesList) {
+    if (!cyclesList.length) return '';
+    const rows = cyclesList.slice().reverse().map(c => `
+        <tr${c.isPillCycle ? ' style="opacity:0.7;"' : ''}>
+            <td>${c.hdateStr}<br><small style="color:var(--text-muted);">${c.gregStr}</small></td>
+            <td>${c.ona === 'night' ? 'לילה' : 'יום'}</td>
+            <td><strong style="color:var(--primary);">${c.haflagah}</strong> ימים${c.isPillCycle ? '<br><small>(תקופת כדורים)</small>' : ''}</td>
+            <td>${c.isOutlier
+                ? `<label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85em;">
+                        <input type="checkbox" ${c.isExcluded ? 'checked' : ''}
+                            onchange="window.toggleCycleOutlierExclusion(${c.abs}, this.checked)">
+                        החרג מהממוצע
+                   </label>`
+                : '—'}</td>
+        </tr>
+    `).join('');
+    return `
+        <div class="table-wrapper" style="margin-top: 20px;">
+            <table>
+                <thead><tr><th>תאריך ראייה</th><th>עונה</th><th>הפלגה</th><th>הפלגה חריגה</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+/**
+ * מרנדרת את מסך "מדדים ותובנות" (§4.2-4.5) לתוך `#insights-container`.
+ * @param {Object} insights - `engineData.insights` (`calculateCycleInsights`)
+ */
+export function renderInsightsScreen(insights) {
+    const container = document.getElementById('insights-container');
+    if (!container || !insights) return;
+
+    if (!insights.hasEnoughData) {
+        container.innerHTML = insightsEmptyStateHTML();
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
+            <button class="action-btn btn-outline" onclick="window.printInsightsReport()">${ICONS.PRINT} הדפס דוח תובנות לרופא/רב</button>
+        </div>
+        ${insightsKPIGridHTML(insights)}
+        <div class="settings-group" style="margin-top: 10px;">
+            <h4 style="margin-bottom: 12px;">גרף מגמות — אורך המחזורים האחרונים</h4>
+            <div class="chart-scroll-x">
+                ${renderTrendGraphSVG(insights.cyclesList, {
+                    width: Math.max(700, insights.cyclesList.length * 60),
+                    averageLine: insights.cycleStats.average
+                })}
+                <div class="chart-tooltip"></div>
+            </div>
+        </div>
+        ${insightsCyclesTableHTML(insights.cyclesList)}
+    `;
+
+    wireInsightsChartTooltip(container, insights.cyclesList);
+}
+
+/**
+ * ריחוף/נגיעה בעמודות הגרף — חלונית צפה אחת, מאזין מואצל יחיד (§4.3).
+ * מאותר לפי מחלקה בתוך הקונטיינר (לא `getElementById`): האלמנטים נוצרים
+ * דינמית בכל רינדור, ואינם קיימים כ-id סטטי ב-`index.html`.
+ */
+function wireInsightsChartTooltip(container, cyclesList) {
+    const wrapper = container.querySelector('.chart-scroll-x');
+    const tooltip = container.querySelector('.chart-tooltip');
+    if (!wrapper || !tooltip) return;
+
+    const showFor = (rect, evt) => {
+        const idx = Number(rect.getAttribute('data-idx'));
+        const c = cyclesList[idx];
+        if (!c) return;
+        tooltip.innerHTML = `<b>${c.hdateStr}</b> (${c.gregStr})<br>`
+            + `${c.ona === 'night' ? 'עונת לילה' : 'עונת יום'} — הפלגה ${c.haflagah} ימים`
+            + (c.isPillCycle ? '<br>מחזור בתקופת כדורים' : '')
+            + (c.isOutlier ? '<br>הפלגה חריגה' : '');
+        tooltip.style.display = 'block';
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const x = (evt.clientX !== undefined ? evt.clientX : wrapperRect.left) - wrapperRect.left + wrapper.scrollLeft;
+        const y = (evt.clientY !== undefined ? evt.clientY : wrapperRect.top) - wrapperRect.top;
+        tooltip.style.left = `${x + 12}px`;
+        tooltip.style.top = `${Math.max(0, y - 40)}px`;
+    };
+
+    wrapper.addEventListener('mousemove', (evt) => {
+        const rect = evt.target && evt.target.closest ? evt.target.closest('rect[data-idx]') : null;
+        if (rect) showFor(rect, evt); else tooltip.style.display = 'none';
+    });
+    wrapper.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+    wrapper.addEventListener('click', (evt) => {
+        const rect = evt.target && evt.target.closest ? evt.target.closest('rect[data-idx]') : null;
+        if (rect) showFor(rect, evt);
+    });
+}
+
+/**
+ * תצוגת ההדפסה של דוח התובנות (§4.4) — מוחזרת כמחרוזת HTML, ל-`#print-container`.
+ * @param {Object} insights - `engineData.insights`
+ */
+export function buildInsightsPrintHTML(insights) {
+    if (!insights || !insights.hasEnoughData) {
+        return `<h2 style="text-align:center;">דוח ריכוז נתוני מחזור והפלגות</h2><p style="text-align:center;">אין עדיין מספיק נתונים בלוח השנה.</p>`;
+    }
+    const c = insights.cycleStats, b = insights.bleedStats;
+    const rows = insights.cyclesList.slice().reverse().map(cy => `
+        <tr>
+            <td>${cy.hdateStr} (${cy.gregStr})</td>
+            <td>${cy.ona === 'night' ? 'לילה' : 'יום'}</td>
+            <td>${cy.haflagah}${cy.isPillCycle ? ' (כדורים)' : ''}</td>
+            <td>${cy.isOutlier ? 'הפלגה חריגה' : ''}</td>
+        </tr>
+    `).join('');
+
+    return `
+        <div style="max-width: 700px; margin: 0 auto; font-family: inherit;">
+            <h2 style="text-align:center; margin-bottom: 4px;">דוח ריכוז נתוני מחזור והפלגות</h2>
+            <p style="text-align:center; color:#555; font-size:0.85em; margin-bottom: 20px;">
+                המידע מתבסס על מודלים סטטיסטיים של לוח השנה — משוער בלבד, ואינו תחליף לייעוץ רפואי.
+            </p>
+            <table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">
+                <tr><td style="padding:4px; border:1px solid #ccc;"><b>אורך מחזור ממוצע</b></td><td style="padding:4px; border:1px solid #ccc;">${c.average ?? '-'} ימים (חציון ${c.median ?? '-'}, טווח ${c.min ?? '-'}–${c.max ?? '-'})</td></tr>
+                <tr><td style="padding:4px; border:1px solid #ccc;"><b>משך דימום ממוצע</b></td><td style="padding:4px; border:1px solid #ccc;">${b.averageDuration ?? '-'} ימים</td></tr>
+                <tr><td style="padding:4px; border:1px solid #ccc;"><b>יציבות המחזור</b></td><td style="padding:4px; border:1px solid #ccc;">${c.stabilityLabel ?? '-'} (סטיית תקן ${c.stdDev ?? '-'})</td></tr>
+            </table>
+            <h3 style="margin-bottom: 8px;">המחזורים האחרונים</h3>
+            <table style="width:100%; border-collapse: collapse;">
+                <thead><tr>
+                    <th style="padding:4px; border:1px solid #ccc;">תאריך ראייה</th>
+                    <th style="padding:4px; border:1px solid #ccc;">עונה</th>
+                    <th style="padding:4px; border:1px solid #ccc;">הפלגה</th>
+                    <th style="padding:4px; border:1px solid #ccc;">הערות</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div style="margin-top: 50px;">
+                <p style="border-top: 1px solid #000; padding-top: 6px; width: 60%;">הערות רופא/רב:</p>
+                <div style="height: 80px;"></div>
+                <p style="border-top: 1px solid #000; padding-top: 6px; width: 40%;">חתימה:</p>
+            </div>
+        </div>
+    `;
 }

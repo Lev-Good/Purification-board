@@ -1,6 +1,8 @@
 import { HDate } from '../hebcal.js';
 import { calculateEngine, getMonthsInYear, shiftHebrewMonth, getYomHachodeshInfo } from './calculations.js';
 import { describeVeset } from './chazaka.js';
+import { calculateFertilityWindow, normalizeFertilitySettings } from './fertility.js';
+import { calculateCycleInsights } from './insights.js';
 import { BODY_SIGNS, BODY_VESET_RULES, bodySignLabel, bodyReminder } from './vesetGuf.js';
 import { CHECK_DEPTH_LABELS, isCheckPart, checkPartsOf, checkPartLabel } from './akira.js';
 import {
@@ -21,7 +23,9 @@ import {
     getSavedPin,
     getBodyReminderSeen, setBodyReminderSeen,
     getStringencies, saveStringencies,
-    getSavedLocation, saveLocation
+    getSavedLocation, saveLocation,
+    getFertilitySettings, saveFertilitySettings,
+    getFertilityOutlierOverrides, saveFertilityOutlierOverrides
 } from './storage.js';
 import { STRINGENCY_DEFS, normalizeStringencies, stringencyOn } from './stringencies.js';
 import { DILUG_CODE } from './vesetDilug.js';
@@ -37,9 +41,10 @@ import {
     setupPinInputListeners, checkInitialLock, 
     setupNewPin, verifyPin, updatePinSetting 
 } from './security.js';
-import { 
-    switchView, initJumpMenu, updateMonthList, 
-    syncSelectors, renderScreenCalendar, buildMonthGridHTML 
+import {
+    switchView, initJumpMenu, updateMonthList,
+    syncSelectors, renderScreenCalendar, buildMonthGridHTML,
+    buildInsightsPrintHTML
 } from './ui.js';
 import { 
     initGoogleBackup, onDataChanged,
@@ -250,6 +255,24 @@ function engineOptions() {
 }
 
 /**
+ * נקודת החישוב היחידה עבור `engineData` בכל האפליקציה: מריצה את המנוע ההלכתי,
+ * ומצרפת אליו את חלון הפוריות המשוער (`engineData.fertility`) ואת תובנות המחזור
+ * (`engineData.insights`) — `docs/SPEC_FERTILITY_INSIGHTS.md`. שתי התכונות כבויות
+ * כברירת מחדל (הפוריות) או קלות-חישוב (התובנות), ואינן נוגעות בשום חישוב הלכתי —
+ * הן רק קוראות מתוך `engineData`/`db` המוכנים.
+ *
+ * @param {boolean} [isOrZaruaOverride] - כשלא מועבר, נקרא ממתג ההגדרות הרגיל.
+ */
+function computeEngineData(isOrZaruaOverride) {
+    const isOrZarua = typeof isOrZaruaOverride === 'boolean' ? isOrZaruaOverride : isOrZaruaEnabled();
+    const engineData = calculateEngine(db, isOrZarua, engineOptions());
+    engineData.fertility = calculateFertilityWindow(db, engineData, getFertilitySettings());
+    const overrides = getFertilityOutlierOverrides();
+    engineData.insights = calculateCycleInsights(db, { excludedAbs: overrides.excluded, includedAbs: overrides.included });
+    return engineData;
+}
+
+/**
  * מרנדר את מתגי החומרא למסך ההגדרות, מן ההגדרות שבמודול — ובכללם מקורותיהם.
  * כך הוספת מתג אינה דורשת נגיעה ב-HTML.
  */
@@ -319,6 +342,81 @@ window.saveLocationSetting = function() {
     saveLocation(locationById(select.value) ? select.value : '');
     renderLocationSetting();
     showToast(locationById(select.value) ? 'המיקום נשמר — זמני הנץ והשקיעה יוצגו.' : 'המיקום הוסר.');
+    refreshCalendar();
+};
+
+// ---------- חלון ביוץ ופוריות (docs/SPEC_FERTILITY_INSIGHTS.md §3.5) ----------
+
+const FERTILITY_DISCLAIMER_SHORT = 'זהו חישוב משוער בלבד ואינו תחליף לייעוץ רפואי.';
+
+function renderFertilitySettings() {
+    const settings = normalizeFertilitySettings(getFertilitySettings());
+    const setChecked = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = value === true;
+    };
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+    setChecked('setting-fertility-enabled', settings.enabled);
+    setValue('setting-fertility-luteal', settings.lutealPhase);
+    setChecked('setting-fertility-basis-auto', settings.cycleBasis === 'auto');
+    setChecked('setting-fertility-basis-fixed', settings.cycleBasis === 'fixed');
+    setValue('setting-fertility-fixed-length', settings.fixedCycleLength);
+    setChecked('setting-fertility-conflict-alert', settings.conflictAlert);
+
+    const fixedInput = document.getElementById('setting-fertility-fixed-length');
+    if (fixedInput) fixedInput.disabled = settings.cycleBasis !== 'fixed';
+}
+
+window.toggleFertilityBasisInput = function() {
+    const basisFixed = document.getElementById('setting-fertility-basis-fixed');
+    const fixedInput = document.getElementById('setting-fertility-fixed-length');
+    if (fixedInput) fixedInput.disabled = !(basisFixed && basisFixed.checked);
+};
+
+window.saveFertilitySetting = function() {
+    const basisFixed = document.getElementById('setting-fertility-basis-fixed');
+    const settings = normalizeFertilitySettings({
+        enabled: document.getElementById('setting-fertility-enabled').checked,
+        lutealPhase: Number(document.getElementById('setting-fertility-luteal').value),
+        cycleBasis: basisFixed && basisFixed.checked ? 'fixed' : 'auto',
+        fixedCycleLength: Number(document.getElementById('setting-fertility-fixed-length').value),
+        conflictAlert: document.getElementById('setting-fertility-conflict-alert').checked
+    });
+    saveFertilitySettings(settings);
+    renderFertilitySettings();
+    showToast(settings.enabled
+        ? 'הגדרות חלון הפוריות נשמרו — מוצג בלוח ובדשבורד. ' + FERTILITY_DISCLAIMER_SHORT
+        : 'הגדרות חלון הפוריות נשמרו, אך התכונה כבויה.');
+    refreshCalendar();
+};
+
+/**
+ * תיבת הסימון "החרג הפלגה חריגה זו מחישוב הממוצע" (§4.6) — לכל מחזור בטבלת
+ * המדדים. `checked=true` פירושו החרגה מהממוצע (ברירת המחדל להפלגה שזוהתה
+ * כחריגה אוטומטית — `js/insights.js`).
+ */
+window.toggleCycleOutlierExclusion = function(abs, checked) {
+    const overrides = getFertilityOutlierOverrides();
+    const excluded = new Set(overrides.excluded);
+    const included = new Set(overrides.included);
+    if (checked) {
+        excluded.add(abs);
+        included.delete(abs);
+    } else {
+        included.add(abs);
+        excluded.delete(abs);
+    }
+    saveFertilityOutlierOverrides({ excluded: Array.from(excluded), included: Array.from(included) });
+    refreshCalendar();
+};
+
+window.clearFertilitySetting = function() {
+    saveFertilitySettings(null);
+    renderFertilitySettings();
+    showToast('הגדרות חלון הפוריות אופסו לברירת המחדל (כבוי).');
     refreshCalendar();
 };
 
@@ -479,7 +577,7 @@ function populateLifeStateForm() {
  */
 function refreshCalendar() {
     db = getDb();
-    const engineData = calculateEngine(db, isOrZaruaEnabled(), engineOptions());
+    const engineData = computeEngineData();
     renderScreenCalendar(currentHDate, db, engineData, isYearlyView);
     announceBodyReminder(engineData);
 }
@@ -561,7 +659,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 5f. המיקום לזמני הנץ והשקיעה (ספק עונה — B6)
     renderLocationSetting();
-    
+
+    // 5g. חלון ביוץ ופוריות (docs/SPEC_FERTILITY_INSIGHTS.md §3.5) — כבוי כברירת מחדל
+    renderFertilitySettings();
+
     // 6. Populate recovery email setting if saved
     const savedRecoveryEmail = getRecoveryEmail();
     const recoveryEmailInput = document.getElementById('setting-recovery-email');
@@ -1010,8 +1111,8 @@ window.sendEmailViaFormSubmit = async function() {
     saveEmail(emailInput);
     const settingsEmail = document.getElementById('setting-email');
     if (settingsEmail) settingsEmail.value = emailInput;
-    
-    const engineData = calculateEngine(db, isOrZaruaEnabled(), engineOptions());
+
+    const engineData = computeEngineData();
     
     let payload = {
         _subject: "ריכוז נתונים - לוח טהרת המשפחה",
@@ -1334,7 +1435,7 @@ function renderDayPrishaHint() {
     const box = document.getElementById('modal-prisha-hint');
     if (!box) return;
 
-    const engineData = calculateEngine(db, isOrZaruaEnabled(), engineOptions());
+    const engineData = computeEngineData();
     const list = engineData.computed.prishot[selectedAbsDate] || [];
     const entry = db[selectedAbsDate] || {};
     const lines = [];
@@ -1957,9 +2058,8 @@ window.prepareAndPrint = function() {
     const printContainer = document.getElementById('print-container');
     if (!printContainer) return;
     
-    printContainer.innerHTML = ''; 
-    const isOrZarua = isOrZaruaEnabled();
-    const engineData = calculateEngine(db, isOrZarua, engineOptions());
+    printContainer.innerHTML = '';
+    const engineData = computeEngineData();
     let activeMonths = new Set();
 
     Object.keys(db).forEach(abs => {
@@ -1999,6 +2099,20 @@ window.prepareAndPrint = function() {
     tableClone.style.border = 'none';
     printContainer.appendChild(tableClone);
 
+    window.print();
+};
+
+/**
+ * "הדפס דוח תובנות לרופא/רב" (§4.4) — מפיק תצוגת הדפסה נקייה של המדדים, גרף
+ * המגמות וטבלת המחזורים האחרונים, לתוך אותו `#print-container` המשותף.
+ */
+window.printInsightsReport = function() {
+    const printContainer = document.getElementById('print-container');
+    if (!printContainer) return;
+
+    printContainer.innerHTML = '';
+    const engineData = computeEngineData();
+    printContainer.innerHTML = buildInsightsPrintHTML(engineData.insights);
     window.print();
 };
 
