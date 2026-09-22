@@ -38,7 +38,9 @@ const KEYS = {
     CALENDAR_MORNING_TIME: 'taharahCalendarMorningTime',
     CALENDAR_SUNSET_LEAD_MIN: 'taharahCalendarSunsetLeadMin',
     CALENDAR_HEFSEK_ADVISORY_DAYS: 'taharahCalendarHefsekAdvisoryDays',
-    CALENDAR_MOCH_DACHUK: 'taharahCalendarMochDachuk'
+    CALENDAR_MOCH_DACHUK: 'taharahCalendarMochDachuk',
+    FERTILITY: 'taharahFertility',
+    FERTILITY_EXCLUDED: 'taharahFertilityExcludedOutliers'
 };
 
 /**
@@ -594,6 +596,65 @@ export function saveLocation(id) {
         localStorage.setItem(KEYS.LOCATION, String(id || ''));
     } catch (e) {
         // quota exceeded - המיקום יישאר כפי שהיה
+    }
+}
+
+/**
+ * הגדרות "חלון ביוץ ופוריות" (`js/fertility.js`, `docs/SPEC_FERTILITY_INSIGHTS.md`).
+ *
+ * הגדרה ולא רשומה: אינה נשמרת בגיבוי גוגל, כמו מצב החיים ומתגי החומרא — התכונה
+ * **כבויה כברירת מחדל** (§2 באפיון), ומחרוזת null/היעדר מפתח פירושם "כבוי".
+ */
+export function getFertilitySettings() {
+    try {
+        return JSON.parse(localStorage.getItem(KEYS.FERTILITY)) || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+export function saveFertilitySettings(settings) {
+    try {
+        if (settings === null || settings === undefined) {
+            localStorage.removeItem(KEYS.FERTILITY);
+            return;
+        }
+        localStorage.setItem(KEYS.FERTILITY, JSON.stringify(settings));
+    } catch (e) {
+        // quota exceeded - ההגדרות פשוט לא יישמרו
+    }
+}
+
+/**
+ * חריגות ידניות לחישוב ממוצע ההפלגות (§4.6 — הפלגה חריגה מאוד).
+ *
+ * הפלגה חריגה (מעל 3 סטיות תקן או מעל 60 יום) **מוחרגת מהממוצע כברירת מחדל**
+ * (תיבת הסימון באפיון מסומנת `[✔]` — כלומר מוצעת פעילה); `included` הוא הרשימה
+ * ההפוכה — הפלגות שזוהו כחריגות אך המשתמשת ביקשה במפורש לכלול בכל זאת בממוצע.
+ * `excluded` הוא חריגה ידנית נוספת, להפלגה שלא זוהתה אוטומטית. שני המערכים הם
+ * ימי abs של הראייה המאוחרת בהפלגה, ואינם חלק מה-db עצמו.
+ */
+export function getFertilityOutlierOverrides() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(KEYS.FERTILITY_EXCLUDED));
+        return {
+            excluded: Array.isArray(raw && raw.excluded) ? raw.excluded : [],
+            included: Array.isArray(raw && raw.included) ? raw.included : []
+        };
+    } catch (e) {
+        return { excluded: [], included: [] };
+    }
+}
+
+export function saveFertilityOutlierOverrides(overrides) {
+    try {
+        const o = overrides || {};
+        localStorage.setItem(KEYS.FERTILITY_EXCLUDED, JSON.stringify({
+            excluded: Array.isArray(o.excluded) ? o.excluded : [],
+            included: Array.isArray(o.included) ? o.included : []
+        }));
+    } catch (e) {
+        // quota exceeded - הרשימה תישאר כפי שהיתה
     }
 }
 

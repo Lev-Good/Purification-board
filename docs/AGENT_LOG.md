@@ -1,5 +1,99 @@
 # יומן עבודה
 
+## 2026-09-22 — חלון ביוץ ופוריות ומסך תובנות (מימוש `docs/SPEC_FERTILITY_INSIGHTS.md`)
+
+### מטרה
+
+מימוש מלא של שני הפרקים באפיון: חלון ביוץ ופוריות משוער (עם זיהוי "עקרות
+הלכתית") ומסך סטטיסטיקה ותובנות אישיות (KPIs, גרף SVG, דוח הדפסה). התכונה
+כבויה כברירת מחדל, Local-first, ונושאת הבהרה רפואית/הלכתית מפורשת.
+
+### בוצע
+
+1. **`js/fertility.js` (חדש):** `calculateFertilityWindow(db, engineData, settings)`
+   — יום ביוץ משוער, חלון פוריות (7 ימים), זיהוי עקרות הלכתית מול
+   `engineData.computed.tevilot`, כיבוי אוטומטי בהריון פתוח/נטילת כדורים, ובסיס
+   חישוב לפי וסת הפלגה קבוע / ממוצע הפלגות תקפות / ברירת מחדל 28 יום.
+2. **`js/insights.js` (חדש):** `calculateCycleInsights(db, options)` +
+   `renderTrendGraphSVG(cyclesList, options)` — סטטיסטיקה עצמאית (לא תלויה
+   ב-`calculateEngine`): ממוצע/חציון/סטיית תקן, משך דימום ומצב הפסק שכיח, הצלחת
+   שבעה נקיים, פילוח יום/לילה ויום-שבוע, שכיחות מיחושים, זיהוי הפלגה חריגה
+   (מוחרגת מהממוצע כברירת מחדל), וגרף SVG טהור עם tooltip.
+3. **`js/storage.js`:** `getFertilitySettings`/`saveFertilitySettings` +
+   `getFertilityOutlierOverrides`/`saveFertilityOutlierOverrides` (לא בגיבוי גוגל).
+4. **`js/app.js`:** `computeEngineData()` — עטיפה יחידה שמחליפה 4 קריאות ישנות
+   ל-`calculateEngine` ומצרפת `engineData.fertility`/`engineData.insights`;
+   פונקציות שמירת/איפוס הגדרות פוריות; `printInsightsReport()`.
+5. **`js/ui.js`:** סימוני חלון פוריות/שיא בלוח (חודשי ושנתי, `fertilityCellInfo`
+   — לא תלוי ברשומה), כרטיס דשבורד מצטרף (`buildFertilityDashboardCard`), מסך
+   "מדדים ותובנות" מלא (`renderInsightsScreen`, `buildInsightsPrintHTML`).
+6. **`index.html`:** לשונית/מסך "מדדים ותובנות" חדש, מקטע הגדרות "פוריות וביוץ"
+   (סגור וכבוי כברירת מחדל), וההבהרה הרפואית בארבע הופעות.
+7. **`js/icons.js`:** `LEAF`, `TARGET`, `TRENDING_UP`. **`css/style.css`:**
+   `--teal`, `.bg-teal`, `--fertility-window-bg`/`--fertility-peak-bg`,
+   `.insights-grid`/`.insight-card`, `.chart-scroll-x`/`.chart-tooltip`.
+8. **`js/halachaHelp.js`:** נושא `fertility_window` — מסומן במפורש כהסבר
+   כללי-רפואי, **בלי** מראה מקום מ"שיעורי טהרה" (הספר אינו עוסק בכך).
+
+### קבצים שהושפעו
+
+`js/fertility.js`, `js/insights.js`, `tests/fertility.test.js`, `tests/insights.test.js`
+(חדשים) · `js/app.js`, `js/ui.js`, `js/storage.js`, `js/icons.js`, `js/halachaHelp.js`,
+`index.html`, `css/style.css`, `package.json` (שרשרת `npm test`) · `docs/SPEC_FERTILITY_INSIGHTS.md`
+(הועבר לתוך ה-worktree ועודכן סטטוס), `docs/DECISIONS.md`, `docs/ARCHITECTURE.md`, `docs/TASKS.md`.
+
+### בדיקות
+
+- `npm test` — **777 בדיקות עברו (21/21 קבצים)**, כולל שני קבצי הבדיקה החדשים
+  (28 בדיקות ב-`fertility.test.js`, 18 ב-`insights.test.js`), שנוספו לשרשרת
+  ה-script של `package.json`.
+- `npm run verify:sources` — **לא רץ בהצלחה בסביבה זו**: הכלי מחפש את קובץ
+  התמלול `מקורות - תמלולים/שיעורי טהרה.txt`, שאינו קיים ב-worktree הזה (קובץ
+  מקומי המוחרג מ-git, ולא הועתק לכאן). לא קשור לשינוי הנוכחי — נושא ההסבר החדש
+  ממילא אינו מכיל ציטוט `[שט ...]` שהכלי בודק.
+- **סיור ידני בדפדפן** (שרת סטטי מקומי, `python -m http.server`, לא Electron):
+  - Empty state במסך התובנות בלי נתונים — מוצג נכון עם ההבהרה.
+  - הוזרעו 4 ראיות + 4 הפסקים ל-`localStorage['taharahDB']` דרך קונסולת הדפדפן:
+    מסך התובנות הציג נכון את כל ששת כרטיסי ה-KPI, גרף SVG עם קווי ייחוס/ממוצע,
+    וטבלת 3 מחזורים.
+  - סימוני הלוח (חודשי): 7 ימים מסומנים בטורקיז — 5 "חלון פוריות" ו-2 "ביוץ משוער
+    (שיא)" — במיקום הצפוי בדיוק, עם tooltip הכולל את ההבהרה המלאה.
+  - תרחיש עקרות הלכתית מבוים (הפסק מוקדם + מחזור קצוב קצר): `conflict:'before'`
+    התקבל דרך `calculateEngine`/`calculateFertilityWindow` האמיתיים (לא מדומים),
+    וכרטיס הדשבורד הציג את ההתרעה בענבר עם ההבהרה.
+  - כיבוי אוטומטי בהריון פתוח (`pregnancyAbs` בלי `birthAbs`) אומת דרך אותו
+    צינור אמיתי — `enabled:false, disabledReason:'pregnant'`.
+  - טופס ההגדרות: אכלס נכון מהאחסון, מתג הרדיו (אוטומטי/קבוע) הפעיל/כיבה את
+    שדה האורך הקבוע כראוי.
+  - דוח ההדפסה (`printInsightsReport`) בנה HTML תקין לתוך `#print-container`
+    וקרא ל-`window.print()`.
+  - ניווט מובייל (375px): כל ששת פריטי `.bottom-nav` (כולל "תובנות" החדש) נכנסים
+    ברוחב המסך בלי חריגה.
+  - `read_console_messages` — ללא שגיאות בשום שלב מכל הסיור.
+
+### בעיות שנתקלנו בהן ופתרונן
+
+- **`tests/integrity.test.js` נכשל בסבב ראשון:** שני `getElementById` חדשים
+  ב-`js/ui.js` (`insights-chart-wrapper`/`insights-chart-tooltip`) לא נמצאו
+  ב-`index.html` — כי אותם אלמנטים נוצרים דינמית בכל רינדור מסך התובנות, ולא
+  קיימים כ-id סטטי. **הפתרון:** הוסרו ה-id-ים, והקוד עבר ל-`container.querySelector`
+  יחסי לקונטיינר שזה עתה מולא, בהתאמה לכלל שאוכף `tests/integrity.test.js`
+  (כל `getElementById` חייב id סטטי קיים ב-HTML).
+- **`docs/SPEC_FERTILITY_INSIGHTS.md` לא היה קיים ב-worktree:** המשתמש הפנה
+  למסמך בנתיב המאגר הראשי (`main`), שם הוא קובץ **לא-עקוב** (`git status: ??`)
+  — worktrees אינם משתפים קבצים לא-עקובים. הועתק תוכנו לתוך ה-worktree (עם
+  עדכון כותרת הסטטוס ל"מומש"), כדי שהתיעוד וההפניות אליו (`DECISIONS.md`
+  וכו') יהיו שלמים גם בענף הזה.
+
+### סטטוס
+
+הושלם. `npm test` ירוק במלואו; סיור ידני מלא בדפדפן ללא שגיאות. לא נבדק
+בפועל בתוך Electron (`npm start`) — הסיור בוצע בדפדפן רגיל מול שרת סטטי, שכן
+זו אפליקציית ווב/PWA טהורה (ר' `docs/ARCHITECTURE.md`) והתכונה אינה נוגעת
+בקוד ה-Electron-ספציפי (`main.js`/`preload.js`).
+
+---
+
 ## 2026-09-22 — צמצום שוליים בפריסת הדסקטופ (סרגל צד יציב יותר)
 
 ### מטרה
