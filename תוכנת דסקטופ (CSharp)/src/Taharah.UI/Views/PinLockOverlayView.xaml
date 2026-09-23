@@ -1,0 +1,116 @@
+﻿<UserControl x:Class="Taharah.UI.Views.PinLockOverlayView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800"
+             FlowDirection="RightToLeft">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:BoolToVisibilityConverter x:Key="InverseBoolToVis" Invert="True"/>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource AppBorderBrush}">
+        <Border Background="{DynamicResource SurfaceBrush}" 
+                CornerRadius="16" 
+                Padding="36" 
+                MaxWidth="420" 
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Center"
+                BorderBrush="{DynamicResource BorderLightBrush}" 
+                BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" Color="#000000" Opacity="0.12" Direction="270" ShadowDepth="4"/>
+            </Border.Effect>
+
+            <StackPanel HorizontalAlignment="Stretch">
+                <TextBlock Text="🔒" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                <TextBlock Text="לוח טהרה — מערכת נעולה" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" HorizontalAlignment="Center"/>
+                <TextBlock Text="הזיני את קוד ה-PIN האישי לפתיחת הלוח" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,4,0,24"/>
+
+                <!-- PIN Input Box -->
+                <PasswordBox x:Name="PinPasswordBox" 
+                             PasswordChanged="OnPasswordChanged"
+                             FontSize="22" 
+                             HorizontalContentAlignment="Center" 
+                             Padding="10" 
+                             Margin="0,0,0,12" 
+                             BorderBrush="{DynamicResource BorderLightBrush}" 
+                             BorderThickness="1"/>
+
+                <TextBlock Text="{Binding PinErrorMessage}" 
+                           Foreground="#DC2626" 
+                           FontSize="12" 
+                           HorizontalAlignment="Center" 
+                           Margin="0,0,0,14"
+                           Visibility="{Binding PinErrorMessage.Length, Converter={StaticResource BoolToVis}}"/>
+
+                <Button Content="שחרר נעילה (Enter)" 
+                        Command="{Binding UnlockAppCommand}"
+                        Background="#0F172A" 
+                        Foreground="#FFFFFF" 
+                        FontWeight="Bold" 
+                        FontSize="14" 
+                        Padding="14,10" 
+                        Cursor="Hand" 
+                        HorizontalAlignment="Stretch">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Forgot-PIN alternative (js/security.js's toggleForgotPasswordView) -->
+                <TextBlock Text="שכחתי קוד גישה"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           FontSize="12.5"
+                           HorizontalAlignment="Center"
+                           Margin="0,14,0,0"
+                           Cursor="Hand"
+                           TextDecorations="Underline">
+                    <TextBlock.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding ToggleForgotPinPanelCommand}"/>
+                    </TextBlock.InputBindings>
+                </TextBlock>
+
+                <StackPanel Visibility="{Binding IsForgotPinPanelOpen, Converter={StaticResource BoolToVis}}" Margin="0,14,0,0">
+                    <Border BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1,0,0,0" Margin="0,0,0,12"/>
+
+                    <StackPanel Visibility="{Binding SettingsVm.GoogleConnected, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="ניתן לשחזר את הנתונים ואת קוד ה-PIN מהגיבוי האחרון שנשמר בחשבון הגוגל המחובר במחשב זה. פעולה זו תחליף את הנתונים המקומיים בנתוני הגיבוי."
+                                   FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <Button Content="שחזר מגוגל והיכנס"
+                                Command="{Binding RestoreFromGoogleAndEnterCommand}"
+                                Background="{DynamicResource PrimaryBrush}"
+                                Foreground="#FFFFFF"
+                                FontWeight="Bold"
+                                FontSize="13"
+                                Padding="12,9"
+                                Cursor="Hand"
+                                HorizontalAlignment="Stretch">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+
+                    <TextBlock Visibility="{Binding SettingsVm.GoogleConnected, Converter={StaticResource InverseBoolToVis}}"
+                               Text="לא מחובר חשבון גוגל במחשב זה, ולכן אין אפשרות שחזור אוטומטית. יש לפנות למי שהתקינה את התוכנה, או לבדוק אם קוד ה-PIN נשמר במקום אחר."
+                               FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
+
+

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Taharah.Core/Taharah.Core.csproj" />
+    <Project Path="src/Taharah.Infrastructure/Taharah.Infrastructure.csproj" />
+    <Project Path="src/Taharah.UI/Taharah.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Taharah.Core.Tests/Taharah.Core.Tests.csproj" />
+  </Folder>
+</Solution>
