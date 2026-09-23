@@ -26,6 +26,26 @@ public static class VesetEngine
         return (year, m);
     }
 
+    /// <summary>
+    /// Advances by <paramref name="months"/> whole Hebrew months, one single-month step at a
+    /// time via ShiftHebrewMonth(..., 1). ShiftHebrewMonth itself is only correct for
+    /// direction ±1 - its year handling is hard-coded to the two Tishrei/Elul special cases and
+    /// its general branch never changes the year at all, so calling it directly with a
+    /// multi-month direction (as veset "sirug"'s MonthInterval, 2 or 3) silently produces a
+    /// (year, month) pair that can cycle forever without the year ever advancing - an infinite
+    /// loop in ProjectFixedVeset's sirug branch, found and fixed via code review (2026-09-23;
+    /// confirmed by reproducing a genuine testhost hang/crash before this fix).
+    /// </summary>
+    private static (int Year, int Month) ShiftHebrewMonths(int year, int month, int months)
+    {
+        var cur = (Year: year, Month: month);
+        for (int i = 0; i < months; i++)
+        {
+            cur = ShiftHebrewMonth(cur.Year, cur.Month, 1);
+        }
+        return cur;
+    }
+
     public static int? BuildExactDay(int day, int month, int year)
     {
         try
@@ -288,6 +308,40 @@ public static class VesetEngine
                 cur = ShiftHebrewMonth(cur.Year, cur.Month, 1);
             }
         }
+        else if (veset.Kind == "sirug" && veset.DayOfMonth.HasValue && veset.MonthInterval.HasValue)
+        {
+            (int Year, int Month) cur;
+            if (!fromAbs.HasValue)
+            {
+                // Unlike month/haflagah/dilug (whose phase is self-correcting via a cycle index
+                // or a plain fixed step), sirug's fixed month-interval stepping needs its OWN
+                // last establishing sighting as the phase anchor - not the caller's shared
+                // "last counted reiyah across all history" (lastCounted/anchorAbs), which could
+                // be a later, unrelated reiyah that lands in a month off-phase from the real
+                // interval and would shift every future projected occurrence onto the wrong month.
+                int? ownAnchorAbs = veset.EstablishedBy?.Count > 0 ? veset.EstablishedBy[^1] : null;
+                var h = ownAnchorAbs.HasValue ? new HDate(ownAnchorAbs.Value) : (lastCounted?.HDate ?? new HDate(anchorAbs));
+                cur = ShiftHebrewMonths(h.Year, h.Month, veset.MonthInterval.Value);
+            }
+            else
+            {
+                var h = new HDate(fromAbs.Value);
+                cur = (h.Year, h.Month);
+            }
+            int day = veset.DayOfMonth.Value;
+            while (true)
+            {
+                var monthStart = BuildExactDay(1, cur.Month, cur.Year);
+                if (!monthStart.HasValue || monthStart.Value > horizon) break;
+                var exact = BuildExactDay(day, cur.Month, cur.Year);
+                if (exact.HasValue && InRange(exact.Value))
+                {
+                    entries.Add((exact.Value, veset.Ona, "וק\"סר",
+                        $"{label} - וסת הסירוג (יום {ChazakaManager.HebDayOfMonth(day)} בחודש, {onaText}; {veset.Label})"));
+                }
+                cur = ShiftHebrewMonths(cur.Year, cur.Month, veset.MonthInterval.Value);
+            }
+        }
 
         return entries;
     }
@@ -385,7 +439,11 @@ public static class VesetEngine
         bool useChazaka = options == null || options.Chazaka;
         // Stringency sharpFoodOnes (default off): the dissenting view treats a sharp-food
         // sighting like an ones/jump - excluded from the chazaka count entirely.
-        var chazaka = useChazaka ? ChazakaManager.AnalyzeChazaka(reiyot, Stringencies.On(stringencies, "sharpFoodOnes")) : null;
+        // Stringency mevuchaDays (default on = Ashkenaz minhag): edot hamizrach don't hold of
+        // "yemei hamevucha" at all - הלכות טהרה הר"ע פריד פרק כז חלק ו, עמ' 97 סעיף לז.
+        var chazaka = useChazaka
+            ? ChazakaManager.AnalyzeChazaka(reiyot, Stringencies.On(stringencies, "sharpFoodOnes"), Stringencies.On(stringencies, "mevuchaDays"))
+            : null;
 
         if (chazaka != null)
         {

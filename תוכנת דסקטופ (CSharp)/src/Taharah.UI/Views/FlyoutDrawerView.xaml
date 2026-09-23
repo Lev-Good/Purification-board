@@ -230,10 +230,13 @@
                                 <TextBlock Text="גורם הראייה:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                 <RadioButton Content="רגילה - ללא גורם חיצוני" IsChecked="{Binding NewEntry.IsKindRegular, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,4" FontSize="12.5"/>
                                 <RadioButton GroupName="ReiyahKindGroup" IsChecked="{Binding NewEntry.IsKindOnes, Mode=TwoWay}" Margin="0,0,0,4" FontSize="12.5">
-                                    <TextBlock Text="מחמת אונס / קפיצה - אינה נספרת לקביעת וסת" TextWrapping="Wrap"/>
+                                    <TextBlock Text="מחמת אונס - אינה נספרת לקביעת וסת" TextWrapping="Wrap"/>
                                 </RadioButton>
                                 <RadioButton Content="מחמת מאכלים חריפים - נספרת כמו וסת הגוף" IsChecked="{Binding NewEntry.IsKindSharp, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,4" FontSize="12.5"/>
-                                <RadioButton Content="מחמת כדורים" IsChecked="{Binding NewEntry.IsKindPills, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,10" FontSize="12.5"/>
+                                <RadioButton Content="מחמת כדורים" IsChecked="{Binding NewEntry.IsKindPills, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,4" FontSize="12.5"/>
+                                <RadioButton GroupName="ReiyahKindGroup" IsChecked="{Binding NewEntry.IsKindKefitza, Mode=TwoWay}" Margin="0,0,0,10" FontSize="12.5">
+                                    <TextBlock Text="מחמת קפיצה - וסת הקפיצות (נספרת לעונה בינונית, ולמסלול קביעה נפרד)" TextWrapping="Wrap"/>
+                                </RadioButton>
 
                                 <CheckBox Content="ספק עונה - איני בטוחה אם הראייה היתה בעונה זו או בקודמתה" IsChecked="{Binding NewEntry.IsSafekOna}" Margin="0,0,0,6" FontSize="12.5"/>
                                 <CheckBox Content="המשך ראייה קודמת (אינו קובע הפלגה)" IsChecked="{Binding NewEntry.ContinuesPrevious}" Margin="0,0,0,6" FontSize="12.5"/>

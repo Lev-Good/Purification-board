@@ -170,6 +170,9 @@ public partial class SettingsViewModel : ObservableObject
     private bool _sharpFoodOnes;
 
     [ObservableProperty]
+    private bool _mevuchaDays = true;
+
+    [ObservableProperty]
     private bool _hasPin;
 
     [ObservableProperty]
@@ -322,7 +325,8 @@ public partial class SettingsViewModel : ObservableObject
         ["vesetHagufBedika"] = VesetHagufBedika,
         ["karetiUfaletei"] = KaretiUfaletei,
         ["vesetFromBedika"] = VesetFromBedika,
-        ["sharpFoodOnes"] = SharpFoodOnes
+        ["sharpFoodOnes"] = SharpFoodOnes,
+        ["mevuchaDays"] = MevuchaDays
     };
 
     /// <summary>Builds the settings object GoogleCalendarManager.BuildExpectedEvents expects.</summary>
@@ -363,8 +367,8 @@ public partial class SettingsViewModel : ObservableObject
     {
         get
         {
-            if (OrZarua && OrZaruaDay31 && KaretiUfaletei) return "ashkenaz";
-            if (!OrZarua && !OrZaruaDay31 && !KaretiUfaletei) return "sepharad";
+            if (OrZarua && OrZaruaDay31 && KaretiUfaletei && VesetHagufBedika && MevuchaDays) return "ashkenaz";
+            if (!OrZarua && !OrZaruaDay31 && !KaretiUfaletei && !VesetHagufBedika && !MevuchaDays) return "sepharad";
             return "custom";
         }
         set
@@ -374,15 +378,19 @@ public partial class SettingsViewModel : ObservableObject
                 OrZarua = true;
                 OrZaruaDay31 = true;
                 KaretiUfaletei = true;
+                VesetHagufBedika = true;
+                MevuchaDays = true;
             }
             else if (value == "sepharad")
             {
                 OrZarua = false;
                 OrZaruaDay31 = false;
                 KaretiUfaletei = false;
+                VesetHagufBedika = false;
+                MevuchaDays = false;
             }
             // "custom" is never set explicitly - it is only ever read back once one of the
-            // three switches no longer matches a full profile.
+            // five switches no longer matches a full profile.
             OnPropertyChanged();
         }
     }
@@ -390,6 +398,8 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnOrZaruaChanged(bool value) => OnPropertyChanged(nameof(MinhagProfile));
     partial void OnOrZaruaDay31Changed(bool value) => OnPropertyChanged(nameof(MinhagProfile));
     partial void OnKaretiUfaleteiChanged(bool value) => OnPropertyChanged(nameof(MinhagProfile));
+    partial void OnVesetHagufBedikaChanged(bool value) => OnPropertyChanged(nameof(MinhagProfile));
+    partial void OnMevuchaDaysChanged(bool value) => OnPropertyChanged(nameof(MinhagProfile));
 
     private void ApplyStringenciesDict(Dictionary<string, bool> raw)
     {
@@ -407,6 +417,7 @@ public partial class SettingsViewModel : ObservableObject
         KaretiUfaletei = normalized["karetiUfaletei"];
         VesetFromBedika = normalized["vesetFromBedika"];
         SharpFoodOnes = normalized["sharpFoodOnes"];
+        MevuchaDays = normalized["mevuchaDays"];
     }
 
     public async Task LoadSettingsAsync()

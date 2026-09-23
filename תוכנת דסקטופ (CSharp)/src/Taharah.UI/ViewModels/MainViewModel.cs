@@ -693,7 +693,7 @@ public partial class MainViewModel : ObservableObject
                 dayVm.Badges.Add(new DayBadgeViewModel
                 {
                     Text = "ראייה",
-                    Tooltip = $"ראייה בעונת {onaText}" + (dayEntry.Kind == "ones" ? " (אונס)" : string.Empty),
+                    Tooltip = $"ראייה בעונת {onaText}" + (dayEntry.Kind == "ones" ? " (אונס)" : dayEntry.Kind == "kefitza" ? " (קפיצה)" : string.Empty),
                     Category = BadgeCategory.Sighting,
                     Ona = onaText
                 });

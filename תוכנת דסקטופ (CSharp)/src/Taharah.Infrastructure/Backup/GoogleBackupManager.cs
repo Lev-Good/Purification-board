@@ -66,17 +66,21 @@ public static class GoogleBackupManager
     private static readonly Dictionary<string, string> KindLabels = new()
     {
         ["regular"] = "רגילה",
-        ["ones"] = "אונס / קפיצה",
+        ["ones"] = "אונס",
         ["sharp"] = "מאכל חריף",
-        ["pills"] = "כדורים"
+        ["pills"] = "כדורים",
+        ["kefitza"] = "קפיצה"
     };
 
+    /// <summary>Includes "אונס / קפיצה" for backward compatibility with backups written before "קפיצה" (וסת הקפיצות) became its own Kind, separate from "ones" - restoring an old backup must still round-trip, not silently drop into "regular".</summary>
     private static readonly Dictionary<string, string> KindFromLabel = new()
     {
         ["רגילה"] = "regular",
+        ["אונס"] = "ones",
         ["אונס / קפיצה"] = "ones",
         ["מאכל חריף"] = "sharp",
-        ["כדורים"] = "pills"
+        ["כדורים"] = "pills",
+        ["קפיצה"] = "kefitza"
     };
 
     private static readonly Dictionary<string, string> MarkLabels = new()

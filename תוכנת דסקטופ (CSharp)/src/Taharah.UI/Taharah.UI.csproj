@@ -17,6 +17,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
+    <!-- No version was ever set here before (defaulted silently to 1.0.0.0), which made
+         UpdateCheckerService.cs always report a false "update available" against the shared
+         GitHub repo's actual releases (package.json is at 3.2.0). Aligned with that instead of
+         inventing a separate C#-only scheme. -->
+    <Version>3.2.0</Version>
+    <AssemblyVersion>3.2.0.0</AssemblyVersion>
+    <FileVersion>3.2.0.0</FileVersion>
   </PropertyGroup>
 
 </Project>

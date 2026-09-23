@@ -288,9 +288,9 @@ public class StringencyTests
     }
 
     [Fact]
-    public void StringencyDefs_AllThirteenPresent_WithDocumentedDefaults()
+    public void StringencyDefs_AllFourteenPresent_WithDocumentedDefaults()
     {
-        Assert.Equal(13, Stringencies.Defs.Count);
+        Assert.Equal(14, Stringencies.Defs.Count);
 
         bool DefaultOf(string key) => Stringencies.Defs.First(d => d.Key == key).Default;
 
@@ -307,6 +307,7 @@ public class StringencyTests
         Assert.False(DefaultOf("karetiUfaletei"));
         Assert.False(DefaultOf("vesetFromBedika"));
         Assert.False(DefaultOf("sharpFoodOnes"));
+        Assert.True(DefaultOf("mevuchaDays"));
     }
 
     [Fact]
@@ -315,9 +316,31 @@ public class StringencyTests
         var raw = new Dictionary<string, bool> { ["safekOnaBoth"] = true, ["notARealKey"] = true };
         var normalized = Stringencies.Normalize(raw);
 
-        Assert.Equal(13, normalized.Count);
+        Assert.Equal(14, normalized.Count);
         Assert.True(normalized["safekOnaBoth"]);
         Assert.False(normalized.ContainsKey("notARealKey"));
         Assert.True(normalized["orZaruaDay31"]); // missing key falls back to its own default
+    }
+
+    [Fact]
+    public void MevuchaDays_Off_SuppressesMevuchaVeset()
+    {
+        // Same alternating-days scenario as VesetMevuchaTests.DetectAlternatingDays_Established:
+        // כ"ז וכ"ט בכל אחד מג' חודשים - stringency mevuchaDays gates whether it establishes a veset.
+        static int D(int day, int month, int year) => new HDate(day, month, year).Abs();
+        static ReiyahEvent Reiyah(int abs) => new() { Abs = abs, Ona = OnaType.Day, HDate = new HDate(abs) };
+
+        var reiyot = new List<ReiyahEvent>();
+        foreach (var month in new[] { 1, 2, 3 })
+        {
+            reiyot.Add(Reiyah(D(27, month, 5786)));
+            reiyot.Add(Reiyah(D(29, month, 5786)));
+        }
+
+        var withMevucha = ChazakaManager.AnalyzeChazaka(reiyot, sharpFoodAsOnes: false, includeMevucha: true);
+        Assert.Contains(withMevucha.Established, v => v.Kind == "mevucha");
+
+        var withoutMevucha = ChazakaManager.AnalyzeChazaka(reiyot, sharpFoodAsOnes: false, includeMevucha: false);
+        Assert.DoesNotContain(withoutMevucha.Established, v => v.Kind == "mevucha");
     }
 }

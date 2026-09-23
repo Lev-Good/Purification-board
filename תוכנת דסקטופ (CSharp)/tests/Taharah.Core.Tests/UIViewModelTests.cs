@@ -347,24 +347,28 @@ public class UIViewModelTests
     }
 
     [Fact]
-    public void MinhagProfile_SettingAshkenaz_SetsAllThreeSwitches()
+    public void MinhagProfile_SettingAshkenaz_SetsAllFiveSwitches()
     {
         var vm = new SettingsViewModel(null!, null!);
         vm.MinhagProfile = "ashkenaz";
         Assert.True(vm.OrZarua);
         Assert.True(vm.OrZaruaDay31);
         Assert.True(vm.KaretiUfaletei);
+        Assert.True(vm.VesetHagufBedika);
+        Assert.True(vm.MevuchaDays);
         Assert.Equal("ashkenaz", vm.MinhagProfile);
     }
 
     [Fact]
-    public void MinhagProfile_SettingSepharad_ClearsAllThreeSwitches()
+    public void MinhagProfile_SettingSepharad_ClearsAllFiveSwitches()
     {
         var vm = new SettingsViewModel(null!, null!);
         vm.MinhagProfile = "sepharad";
         Assert.False(vm.OrZarua);
         Assert.False(vm.OrZaruaDay31);
         Assert.False(vm.KaretiUfaletei);
+        Assert.False(vm.VesetHagufBedika);
+        Assert.False(vm.MevuchaDays);
         Assert.Equal("sepharad", vm.MinhagProfile);
     }
 

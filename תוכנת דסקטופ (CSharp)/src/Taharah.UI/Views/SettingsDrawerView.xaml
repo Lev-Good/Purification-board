@@ -222,6 +222,9 @@
                             <CheckBox Content="מאכל חריף - כוסת האונס (לא נספרת לחזקה לבדה)"
                                       ToolTip="כרגע: ראייה מחמת מאכל חריף נספרת לחזקה כוסת הגוף. במתג זה: דינה כוסת האונס, ואינה קובעת וסת לבדה."
                                       IsChecked="{Binding SettingsVm.SharpFoodOnes}" Margin="0,0,0,8" FontSize="12.5"/>
+                            <CheckBox Content="ימי המבוכה - חומרת הרמ&quot;א"
+                                      ToolTip="מנהג אשכנז: שני ימים מתחלפים (ג' פעמים כל אחד) נחשבים וסת קבוע לשניהם. עדות המזרח אינם חוששים לכך כלל - מקושר ל'פרופיל מנהג' למעלה."
+                                      IsChecked="{Binding SettingsVm.MevuchaDays}" Margin="0,0,0,8" FontSize="12.5"/>
                         </StackPanel>
                     </Border>
 
