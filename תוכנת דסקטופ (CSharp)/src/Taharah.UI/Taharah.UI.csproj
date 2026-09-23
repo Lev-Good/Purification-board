@@ -21,6 +21,10 @@
          UpdateCheckerService.cs always report a false "update available" against the shared
          GitHub repo's actual releases (package.json is at 3.2.0). Aligned with that instead of
          inventing a separate C#-only scheme. -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <AssemblyName>Taharah</AssemblyName>
+    <Product>לוח טהרה (הלכות טהרה - הרב עמרם פריד)</Product>
+    <Authors>Lev Good</Authors>
     <Version>3.2.0</Version>
     <AssemblyVersion>3.2.0.0</AssemblyVersion>
     <FileVersion>3.2.0.0</FileVersion>

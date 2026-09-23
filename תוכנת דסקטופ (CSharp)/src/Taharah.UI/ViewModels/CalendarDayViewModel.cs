@@ -25,6 +25,10 @@ public partial class CalendarDayViewModel : ObservableObject
     [ObservableProperty]
     private bool _isCurrentMonth = true;
 
+    /// <summary>Leading blank cell so a mini-month grid's 1st day lands in its correct weekday column (Yearly Overview).</summary>
+    [ObservableProperty]
+    private bool _isPlaceholder;
+
     [ObservableProperty]
     private bool _isToday;
 

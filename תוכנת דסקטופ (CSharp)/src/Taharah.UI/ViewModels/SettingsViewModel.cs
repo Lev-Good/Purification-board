@@ -735,6 +735,12 @@ public partial class SettingsViewModel : ObservableObject
             return;
         }
 
+        if (!Taharah.Infrastructure.Backup.GoogleOAuthService.HasLocalClientSecret())
+        {
+            GoogleStatusMessage = "לא ניתן להתחבר: חסר קובץ אישורי Google (google-oauth.local.json) ליד קובץ ההרצה של התוכנה. יש להגדיר בו מפתח סודי (client secret) מ-Google Cloud Console כדי להפעיל גיבוי/סנכרון לגוגל.";
+            return;
+        }
+
         GoogleStatusMessage = "נפתח חלון ההתחברות של גוגל בדפדפן...";
         try
         {

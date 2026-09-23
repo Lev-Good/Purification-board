@@ -7,6 +7,17 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/LightTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Segoe Fluent Icons (Win11) falling back to Segoe MDL2 Assets (Win10+) - both assign
+                 the same codepoints to the glyphs used here, so this single style covers both OSes.
+                 Replaces color emoji that render as empty "Tofu" boxes on WPF's default text
+                 pipeline (see UI review report, sec. 2.3/8) for the generic/system icons only -
+                 domain-specific glyphs (blood drop, dove, pill, wave...) have no icon-font
+                 equivalent and are intentionally left as emoji. -->
+            <Style x:Key="IconGlyphStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

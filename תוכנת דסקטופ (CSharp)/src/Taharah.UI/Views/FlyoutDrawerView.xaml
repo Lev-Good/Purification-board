@@ -13,10 +13,12 @@
         <converters:BadgeForegroundConverter x:Key="BadgeFgConv"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <converters:BoolToVisibilityConverter x:Key="InvBoolToVis" Invert="True"/>
+        <converters:OnaTypeToHebrewConverter x:Key="OnaHe"/>
 
         <Style x:Key="ActionBtnStyle" TargetType="Button">
-            <Setter Property="Padding" Value="14,9"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Padding" Value="10,12"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="MinHeight" Value="58"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -66,8 +68,48 @@
                         <Border Background="{DynamicResource InputBgBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,0">
                             <TextBlock Text="{Binding SelectedDay.Sunset, StringFormat='שקיעה: {0}'}" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </Border>
-                        <Border Background="#ECFDF5" CornerRadius="4" Padding="8,3">
-                            <TextBlock Text="{Binding SelectedDay.StatusSummary}" FontSize="11.5" FontWeight="SemiBold" Foreground="#047857"/>
+                        <!-- Status pill color mirrors DetermineDayStatus's own priority (MainViewModel.cs): reiyah > hefsek > mikveh > sheva nekiyim > tehora -->
+                        <Border CornerRadius="4" Padding="8,3">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#ECFDF5"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedDay.ShevaNekiyimDayIndex, Converter={StaticResource BoolToVis}}" Value="Visible">
+                                            <Setter Property="Background" Value="#E0F2FE"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedDay.IsMikvehNight}" Value="True">
+                                            <Setter Property="Background" Value="#D1FAE5"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedDay.IsHefsekTaharah}" Value="True">
+                                            <Setter Property="Background" Value="#DCFCE7"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedDay.HasReiya}" Value="True">
+                                            <Setter Property="Background" Value="#FEE2E2"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding SelectedDay.StatusSummary}" FontSize="11.5" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#047857"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedDay.ShevaNekiyimDayIndex, Converter={StaticResource BoolToVis}}" Value="Visible">
+                                                <Setter Property="Foreground" Value="#0369A1"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding SelectedDay.IsMikvehNight}" Value="True">
+                                                <Setter Property="Foreground" Value="#047857"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding SelectedDay.IsHefsekTaharah}" Value="True">
+                                                <Setter Property="Foreground" Value="#166534"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding SelectedDay.HasReiya}" Value="True">
+                                                <Setter Property="Foreground" Value="#991B1B"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Border>
                     </StackPanel>
                 </StackPanel>
@@ -101,12 +143,11 @@
                                     <StackPanel>
                                         <DockPanel>
                                             <Border Background="#B45309" CornerRadius="4" Padding="6,2" DockPanel.Dock="Right">
-                                                <TextBlock Text="{Binding Ona, StringFormat='עונת {0}'}" FontSize="11" Foreground="#FFFFFF" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Ona, Converter={StaticResource OnaHe}, StringFormat='עונת {0}'}" FontSize="11" Foreground="#FFFFFF" FontWeight="Bold"/>
                                             </Border>
-                                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="#78350F"/>
+                                            <TextBlock Text="{Binding Code}" FontSize="13" FontWeight="Bold" Foreground="#78350F"/>
                                         </DockPanel>
-                                        <TextBlock Text="{Binding Explanation}" FontSize="12" Foreground="#92400E" TextWrapping="Wrap" Margin="0,4,0,2"/>
-                                        <TextBlock Text="{Binding HalachicSource, StringFormat='מקור: {0}'}" FontSize="11" Foreground="#B45309" FontStyle="Italic"/>
+                                        <TextBlock Text="{Binding Reason}" FontSize="12" Foreground="#92400E" TextWrapping="Wrap" Margin="0,4,0,2"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -129,12 +170,12 @@
                                                 DockPanel.Dock="Left"
                                                 Background="Transparent" BorderThickness="0"
                                                 Cursor="Hand" Padding="4">
-                                            <TextBlock Text="🗑️" FontSize="13"/>
+                                            <TextBlock Text="&#xE74D;" Style="{StaticResource IconGlyphStyle}" FontSize="13"/>
                                         </Button>
                                         <StackPanel Margin="0,0,8,0">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Type}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextMainBrush}"/>
-                                                <TextBlock Text="{Binding Ona, StringFormat=' (עונת {0})'}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
+                                                <TextBlock Text="{Binding Ona, Converter={StaticResource OnaHe}, StringFormat=' (עונת {0})'}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
                                             </StackPanel>
                                             <TextBlock Text="{Binding Notes}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" 
                                                        Visibility="{Binding Notes.Length, Converter={StaticResource BoolToVis}}"/>
@@ -149,61 +190,49 @@
                     <StackPanel Visibility="{Binding IsFormExpanded, Converter={StaticResource InvBoolToVis}}" Margin="0,16,0,0">
                         <TextBlock Text="פעולות מהירות ליום זה" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,10"/>
 
-                        <Button Style="{StaticResource ActionBtnStyle}" 
-                                Background="#FEE2E2" BorderBrush="#FECACA" Foreground="#991B1B"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="ראייה">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🩸 הוסף ראייה חדשה"/>
-                            </StackPanel>
-                        </Button>
+                        <UniformGrid Columns="2">
+                            <Button Style="{StaticResource ActionBtnStyle}"
+                                    Background="#FEE2E2" BorderBrush="#FECACA" Foreground="#991B1B"
+                                    Command="{Binding ToggleFormCommand}" CommandParameter="ראייה">
+                                <TextBlock Text="🩸 ראייה חדשה" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </Button>
 
-                        <Button Style="{StaticResource ActionBtnStyle}" 
-                                Background="#DCFCE7" BorderBrush="#BBF7D0" Foreground="#166534"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="הפסק טהרה">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🕊️ רשום הפסק טהרה"/>
-                            </StackPanel>
-                        </Button>
+                            <Button Style="{StaticResource ActionBtnStyle}"
+                                    Background="#DCFCE7" BorderBrush="#BBF7D0" Foreground="#166534"
+                                    Command="{Binding ToggleFormCommand}" CommandParameter="הפסק טהרה">
+                                <TextBlock Text="🕊️ הפסק טהרה" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </Button>
 
-                        <Button Style="{StaticResource ActionBtnStyle}" 
-                                Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource BorderLightBrush}" Foreground="{DynamicResource TextMainBrush}"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="בדיקה">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🔍 רשום בדיקה"/>
-                            </StackPanel>
-                        </Button>
+                            <Button Style="{StaticResource ActionBtnStyle}"
+                                    Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource BorderLightBrush}" Foreground="{DynamicResource TextMainBrush}"
+                                    Command="{Binding ToggleFormCommand}" CommandParameter="בדיקה">
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+                                    <Run Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+                                    <Run Text=" בדיקת שבעה נקיים"/>
+                                </TextBlock>
+                            </Button>
 
-                        <Button Style="{StaticResource ActionBtnStyle}" 
-                                Background="#CCFBF1" BorderBrush="#99F6E4" Foreground="#115E59"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="טבילה">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🌊 ליל טבילה במקווה"/>
-                            </StackPanel>
-                        </Button>
+                            <Button Style="{StaticResource ActionBtnStyle}"
+                                    Background="#CCFBF1" BorderBrush="#99F6E4" Foreground="#115E59"
+                                    Command="{Binding ToggleFormCommand}" CommandParameter="טבילה">
+                                <TextBlock Text="🌊 טבילה במקווה" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </Button>
 
-                        <Button Style="{StaticResource ActionBtnStyle}" 
-                                Background="#FEF9C3" BorderBrush="#FEF08A" Foreground="#854D0E"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="כתם/סימון">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📝 סימון יום / כתם / הערה"/>
-        
-                        <Button Style="{StaticResource ActionBtnStyle}"
-                                Background="#F3E8FF" BorderBrush="#E9D5FF" Foreground="#6B21A8"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="מיחוש">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🌡️ מיחוש גופני בלא ראייה"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                        </Button>
+                            <Button Style="{StaticResource ActionBtnStyle}"
+                                    Background="#FEF9C3" BorderBrush="#FEF08A" Foreground="#854D0E"
+                                    Command="{Binding ToggleFormCommand}" CommandParameter="כתם/סימון">
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+                                    <Run Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+                                    <Run Text=" סימון / כתם"/>
+                                </TextBlock>
+                            </Button>
 
-                        <Button Style="{StaticResource ActionBtnStyle}"
-                                Background="#F3E8FF" BorderBrush="#E9D5FF" Foreground="#6B21A8"
-                                Command="{Binding ToggleFormCommand}" CommandParameter="מיחוש">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🌡️ מיחוש גופני בלא ראייה"/>
-                            </StackPanel>
-                        </Button>
+                            <Button Style="{StaticResource ActionBtnStyle}"
+                                    Background="#F3E8FF" BorderBrush="#E9D5FF" Foreground="#6B21A8"
+                                    Command="{Binding ToggleFormCommand}" CommandParameter="מיחוש">
+                                <TextBlock Text="🌡️ מיחוש גופני" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </Button>
+                        </UniformGrid>
                     </StackPanel>
 
                     <!-- Inline Entry Form (shown when form IS open) -->

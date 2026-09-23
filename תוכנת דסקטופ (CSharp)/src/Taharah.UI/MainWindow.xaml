@@ -51,6 +51,21 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,8"/>
         </Style>
+
+        <Style x:Key="AppContextMenuStyle" TargetType="ContextMenu">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="FlowDirection" Value="RightToLeft"/>
+        </Style>
+
+        <Style x:Key="AppMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextMainBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -110,18 +125,54 @@
                         </Button>
                     </StackPanel>
 
-                    <!-- Actions -->
+                    <!-- Actions: primary tools | "עוד" menu | system controls -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <!-- Primary tools -->
                         <Button Content="📊 ריכוז וסתות" Command="{Binding OpenVesetSummaryCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0"/>
-                        <Button Content="ℹ️ אודות" Command="{Binding OpenAboutCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0"/>
-                        <Button Content="📖 מדריך הלכתי" Command="{Binding OpenGuideCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0"/>
                         <Button Content="🌿 תובנות מחזור" Command="{Binding OpenInsightsCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0"/>
-                        <Button Content="🖨️ דוח והדפסה" Command="{Binding PrintReportCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0"/>
-                        <Button Content="⚙️ הגדרות" Command="{Binding OpenSettingsCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0"/>
-                        <Button Content="🔒 נעל" Command="{Binding LockAppCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,10,0"/>
-                        <Button Content="－" Command="{Binding ZoomOutCommand}" Style="{StaticResource NavBtnStyle}" Padding="9,7" Margin="0,0,4,0" ToolTip="הקטן תצוגה"/>
-                        <Button Content="{Binding ZoomLabel}" Command="{Binding ZoomResetCommand}" Style="{StaticResource NavBtnStyle}" Padding="9,7" Margin="0,0,4,0" ToolTip="אפס תצוגה ל-100%"/>
-                        <Button Content="＋" Command="{Binding ZoomInCommand}" Style="{StaticResource NavBtnStyle}" Padding="9,7" Margin="0,0,10,0" ToolTip="הגדל תצוגה"/>
+                        <Button Command="{Binding PrintReportCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE749;" Style="{StaticResource IconGlyphStyle}" Margin="0,0,6,0"/>
+                                <TextBlock Text="דוח והדפסה"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- "עוד" menu: מדריך הלכתי / אודות / זום, ליחוד מקום בסרגל -->
+                        <Button Content="⋯ עוד" Style="{StaticResource NavBtnStyle}" Margin="0,0,10,0" Click="OnMoreMenuClick">
+                            <Button.ContextMenu>
+                                <ContextMenu Style="{StaticResource AppContextMenuStyle}" Placement="Bottom">
+                                    <MenuItem Header="📖 מדריך הלכתי" Command="{Binding OpenGuideCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Command="{Binding OpenAboutCommand}" Style="{StaticResource AppMenuItemStyle}">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE946;" Style="{StaticResource IconGlyphStyle}" Margin="0,0,6,0"/>
+                                                <TextBlock Text="אודות"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem Header="{Binding ZoomLabel, StringFormat='🔍 תצוגה נוכחית: {0}'}" IsEnabled="False" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Header="＋ הגדל תצוגה" Command="{Binding ZoomInCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Header="－ הקטן תצוגה" Command="{Binding ZoomOutCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Header="⟲ אפס ל-100%" Command="{Binding ZoomResetCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+
+                        <!-- System controls -->
+                        <Button Command="{Binding OpenSettingsCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE713;" Style="{StaticResource IconGlyphStyle}" Margin="0,0,6,0"/>
+                                <TextBlock Text="הגדרות"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding LockAppCommand}" Style="{StaticResource NavBtnStyle}" Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72E;" Style="{StaticResource IconGlyphStyle}" Margin="0,0,6,0"/>
+                                <TextBlock Text="נעל"/>
+                            </StackPanel>
+                        </Button>
                         <Button Content="{Binding ThemeIcon}" Command="{Binding ToggleThemeCommand}" Style="{StaticResource NavBtnStyle}" Padding="9,7" ToolTip="החלף מצב יום/לילה"/>
                     </StackPanel>
                 </Grid>
@@ -275,24 +326,42 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Yearly Overview -->
+                <!-- Yearly Overview: 12 mini-months, weekday-aligned grid -->
                 <ScrollViewer Grid.Column="0" Margin="10" VerticalScrollBarVisibility="Auto"
                               Visibility="{Binding IsYearlyView, Converter={StaticResource BoolToVis}}">
                     <ItemsControl ItemsSource="{Binding YearlyMonths}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8">
+                                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="8"
+                                        Padding="10" Margin="0,0,8,8" Width="270">
                                     <StackPanel>
                                         <TextBlock Text="{Binding MonthLabel}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,6"/>
+
+                                        <!-- Weekday header: א(ראשון) ... ש(שבת), same order as the monthly grid -->
+                                        <UniformGrid Columns="7" Margin="0,0,0,2">
+                                            <TextBlock Text="א" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="ב" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="ג" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="ד" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="ה" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="ו" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            <TextBlock Text="ש" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#1E40AF"/>
+                                        </UniformGrid>
+
                                         <ItemsControl ItemsSource="{Binding Days}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
-                                                    <WrapPanel Orientation="Horizontal"/>
+                                                    <UniformGrid Columns="7"/>
                                                 </ItemsPanelTemplate>
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Width="34" Height="34" Margin="2" CornerRadius="6" Cursor="Hand"
+                                                    <Border Width="34" Height="34" Margin="1" CornerRadius="6" Cursor="Hand"
                                                             ToolTip="{Binding StatusSummary}"
                                                             MouseLeftButtonUp="OnDayCardClicked">
                                                         <Border.Style>
@@ -316,6 +385,11 @@
                                                                     <DataTrigger Binding="{Binding IsToday}" Value="True">
                                                                         <Setter Property="BorderBrush" Value="#3B82F6"/>
                                                                         <Setter Property="BorderThickness" Value="2"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsPlaceholder}" Value="True">
+                                                                        <Setter Property="Background" Value="Transparent"/>
+                                                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                                                        <Setter Property="IsHitTestVisible" Value="False"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>

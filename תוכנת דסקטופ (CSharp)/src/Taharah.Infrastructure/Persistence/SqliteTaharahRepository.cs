@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Taharah.Core.Enums;
 using Taharah.Infrastructure.Backup;
@@ -108,6 +108,32 @@ public sealed class SqliteTaharahRepository : ITaharahRepository, IDisposable
                 );
             ";
             await cmd.ExecuteNonQueryAsync();
+
+            // Ensure schema migration for older databases
+            var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (var pragmaCmd = conn.CreateCommand())
+            {
+                pragmaCmd.CommandText = "PRAGMA table_info(events);";
+                using var pragmaReader = await pragmaCmd.ExecuteReaderAsync();
+                while (await pragmaReader.ReadAsync())
+                {
+                    existingColumns.Add(pragmaReader.GetString(1));
+                }
+            }
+
+            if (!existingColumns.Contains("sign_certainty"))
+            {
+                using var alterCmd = conn.CreateCommand();
+                alterCmd.CommandText = "ALTER TABLE events ADD COLUMN sign_certainty TEXT;";
+                await alterCmd.ExecuteNonQueryAsync();
+            }
+
+            if (!existingColumns.Contains("blood_found"))
+            {
+                using var alterCmd = conn.CreateCommand();
+                alterCmd.CommandText = "ALTER TABLE events ADD COLUMN blood_found INTEGER;";
+                await alterCmd.ExecuteNonQueryAsync();
+            }
         }
         finally
         {
@@ -538,19 +564,19 @@ public sealed class SqliteTaharahRepository : ITaharahRepository, IDisposable
         {
             Type = reader.GetString(1),
             Ona = Enum.TryParse<OnaType>(reader.GetString(2), out var ona) ? ona : OnaType.Day,
-            DurationDays = reader.IsDBNull(3) ? null : reader.GetInt32(3),
-            Kind = reader.IsDBNull(4) ? null : reader.GetString(4),
-            ClosedFountain = reader.IsDBNull(5) ? null : reader.GetInt32(5) == 1,
-            Note = reader.IsDBNull(6) ? "" : reader.GetString(6),
-            Depth = reader.IsDBNull(7) ? null : reader.GetString(7),
-            Twice = reader.IsDBNull(8) ? null : reader.GetInt32(8) == 1,
-            Signs = reader.IsDBNull(9) ? [] : (JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? []),
-            Marks = reader.IsDBNull(10) ? [] : (JsonSerializer.Deserialize<List<string>>(reader.GetString(10)) ?? []),
-            CheckParts = reader.IsDBNull(11) ? [] : (JsonSerializer.Deserialize<List<string>>(reader.GetString(11)) ?? []),
-            StandaloneSign = !reader.IsDBNull(12) && reader.GetInt32(12) == 1,
-            SafekOna = !reader.IsDBNull(13) && reader.GetInt32(13) == 1,
-            SignCertainty = reader.IsDBNull(14) ? null : reader.GetString(14),
-            BloodFound = reader.IsDBNull(15) ? null : reader.GetInt32(15) == 1
+            DurationDays = reader.FieldCount > 3 && !reader.IsDBNull(3) ? reader.GetInt32(3) : null,
+            Kind = reader.FieldCount > 4 && !reader.IsDBNull(4) ? reader.GetString(4) : null,
+            ClosedFountain = reader.FieldCount > 5 && !reader.IsDBNull(5) ? reader.GetInt32(5) == 1 : null,
+            Note = reader.FieldCount > 6 && !reader.IsDBNull(6) ? reader.GetString(6) : "",
+            Depth = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetString(7) : null,
+            Twice = reader.FieldCount > 8 && !reader.IsDBNull(8) ? reader.GetInt32(8) == 1 : null,
+            Signs = reader.FieldCount > 9 && !reader.IsDBNull(9) ? (JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? []) : [],
+            Marks = reader.FieldCount > 10 && !reader.IsDBNull(10) ? (JsonSerializer.Deserialize<List<string>>(reader.GetString(10)) ?? []) : [],
+            CheckParts = reader.FieldCount > 11 && !reader.IsDBNull(11) ? (JsonSerializer.Deserialize<List<string>>(reader.GetString(11)) ?? []) : [],
+            StandaloneSign = reader.FieldCount > 12 && !reader.IsDBNull(12) && reader.GetInt32(12) == 1,
+            SafekOna = reader.FieldCount > 13 && !reader.IsDBNull(13) && reader.GetInt32(13) == 1,
+            SignCertainty = reader.FieldCount > 14 && !reader.IsDBNull(14) ? reader.GetString(14) : null,
+            BloodFound = reader.FieldCount > 15 && !reader.IsDBNull(15) ? (reader.GetInt32(15) == 1) : null
         };
         return entry;
     }

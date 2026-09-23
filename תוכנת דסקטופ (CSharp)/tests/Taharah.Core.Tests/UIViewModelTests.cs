@@ -98,6 +98,27 @@ public class UIViewModelTests
     }
 
     [Fact]
+    public void ToggleMedicalDisclaimer_FlipsCollapsedFlag()
+    {
+        var (repo, sec, print, dbPath) = CreateTestEnvironment();
+        try
+        {
+            var vm = new MainViewModel(repo, sec, print);
+            Assert.False(vm.IsMedicalDisclaimerExpanded);
+
+            vm.ToggleMedicalDisclaimerCommand.Execute(null);
+            Assert.True(vm.IsMedicalDisclaimerExpanded);
+
+            vm.ToggleMedicalDisclaimerCommand.Execute(null);
+            Assert.False(vm.IsMedicalDisclaimerExpanded);
+        }
+        finally
+        {
+            Cleanup(repo, dbPath);
+        }
+    }
+
+    [Fact]
     public async Task TestMainViewModelInitialization()
     {
         var (repo, sec, print, dbPath) = CreateTestEnvironment();
@@ -379,6 +400,31 @@ public class UIViewModelTests
         vm.MinhagProfile = "ashkenaz";
         vm.KaretiUfaletei = false;
         Assert.Equal("custom", vm.MinhagProfile);
+    }
+
+    [Fact]
+    public async Task ConnectGoogleAsync_NoLocalClientSecret_ShowsFriendlyMessageInsteadOfRawOAuthError()
+    {
+        // Regression for the UI report's screenshot: "ההתחברות נכשלה: Error: 'invalid_request',
+        // Description: 'client_secret is missing.'" - a raw Google exception leaking to the user.
+        // No google-oauth.local.json ships in this test environment, so the friendly guard should
+        // fire before ConnectAsync ever reaches Google.
+        var (repo, sec, _, dbPath) = CreateTestEnvironment();
+        try
+        {
+            var oauth = new Taharah.Infrastructure.Backup.GoogleOAuthService(repo, sec);
+            var vm = new SettingsViewModel(repo, sec, null, oauth);
+
+            await vm.ConnectGoogleCommand.ExecuteAsync(null);
+
+            Assert.Contains("google-oauth.local.json", vm.GoogleStatusMessage);
+            Assert.DoesNotContain("client_secret is missing", vm.GoogleStatusMessage);
+            Assert.False(vm.GoogleConnected);
+        }
+        finally
+        {
+            Cleanup(repo, dbPath);
+        }
     }
 
     [Fact]

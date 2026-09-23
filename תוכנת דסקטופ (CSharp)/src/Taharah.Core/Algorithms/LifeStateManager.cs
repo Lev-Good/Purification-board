@@ -210,6 +210,7 @@ public static class LifeStateManager
                 verdict.SilekSinceAbs = silekFromAbs;
                 verdict.ExemptFromCheck = true;
                 verdict.ExemptReason = "מעוברת שעברו עליה תשעים יום";
+                verdict.SilekLabels.Add("הריון");
             }
         }
 
@@ -242,6 +243,7 @@ public static class LifeStateManager
                 verdict.SilekSinceAbs = fromAbs.Value;
                 verdict.ExemptFromCheck = true;
                 verdict.ExemptReason = "מניקה תוך כ\"ד חודש";
+                verdict.SilekLabels.Add("הנקה");
             }
         }
 

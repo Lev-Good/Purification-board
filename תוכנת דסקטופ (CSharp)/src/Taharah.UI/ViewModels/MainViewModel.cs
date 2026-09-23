@@ -142,6 +142,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _showOvulationConflictAlert;
 
+    /// <summary>Collapsed by default so the medical disclaimer text doesn't eat space in the Insights drawer - toggled by a small header link.</summary>
+    [ObservableProperty]
+    private bool _isMedicalDisclaimerExpanded;
+
     // --- Day state panel (js/ui.js's updateDayStatePanel): unresolved sudden fright, Or ---
     // --- Zarua exemptions removed from the calendar, and ongoing-anxiety information. ---
 
@@ -845,6 +849,11 @@ public partial class MainViewModel : ObservableObject
             var monthFirst = new HDate(1, m, hYear);
             var row = new YearlyMonthRowViewModel { MonthLabel = monthFirst.GetMonthName() };
 
+            for (int p = 0; p < monthFirst.DayOfWeek; p++)
+            {
+                row.Days.Add(new CalendarDayViewModel { IsPlaceholder = true });
+            }
+
             int daysInThisMonth = HDate.DaysInMonth(m, hYear);
             int monthStartAbs = monthFirst.Abs();
             for (int d = 0; d < daysInThisMonth; d++)
@@ -867,6 +876,16 @@ public partial class MainViewModel : ObservableObject
         return "טהורה";
     }
 
+    private void CloseAllPanels()
+    {
+        IsDrawerOpen = false;
+        IsSettingsOpen = false;
+        IsGuideOpen = false;
+        IsInsightsOpen = false;
+        IsAboutOpen = false;
+        IsVesetSummaryOpen = false;
+    }
+
     [RelayCommand]
     public void SelectDay(CalendarDayViewModel day)
     {
@@ -877,6 +896,7 @@ public partial class MainViewModel : ObservableObject
 
         day.IsSelected = true;
         SelectedDay = day;
+        CloseAllPanels();
         IsDrawerOpen = true;
         IsFormExpanded = false;
         NewEntry.Reset();
@@ -1042,6 +1062,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public void OpenSettings()
     {
+        CloseAllPanels();
         IsSettingsOpen = true;
     }
 
@@ -1055,6 +1076,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public void OpenGuide()
     {
+        CloseAllPanels();
         IsGuideOpen = true;
     }
 
@@ -1067,6 +1089,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public void OpenInsights()
     {
+        CloseAllPanels();
         IsInsightsOpen = true;
     }
 
@@ -1077,8 +1100,15 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void ToggleMedicalDisclaimer()
+    {
+        IsMedicalDisclaimerExpanded = !IsMedicalDisclaimerExpanded;
+    }
+
+    [RelayCommand]
     public void OpenAbout()
     {
+        CloseAllPanels();
         IsAboutOpen = true;
     }
 
@@ -1098,6 +1128,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public void OpenVesetSummary()
     {
+        CloseAllPanels();
         IsVesetSummaryOpen = true;
     }
 

@@ -22,9 +22,18 @@ public partial class MainWindow : Window
 
     private void OnDayCardClicked(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement fe && fe.DataContext is CalendarDayViewModel day)
+        if (sender is FrameworkElement fe && fe.DataContext is CalendarDayViewModel day && !day.IsPlaceholder)
         {
             _viewModel.SelectDay(day);
+        }
+    }
+
+    private void OnMoreMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.ContextMenu != null)
+        {
+            fe.ContextMenu.PlacementTarget = fe;
+            fe.ContextMenu.IsOpen = true;
         }
     }
 

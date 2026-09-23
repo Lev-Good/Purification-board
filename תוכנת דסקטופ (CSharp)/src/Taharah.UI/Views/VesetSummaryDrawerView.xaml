@@ -81,10 +81,23 @@
                                 <TextBlock Grid.Column="4" Text="הפלגה עתידית" Style="{StaticResource ColHeaderStyle}"/>
                             </Grid>
 
-                            <ItemsControl Grid.Row="1" ItemsSource="{Binding VesetSummaryRows}">
+                            <ItemsControl Grid.Row="1" ItemsSource="{Binding VesetSummaryRows}" AlternationCount="2">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border BorderBrush="{DynamicResource InputBgBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Value="1">
+                                                            <DataTrigger.Binding>
+                                                                <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource AncestorType=ContentPresenter}"/>
+                                                            </DataTrigger.Binding>
+                                                            <Setter Property="Background" Value="{DynamicResource WindowBgBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="1.3*"/>
@@ -99,8 +112,10 @@
                                                         <Run Text="{Binding DateText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Text="{Binding OnaText}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
-                                                    <TextBlock Text="ממנה נקבעת הוסת" FontSize="10.5" Foreground="#047857"
-                                                               Visibility="{Binding IsEstablishing, Converter={StaticResource BoolToVis}}"/>
+                                                    <Border Background="#DCFCE7" CornerRadius="4" Padding="5,1" Margin="0,3,0,0" HorizontalAlignment="Left"
+                                                            Visibility="{Binding IsEstablishing, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="✓ נקבעת ממנה הוסת" FontSize="10" FontWeight="Bold" Foreground="#166534"/>
+                                                    </Border>
                                                     <TextBlock Text="{Binding SignNote}" FontSize="10.5" Foreground="#7E22CE" TextWrapping="Wrap"
                                                                Visibility="{Binding SignNote, Converter={StaticResource BoolToVis}}"/>
                                                 </StackPanel>
@@ -118,8 +133,13 @@
 
                                                 <StackPanel Grid.Column="3" Margin="8,0">
                                                     <TextBlock Text="{Binding YomHachodeshText}" FontSize="12.5" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="מחלוקת - יש לשאול רב" FontSize="10.5" Foreground="#B45309"
-                                                               Visibility="{Binding YomHachodeshDisputed, Converter={StaticResource BoolToVis}}"/>
+                                                    <Border Background="#FEF3C7" CornerRadius="4" Padding="5,1" Margin="0,3,0,0" HorizontalAlignment="Left"
+                                                            Visibility="{Binding YomHachodeshDisputed, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock FontSize="10" FontWeight="Bold" Foreground="#B45309">
+                                                            <Run Text="&#xE7BA;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+                                                            <Run Text=" מחלוקת - יש לשאול רב"/>
+                                                        </TextBlock>
+                                                    </Border>
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="4" Margin="8,0">
