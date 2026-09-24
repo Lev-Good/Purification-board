@@ -7,8 +7,31 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="WPF.UI" Version="3.4.2.7" />
+    <!-- The correct Fluent design library ("WPF-UI" with a hyphen, by lepoco) - the
+         project previously referenced "WPF.UI" (dot), an unrelated legacy net451-only
+         package that only provided a handful of attached properties and had none of
+         FluentWindow/TitleBar/Card/ToggleSwitch/Mica. Swapped for the full design overhaul. -->
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
+
+  <!-- Local-only Google OAuth client secret (git-ignored via root .gitignore's
+       **/google-oauth.local.json, never committed - see GoogleOAuthService.cs's
+       ReadCredentials). Copied next to the built exe on every build/publish when
+       present on this machine, so it doesn't need to be copied by hand after each
+       rebuild. Absent entirely on a fresh clone or CI - the app degrades gracefully.
+       Deliberately a Target + Copy task, NOT a <None CopyToOutputDirectory> item -
+       the latter propagates transitively into every OTHER project that references
+       this one (Taharah.Core.Tests does, for its WPF ViewModel tests), leaking the
+       real secret into the test build's output too. A Target only runs in this
+       project's own build/publish context, so it writes to this project's own
+       $(OutDir)/$(PublishDir) exclusively. -->
+  <Target Name="CopyLocalOAuthSecretAfterBuild" AfterTargets="Build" Condition="Exists('$(MSBuildProjectDirectory)\..\..\google-oauth.local.json')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\google-oauth.local.json" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyLocalOAuthSecretAfterPublish" AfterTargets="Publish" Condition="Exists('$(MSBuildProjectDirectory)\..\..\google-oauth.local.json')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\google-oauth.local.json" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

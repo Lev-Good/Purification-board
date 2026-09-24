@@ -1,10 +1,13 @@
 using System.Windows;
 using System.Windows.Input;
+using Taharah.UI.Services;
 using Taharah.UI.ViewModels;
+using Wpf.Ui;
+using Wpf.Ui.Controls;
 
 namespace Taharah.UI;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private readonly MainViewModel _viewModel;
 
@@ -13,6 +16,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = _viewModel;
+
+        var snackbarService = new SnackbarService();
+        snackbarService.SetSnackbarPresenter(RootSnackbarPresenter);
+        NotificationService.Initialize(snackbarService);
 
         Loaded += async (s, e) =>
         {

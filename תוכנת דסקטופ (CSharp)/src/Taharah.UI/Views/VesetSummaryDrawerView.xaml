@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="900"
              FlowDirection="RightToLeft">
@@ -29,12 +30,14 @@
 
             <Grid Grid.Row="0" Margin="0,0,0,16">
                 <DockPanel>
-                    <Button DockPanel.Dock="Left"
-                            Command="{Binding CloseVesetSummaryCommand}"
-                            Background="Transparent" BorderThickness="0"
-                            Width="32" Height="32" Cursor="Hand">
-                        <TextBlock Text="✕" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
+                    <ui:Button DockPanel.Dock="Left"
+                               Command="{Binding CloseVesetSummaryCommand}"
+                               Appearance="Transparent"
+                               Width="32" Height="32">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Dismiss24"/>
+                        </ui:Button.Icon>
+                    </ui:Button>
                     <TextBlock Text="ריכוז חישוב וסתות ותאריכי פרישה" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
             </Grid>
@@ -42,15 +45,15 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
 
-                    <Border Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10"
+                    <ui:Card Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" Padding="10" Margin="0,0,0,10"
                             Visibility="{Binding HasSilekBanner, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="{Binding SilekBannerText}" FontSize="12.5" Foreground="#78350F" TextWrapping="Wrap"/>
-                    </Border>
+                    </ui:Card>
 
-                    <Border Background="#DCFCE7" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10"
+                    <ui:Card Background="#DCFCE7" BorderBrush="#BBF7D0" BorderThickness="1" Padding="10" Margin="0,0,0,10"
                             Visibility="{Binding HasFixedVesetBanner, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="{Binding FixedVesetBannerText}" FontSize="12.5" Foreground="#166534" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                    </Border>
+                    </ui:Card>
 
                     <StackPanel HorizontalAlignment="Center" Margin="0,40,0,0"
                                 Visibility="{Binding VesetSummaryRows.Count, Converter={StaticResource InvBoolToVis}}">
@@ -58,7 +61,7 @@
                         <TextBlock Text="כאשר תזינו תחילת ראייה בלוח השנה, המערכת תציג כאן את תאריכי הפרישה באופן אוטומטי." FontSize="12.5" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" TextWrapping="Wrap"/>
                     </StackPanel>
 
-                    <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="8" Background="{DynamicResource SurfaceBrush}"
+                    <ui:Card BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                             Visibility="{Binding VesetSummaryRows.Count, Converter={StaticResource BoolToVis}}">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -112,10 +115,8 @@
                                                         <Run Text="{Binding DateText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Text="{Binding OnaText}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
-                                                    <Border Background="#DCFCE7" CornerRadius="4" Padding="5,1" Margin="0,3,0,0" HorizontalAlignment="Left"
-                                                            Visibility="{Binding IsEstablishing, Converter={StaticResource BoolToVis}}">
-                                                        <TextBlock Text="✓ נקבעת ממנה הוסת" FontSize="10" FontWeight="Bold" Foreground="#166534"/>
-                                                    </Border>
+                                                    <ui:Badge Background="#DCFCE7" Foreground="#166534" Content="✓ נקבעת ממנה הוסת" FontSize="10" FontWeight="Bold" Margin="0,3,0,0" HorizontalAlignment="Left"
+                                                              Visibility="{Binding IsEstablishing, Converter={StaticResource BoolToVis}}"/>
                                                     <TextBlock Text="{Binding SignNote}" FontSize="10.5" Foreground="#7E22CE" TextWrapping="Wrap"
                                                                Visibility="{Binding SignNote, Converter={StaticResource BoolToVis}}"/>
                                                 </StackPanel>
@@ -133,13 +134,13 @@
 
                                                 <StackPanel Grid.Column="3" Margin="8,0">
                                                     <TextBlock Text="{Binding YomHachodeshText}" FontSize="12.5" TextWrapping="Wrap"/>
-                                                    <Border Background="#FEF3C7" CornerRadius="4" Padding="5,1" Margin="0,3,0,0" HorizontalAlignment="Left"
-                                                            Visibility="{Binding YomHachodeshDisputed, Converter={StaticResource BoolToVis}}">
+                                                    <ui:Badge Background="#FEF3C7" Foreground="#B45309" FontSize="10" FontWeight="Bold" Margin="0,3,0,0" HorizontalAlignment="Left"
+                                                              Visibility="{Binding YomHachodeshDisputed, Converter={StaticResource BoolToVis}}">
                                                         <TextBlock FontSize="10" FontWeight="Bold" Foreground="#B45309">
                                                             <Run Text="&#xE7BA;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
                                                             <Run Text=" מחלוקת - יש לשאול רב"/>
                                                         </TextBlock>
-                                                    </Border>
+                                                    </ui:Badge>
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="4" Margin="8,0">
@@ -153,7 +154,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Grid>
-                    </Border>
+                    </ui:Card>
 
                 </StackPanel>
             </ScrollViewer>

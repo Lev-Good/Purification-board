@@ -23,6 +23,11 @@ public partial class MainViewModel : ObservableObject
     private readonly Taharah.Infrastructure.Backup.GoogleOAuthService? _googleOAuthService;
     private readonly Taharah.Infrastructure.Backup.EmailExportService _emailExportService = new();
 
+    // "טריגר השמירה המדשבן" (js/app.js's scheduleCalendarSyncDebounced): a burst of edits
+    // within 3s syncs once, not once per edit. DispatcherTimer (not System.Threading.Timer)
+    // so the Tick callback runs on the UI thread and can safely touch bound properties.
+    private System.Windows.Threading.DispatcherTimer? _calendarSyncDebounceTimer;
+
     // Cached from the most recent RefreshCalendarAsync run - Google Calendar sync (triggered
     // from the settings screen, which does not itself hold the live events/engine state)
     // reuses whatever the calendar grid itself last computed, rather than recomputing it.
@@ -366,6 +371,48 @@ public partial class MainViewModel : ObservableObject
         }
         return await _googleCalendarService.SyncCalendarNowAsync(
             _lastAllEvents, _lastEngineResult, _lastLocation, _lastTodayAbs, SettingsVm.BuildCalendarSyncSettings());
+    }
+
+    /// <summary>
+    /// js/app.js's scheduleCalendarSyncDebounced, ported faithfully: bails out immediately
+    /// (without even starting a timer) unless sync is enabled and a Google account exists;
+    /// resets any pending timer so a burst of saves within 3s only syncs once; re-checks
+    /// connection + calendar scope right before actually syncing (state may have changed
+    /// during the wait); never surfaces a failure to the user - SyncCalendarNowCommand
+    /// remains the reliable on-demand path for that.
+    /// </summary>
+    private void ScheduleCalendarSyncDebounced()
+    {
+        if (_googleOAuthService == null || !SettingsVm.CalendarSyncEnabled) return;
+
+        _calendarSyncDebounceTimer?.Stop();
+        _calendarSyncDebounceTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(3)
+        };
+        _calendarSyncDebounceTimer.Tick += async (_, _) =>
+        {
+            _calendarSyncDebounceTimer!.Stop();
+            try
+            {
+                var status = await _googleOAuthService.GetStatusAsync();
+                if (!status.Connected || !GoogleCalendarManager.HasCalendarScope(status.GrantedScopes))
+                {
+                    return;
+                }
+
+                await SyncCalendarNowAsync();
+                var refreshed = await _googleOAuthService.GetStatusAsync();
+                SettingsVm.CalendarLastSyncMessage = string.IsNullOrEmpty(refreshed.CalendarLastSyncAt)
+                    ? "טרם בוצע סנכרון"
+                    : $"סנכרון אחרון: {refreshed.CalendarLastSyncAt}";
+            }
+            catch
+            {
+                // Best-effort background sync - matches JS's catch(e) { console.error(...) }.
+            }
+        };
+        _calendarSyncDebounceTimer.Start();
     }
 
     private static int GregorianDateToAbs(DateTime date) => (date.Date - new DateTime(1, 1, 1)).Days + 1;
@@ -1002,6 +1049,8 @@ public partial class MainViewModel : ObservableObject
         await _repository.SaveEventAsync(SelectedDay.AbsoluteDay, entry);
         IsFormExpanded = false;
         await RefreshCalendarAsync();
+        NotificationService.ShowSuccess("האירוע נשמר בלוח");
+        ScheduleCalendarSyncDebounced();
     }
 
     [RelayCommand]
@@ -1010,6 +1059,8 @@ public partial class MainViewModel : ObservableObject
         if (SelectedDay == null) return;
         await _repository.DeleteEventAsync(SelectedDay.AbsoluteDay);
         await RefreshCalendarAsync();
+        NotificationService.ShowSuccess("היום נוקה לחלוטין");
+        ScheduleCalendarSyncDebounced();
     }
 
     [RelayCommand]

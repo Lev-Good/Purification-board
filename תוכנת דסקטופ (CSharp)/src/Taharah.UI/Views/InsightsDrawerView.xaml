@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:converters="clr-namespace:Taharah.UI.Converters"
-             mc:Ignorable="d" 
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+             mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="450"
              FlowDirection="RightToLeft">
 
@@ -12,11 +13,10 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <converters:BoolToVisibilityConverter x:Key="InvBoolToVis" Invert="True"/>
 
-        <Style x:Key="MetricCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Style x:Key="MetricCardStyle" TargetType="ui:Card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="14"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
@@ -32,12 +32,14 @@
             <!-- Header -->
             <Grid Grid.Row="0" Margin="0,0,0,16">
                 <DockPanel>
-                    <Button DockPanel.Dock="Left" 
-                            Command="{Binding CloseInsightsCommand}" 
-                            Background="Transparent" BorderThickness="0" 
-                            Width="32" Height="32" Cursor="Hand">
-                        <TextBlock Text="✕" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
+                    <ui:Button DockPanel.Dock="Left"
+                               Command="{Binding CloseInsightsCommand}"
+                               Appearance="Transparent"
+                               Width="32" Height="32">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Dismiss24"/>
+                        </ui:Button.Icon>
+                    </ui:Button>
                     <StackPanel>
                         <TextBlock Text="תובנות מחזור וחלון פוריות" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}"/>
                         <TextBlock Text="ניתוח סטטיסטי מבוסס היסטוריית הראיות" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
@@ -65,7 +67,7 @@
 
                     <!-- Core Metrics Grid -->
                     <UniformGrid Columns="2" Margin="0,0,0,6">
-                        <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,5,10">
+                        <ui:Card Style="{StaticResource MetricCardStyle}" Margin="0,0,5,10">
                             <StackPanel>
                                 <TextBlock Text="ממוצע אורך מחזור" FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
@@ -73,9 +75,9 @@
                                     <TextBlock Text=" ימים" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="4,0,0,2"/>
                                 </StackPanel>
                             </StackPanel>
-                        </Border>
+                        </ui:Card>
 
-                        <Border Style="{StaticResource MetricCardStyle}" Margin="5,0,0,10">
+                        <ui:Card Style="{StaticResource MetricCardStyle}" Margin="5,0,0,10">
                             <StackPanel>
                                 <TextBlock Text="חציון ימי מחזור" FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
@@ -83,27 +85,27 @@
                                     <TextBlock Text=" ימים" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="4,0,0,2"/>
                                 </StackPanel>
                             </StackPanel>
-                        </Border>
+                        </ui:Card>
                     </UniformGrid>
 
                     <UniformGrid Columns="2" Margin="0,0,0,10">
-                        <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,5,10">
+                        <ui:Card Style="{StaticResource MetricCardStyle}" Margin="0,0,5,10">
                             <StackPanel>
                                 <TextBlock Text="המחזור הקצר ביותר" FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}"/>
                                 <TextBlock Text="{Binding FertilityReport.ShortestCycleDays, StringFormat='{}{0} ימים'}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                             </StackPanel>
-                        </Border>
+                        </ui:Card>
 
-                        <Border Style="{StaticResource MetricCardStyle}" Margin="5,0,0,10">
+                        <ui:Card Style="{StaticResource MetricCardStyle}" Margin="5,0,0,10">
                             <StackPanel>
                                 <TextBlock Text="המחזור הארוך ביותר" FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}"/>
                                 <TextBlock Text="{Binding FertilityReport.LongestCycleDays, StringFormat='{}{0} ימים'}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                             </StackPanel>
-                        </Border>
+                        </ui:Card>
                     </UniformGrid>
 
                     <!-- Cycle Estimates -->
-                    <Border Style="{StaticResource MetricCardStyle}">
+                    <ui:Card Style="{StaticResource MetricCardStyle}">
                         <StackPanel>
                             <TextBlock Text="הערכות לתקופה הקרובה" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,10"/>
 
@@ -127,7 +129,7 @@
                                 <TextBlock Text="{Binding FertilityReport.TotalRecordedCycles}" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
                             </DockPanel>
                         </StackPanel>
-                    </Border>
+                    </ui:Card>
 
                     <!-- Medical Disclaimer: collapsed by default so it doesn't eat vertical space -->
                     <Border Background="{DynamicResource InputBgBrush}" CornerRadius="6" Padding="12" Margin="0,6,0,0">

@@ -1,4 +1,6 @@
 ﻿using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using Taharah.Infrastructure.Backup;
@@ -13,9 +15,47 @@ public partial class App : Application
 {
     private ErrorLogService? _errorLogService;
 
+    // Two copies would fight over the local SQLite file and each run their own Google OAuth
+    // token refresh / calendar sync - mirrors js/main.js's requestSingleInstanceLock +
+    // 'second-instance' handler (which focuses the existing BrowserWindow instead of opening
+    // a duplicate). Kept as an instance field, not a local variable, so the Mutex isn't
+    // GC'd/released for as long as the app process is alive.
+    private Mutex? _singleInstanceMutex;
+    private const string SingleInstanceMutexName = "TaharahApp_SingleInstance_Mutex";
+    private const string MainWindowTitle = "לוח טהרה — מערכת הלכתית מקצועית";
+    private const int SW_RESTORE = 9;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr hWnd);
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, name: SingleInstanceMutexName, createdNew: out bool isFirstInstance);
+        if (!isFirstInstance)
+        {
+            IntPtr existing = FindWindow(null, MainWindowTitle);
+            if (existing != IntPtr.Zero)
+            {
+                if (IsIconic(existing))
+                {
+                    ShowWindow(existing, SW_RESTORE);
+                }
+                SetForegroundWindow(existing);
+            }
+            Shutdown();
+            return;
+        }
 
         // If Windows' regional settings use the Hebrew lunar calendar as the display
         // calendar for he-IL (Region settings -> Calendar -> "לוח עברי"), .NET's own

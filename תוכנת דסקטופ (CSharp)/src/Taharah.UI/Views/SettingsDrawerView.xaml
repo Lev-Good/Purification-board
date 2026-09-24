@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
              mc:Ignorable="d"
              d:DesignHeight="950" d:DesignWidth="450"
              FlowDirection="RightToLeft">
@@ -13,31 +14,36 @@
         <converters:BoolToVisibilityConverter x:Key="InvBoolToVis" Invert="True"/>
         <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVis"/>
 
-        <Style x:Key="SectionCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Style x:Key="SectionCardStyle" TargetType="ui:Card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="16"/>
-            <Setter Property="Margin" Value="0,0,0,14"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
         </Style>
 
-        <!-- Theme-aware tab styling: 4 topical tabs (הלכה / מיקום / אבטחה / גיבוי) instead of one long scroll -->
+        <!-- Win11 Settings-style left rail: vertical icon+label items instead of top tabs
+             (the report's "NavigationView or Windows-11-styled tabs" - a real ui:NavigationView
+             needs a Frame/Page navigation model; this delivers the same visual language with
+             the already-proven TabControl content-swap mechanics, at far lower blind-implementation risk). -->
         <Style x:Key="AppTabItemStyle" TargetType="TabItem">
-            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="10,10"/>
+            <Setter Property="Padding" Value="14,11"/>
             <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}" Margin="0,0,0,4">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -58,14 +64,14 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabControl">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Margin="0,0,0,12">
-                                <TabPanel IsItemsHost="True" HorizontalAlignment="Stretch"/>
-                            </Border>
-                            <Border Grid.Row="1" Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TabPanel Grid.Column="0" IsItemsHost="True" HorizontalAlignment="Stretch" Margin="0,0,0,0"/>
+                            <Border Grid.Column="1" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,1,0" Margin="0,0,16,0"/>
+                            <Border Grid.Column="2" Background="Transparent">
                                 <ContentPresenter ContentSource="SelectedContent"/>
                             </Border>
                         </Grid>
@@ -73,9 +79,14 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="TabHeaderStyle" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
     </UserControl.Resources>
 
-    <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1,0,0,0">
+    <ui:Card Background="{DynamicResource ApplicationBackgroundBrush}" BorderThickness="1,0,0,0" BorderBrush="{DynamicResource AppBorderBrush}" Padding="0">
         <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
@@ -86,12 +97,14 @@
             <!-- Header -->
             <Grid Grid.Row="0" Margin="0,0,0,16">
                 <DockPanel>
-                    <Button DockPanel.Dock="Left"
-                            Command="{Binding CloseSettingsCommand}"
-                            Background="Transparent" BorderThickness="0"
-                            Width="32" Height="32" Cursor="Hand">
-                        <TextBlock Text="✕" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
+                    <ui:Button DockPanel.Dock="Left"
+                               Command="{Binding CloseSettingsCommand}"
+                               Appearance="Transparent"
+                               Width="32" Height="32">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Dismiss24"/>
+                        </ui:Button.Icon>
+                    </ui:Button>
                     <TextBlock Text="הגדרות מערכת והלכה" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
             </Grid>
@@ -100,17 +113,23 @@
             <TabControl Grid.Row="1" Style="{StaticResource AppTabControlStyle}">
 
                 <!-- Tab: הלכה ומנהגים (מצב חיים, מנהג, חומרות, פוריות) -->
-                <TabItem Header="⚖️ הלכה ומנהגים">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Style="{StaticResource TabHeaderStyle}">
+                            <TextBlock Text="הלכה ומנהגים" Margin="0,0,8,0"/>
+                            <ui:SymbolIcon Symbol="Scales24"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
 
                             <!-- 1. Life State Profile -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="מצב חיים (מסולקת דמים)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
-                                    <TextBlock Text="מעוברת אחר תשעים יום, מניקה, זקנה וקטנה - דינן שונה: אינן חוששות לוסתות שהיו להן קודם, ומסולקת דמים פטורה מבדיקה. מלאו רק את מה שרלוונטי." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                                    <TextBlock Text="מעוברת אחר תשעים יום, מניקה, זקנה וקטנה - דינן שונה: אינן חוששות לוסתות שהיו להן קודם, ומסולקת דמים פטורה מבדיקה. מלאו רק את מה שרלוונטי." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,12" TextWrapping="Wrap"/>
 
-                                    <CheckBox Content="הפעל חישוב מצב חיים" IsChecked="{Binding SettingsVm.LifeEnabled}" Margin="0,0,0,10" FontSize="12.5"/>
+                                    <ui:ToggleSwitch Content="הפעל חישוב מצב חיים" IsChecked="{Binding SettingsVm.LifeEnabled}" Margin="0,0,0,12"/>
 
                                     <StackPanel Visibility="{Binding SettingsVm.LifeEnabled, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="תחילת ההריון (לפי מניין ליל טבילה):" FontSize="12" Margin="0,0,0,4"/>
@@ -119,29 +138,33 @@
                                         <TextBlock Text="תאריך הלידה:" FontSize="12" Margin="0,0,0,4"/>
                                         <DatePicker SelectedDate="{Binding SettingsVm.LifeBirthDate, Mode=TwoWay}" Margin="0,0,0,10"/>
 
-                                        <CheckBox Content="מניקה בימים אלה" IsChecked="{Binding SettingsVm.LifeNursing}" Margin="0,0,0,6" FontSize="12.5"/>
-                                        <CheckBox IsChecked="{Binding SettingsVm.LifeNursingLenient}" Margin="0,0,0,10" FontSize="12.5">
-                                            <TextBlock Text="להקל כדעת &quot;דעת טהרה&quot; - לידה והנקה כמסולקת דמים עד כ&quot;ד חודש" TextWrapping="Wrap" MaxWidth="300"/>
-                                        </CheckBox>
+                                        <ui:ToggleSwitch Content="מניקה בימים אלה" IsChecked="{Binding SettingsVm.LifeNursing}" Margin="0,0,0,8"/>
+                                        <ui:ToggleSwitch IsChecked="{Binding SettingsVm.LifeNursingLenient}" Margin="0,0,0,12">
+                                            <ui:ToggleSwitch.Content>
+                                                <TextBlock Text="להקל כדעת &quot;דעת טהרה&quot; - לידה והנקה כמסולקת דמים עד כ&quot;ד חודש" TextWrapping="Wrap" MaxWidth="280"/>
+                                            </ui:ToggleSwitch.Content>
+                                        </ui:ToggleSwitch>
 
                                         <TextBlock Text="גיל בשנים (לחישוב זקנה וקטנה):" FontSize="12" Margin="0,0,0,4"/>
                                         <TextBox Text="{Binding SettingsVm.LifeAgeYears, UpdateSourceTrigger=PropertyChanged}" Width="90" HorizontalAlignment="Left" Padding="6" Margin="0,0,0,12"/>
 
-                                        <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+                                        <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                                             <StackPanel>
                                                 <TextBlock Text="תקופות נטילת כדורים" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                                                 <ItemsControl ItemsSource="{Binding SettingsVm.LifePillPeriods}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+                                                            <ui:Card Background="{DynamicResource ControlFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="10" Margin="0,0,0,8">
                                                                 <StackPanel>
                                                                     <DockPanel Margin="0,0,0,6">
-                                                                        <Button DockPanel.Dock="Left" Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                                                                Command="{Binding DataContext.RemovePillPeriodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                                CommandParameter="{Binding}">
-                                                                            <TextBlock Text="&#xE74D;" Style="{StaticResource IconGlyphStyle}"/>
-                                                                        </Button>
+                                                                        <ui:Button DockPanel.Dock="Left" Appearance="Transparent"
+                                                                                   Command="{Binding DataContext.RemovePillPeriodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                   CommandParameter="{Binding}">
+                                                                            <ui:Button.Icon>
+                                                                                <ui:SymbolIcon Symbol="Delete24"/>
+                                                                            </ui:Button.Icon>
+                                                                        </ui:Button>
                                                                         <TextBlock Text="תקופת כדורים" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                                     </DockPanel>
 
@@ -161,22 +184,25 @@
                                                                               DisplayMemberPath="Label" SelectedValuePath="Value"
                                                                               SelectedValue="{Binding Reason, Mode=TwoWay}" Padding="5"/>
                                                                 </StackPanel>
-                                                            </Border>
+                                                            </ui:Card>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
 
-                                                <Button Content="+ הוסף תקופת כדורים" Command="{Binding SettingsVm.AddPillPeriodCommand}"
-                                                        Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                        Padding="10,6" Cursor="Hand" HorizontalAlignment="Stretch"/>
+                                                <ui:Button Content="הוסף תקופת כדורים" Command="{Binding SettingsVm.AddPillPeriodCommand}"
+                                                           Appearance="Secondary" Padding="10,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+                                                    <ui:Button.Icon>
+                                                        <ui:SymbolIcon Symbol="Add24"/>
+                                                    </ui:Button.Icon>
+                                                </ui:Button>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 3. Or Zarua (global custom) + Display Options -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="מנהגים ותצוגה" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
 
@@ -184,17 +210,17 @@
                                     <ComboBox ItemsSource="{Binding SettingsVm.MinhagProfileOptions}"
                                               DisplayMemberPath="Label" SelectedValuePath="Value"
                                               SelectedValue="{Binding SettingsVm.MinhagProfile, Mode=TwoWay}"
-                                              Padding="6" Margin="0,0,0,12"/>
+                                              Padding="6" Margin="0,0,0,14"/>
 
-                                    <CheckBox Content="חשש עונת אור זרוע (עונה שלפני)"
-                                              IsChecked="{Binding SettingsVm.OrZarua}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="הצגת חלון פוריות וביוץ משוער בלוח"
-                                              IsChecked="{Binding SettingsVm.ShowFertility}" Margin="0,0,0,8" FontSize="12.5"/>
+                                    <ui:ToggleSwitch Content="חשש עונת אור זרוע (עונה שלפני)"
+                                                      IsChecked="{Binding SettingsVm.OrZarua}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="הצגת חלון פוריות וביוץ משוער בלוח"
+                                                      IsChecked="{Binding SettingsVm.ShowFertility}" Margin="0,0,0,4"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 3c. Fertility & Ovulation settings (docs/SPEC_FERTILITY_INSIGHTS.md sec.3.5.4) -->
-                            <Border Style="{StaticResource SectionCardStyle}"
+                            <ui:Card Style="{StaticResource SectionCardStyle}"
                                     Visibility="{Binding SettingsVm.ShowFertility, Converter={StaticResource BoolToVis}}">
                                 <StackPanel>
                                     <TextBlock Text="הגדרות פוריות וביוץ" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
@@ -214,74 +240,80 @@
                                         <TextBox Text="{Binding SettingsVm.FertilityManualCycleDays, UpdateSourceTrigger=PropertyChanged}" Width="70" Padding="6"/>
                                     </StackPanel>
 
-                                    <CheckBox Content="התרע כאשר הביוץ המשוער חל לפני ליל הטבילה"
-                                              IsChecked="{Binding SettingsVm.FertilityOvulationConflictAlert}" FontSize="12.5"/>
+                                    <ui:ToggleSwitch Content="התרע כאשר הביוץ המשוער חל לפני ליל הטבילה"
+                                                      IsChecked="{Binding SettingsVm.FertilityOvulationConflictAlert}"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 3b. Halachic Stringencies (14 switches - each a genuine machloket the -->
                             <!-- book presents; the app default is the simpler/lenient side, and any -->
                             <!-- stringency here is an explicit opt-in, never a silent default). -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="חומרות הלכתיות (מחלוקות פוסקים)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,4"/>
-                                    <TextBlock Text="כל מתג כאן הוא מחלוקת אמיתית בספר - ברירת המחדל היא השיטה הפשוטה, וההחמרה היא בחירה מודעת." FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                                    <TextBlock Text="כל מתג כאן הוא מחלוקת אמיתית בספר - ברירת המחדל היא השיטה הפשוטה, וההחמרה היא בחירה מודעת." FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,12" TextWrapping="Wrap"/>
 
-                                    <CheckBox Content="ספק עונה - לחוש לשתי העונות"
+                                    <ui:ToggleSwitch Content="ספק עונה - לחוש לשתי העונות"
                                               ToolTip="כשראתה ספק סמוך לחילוף העונות - לחוש אף לעונה הקודמת, ולא לעונה המאוחרת בלבד."
-                                              IsChecked="{Binding SettingsVm.SafekOnaBoth}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="וסת הדילוג והסירוג - לחשב חשש"
+                                              IsChecked="{Binding SettingsVm.SafekOnaBoth}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="וסת הדילוג והסירוג - לחשב חשש"
                                               ToolTip="כשהתבנית מוכחת - לחשב על פיה את יום החשש; אחרת מוצגת לבירור עם רב בלבד."
-                                              IsChecked="{Binding SettingsVm.Dilug}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="עקירת וסת שאינו קבוע - לדרוש בדיקה"
+                                              IsChecked="{Binding SettingsVm.Dilug}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="עקירת וסת שאינו קבוע - לדרוש בדיקה"
                                               ToolTip="כרגע: עבר זמן הוסת ולא ראתה - נעקר מיד. במתג זה: אינו נעקר עד שתיבדק בדיקה כדין."
-                                              IsChecked="{Binding SettingsVm.CheckUprootNonFixed}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="עונת אור זרוע בליל יום הל&quot;א"
+                                              IsChecked="{Binding SettingsVm.CheckUprootNonFixed}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="עונת אור זרוע בליל יום הל&quot;א"
                                               ToolTip="המנהג להוסיף עונת אור זרוע אף לפני עונה בינונית של יום הל&quot;א. מן הדין אין צריך, ולמעשה יש להחמיר."
-                                              IsChecked="{Binding SettingsVm.OrZaruaDay31}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="בדיקה באיחור - מועילה (דעת הב&quot;י)"
+                                              IsChecked="{Binding SettingsVm.OrZaruaDay31}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="בדיקה באיחור - מועילה (דעת הב&quot;י)"
                                               ToolTip="כשעבר זמן הוסת ולא נבדקה בו: כבוי = אינה מועילה, וצריך בדיקה בזמנה דוקא."
-                                              IsChecked="{Binding SettingsVm.LateBedika}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="מניין ההפלגה - מסוף הראייה"
+                                              IsChecked="{Binding SettingsVm.LateBedika}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="מניין ההפלגה - מסוף הראייה"
                                               ToolTip="כשהראייה נמשכה כמה ימים: מניין ברירת המחדל מתחילתה; במתג זה - מסופה."
-                                              IsChecked="{Binding SettingsVm.HaflagahFromEnd}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="פחד פתאום - לדרוש בדיקה"
+                                              IsChecked="{Binding SettingsVm.HaflagahFromEnd}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="פחד פתאום - לדרוש בדיקה"
                                               ToolTip="דעת החת&quot;ס שאינה צריכה בדיקה, והגר&quot;ש קלוגר סובר שצריכה בדיקה. כבוי = כחת&quot;ס."
-                                              IsChecked="{Binding SettingsVm.FrightBedika}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="כתם - שנחשב עקירת הוסת"
+                                              IsChecked="{Binding SettingsVm.FrightBedika}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="כתם - שנחשב עקירת הוסת"
                                               ToolTip="כרגע: הכתם &quot;כמי שאינו לענין וסתות&quot;. במתג זה: כשערי טוהר - כתם שנמצא בזמן הוסת שלש פעמים נחשב עקירה."
-                                              IsChecked="{Binding SettingsVm.StainUproots}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="צירוף למפרע - הפלגה ארוכה על פני הפלגה אחרת"
+                                              IsChecked="{Binding SettingsVm.StainUproots}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="צירוף למפרע - הפלגה ארוכה על פני הפלגה אחרת"
                                               ToolTip="כרגע: וסת ההפלגה נקבעת רק בג' הפלגות רצופות שוות. במתג זה: גם כשבאמצע ראתה בהפלגה קצרה, מצטרפת הווסת הארוכה."
-                                              IsChecked="{Binding SettingsVm.ChiburLemafrea}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="וסת הגוף שאינה קבועה - לדרוש בדיקה כשעבר הזמן"
+                                              IsChecked="{Binding SettingsVm.ChiburLemafrea}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="וסת הגוף שאינה קבועה - לדרוש בדיקה כשעבר הזמן"
                                               ToolTip="דלוק (ברירת מחדל) = כדעת הט&quot;ז, אסורה עד שתבדוק. כבוי = כדעת הש&quot;ך, אין חומרא יתרה."
-                                              IsChecked="{Binding SettingsVm.VesetHagufBedika}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="כרתי ופלתי - עונה בינונית ליממה שלמה"
+                                              IsChecked="{Binding SettingsVm.VesetHagufBedika}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="כרתי ופלתי - עונה בינונית ליממה שלמה"
                                               ToolTip="מנהג אשכנז: הרחבת עונת הפרישה של יום ל' ליממה שלמה - יום ולילה כאחד."
-                                              IsChecked="{Binding SettingsVm.KaretiUfaletei}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="וסת מעד בדיקה - דם שנמצא בבדיקה נמנה כראייה"
+                                              IsChecked="{Binding SettingsVm.KaretiUfaletei}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="וסת מעד בדיקה - דם שנמצא בבדיקה נמנה כראייה"
                                               ToolTip="כרגע: וסת נקבע רק על ידי ראייה כדרכה. במתג זה: גם דם שנמצא בבדיקה (&quot;עד בדיקה&quot;) נמנה כראייה."
-                                              IsChecked="{Binding SettingsVm.VesetFromBedika}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="מאכל חריף - כוסת האונס (לא נספרת לחזקה לבדה)"
+                                              IsChecked="{Binding SettingsVm.VesetFromBedika}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="מאכל חריף - כוסת האונס (לא נספרת לחזקה לבדה)"
                                               ToolTip="כרגע: ראייה מחמת מאכל חריף נספרת לחזקה כוסת הגוף. במתג זה: דינה כוסת האונס, ואינה קובעת וסת לבדה."
-                                              IsChecked="{Binding SettingsVm.SharpFoodOnes}" Margin="0,0,0,8" FontSize="12.5"/>
-                                    <CheckBox Content="ימי המבוכה - חומרת הרמ&quot;א"
+                                              IsChecked="{Binding SettingsVm.SharpFoodOnes}" Margin="0,0,0,10"/>
+                                    <ui:ToggleSwitch Content="ימי המבוכה - חומרת הרמ&quot;א"
                                               ToolTip="מנהג אשכנז: שני ימים מתחלפים (ג' פעמים כל אחד) נחשבים וסת קבוע לשניהם. עדות המזרח אינם חוששים לכך כלל - מקושר ל'פרופיל מנהג' למעלה."
-                                              IsChecked="{Binding SettingsVm.MevuchaDays}" Margin="0,0,0,8" FontSize="12.5"/>
+                                              IsChecked="{Binding SettingsVm.MevuchaDays}"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
 
                 <!-- Tab: מיקום וזמני היום -->
-                <TabItem Header="📍 מיקום וזמנים">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Style="{StaticResource TabHeaderStyle}">
+                            <TextBlock Text="מיקום וזמנים" Margin="0,0,8,0"/>
+                            <ui:SymbolIcon Symbol="Location24"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <!-- 2. Location & Zmanim -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="עיר וזמני היום (שקיעה ונץ)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="לחישוב עונות היום והלילה ובירור ספק עונה:" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
@@ -292,17 +324,23 @@
                                               SelectedValue="{Binding SettingsVm.SelectedCityId, Mode=TwoWay}"
                                               Padding="6"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
 
                 <!-- Tab: אבטחה ונעילה -->
-                <TabItem Header="🛡️ אבטחה ונעילה">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Style="{StaticResource TabHeaderStyle}">
+                            <TextBlock Text="אבטחה ונעילה" Margin="0,0,8,0"/>
+                            <ui:SymbolIcon Symbol="ShieldCheckmark24"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <!-- 4. PIN Security -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="אבטחת המערכת וקוד PIN" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="נעילת האפליקציה בסיסמה אישית בכל פתיחה:" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
@@ -312,8 +350,11 @@
                                         <TextBox Text="{Binding SettingsVm.NewPin, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,6"/>
                                         <TextBlock Text="אימות קוד:" FontSize="12" Margin="0,0,0,4"/>
                                         <TextBox Text="{Binding SettingsVm.ConfirmPin, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
-                                        <Button Content="שמור קוד PIN" Command="{Binding SettingsVm.UpdatePinCommand}"
-                                                Background="#0F172A" Foreground="#FFFFFF" Padding="10,6" Cursor="Hand"/>
+                                        <ui:Button Content="שמור קוד PIN" Command="{Binding SettingsVm.UpdatePinCommand}" Appearance="Primary" Padding="10,6">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="LockClosed24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
                                     </StackPanel>
 
                                     <StackPanel Visibility="{Binding SettingsVm.HasPin, Converter={StaticResource BoolToVis}}">
@@ -321,14 +362,13 @@
                                             <Run Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
                                             <Run Text=" המערכת מוגנת בקוד PIN אישי"/>
                                         </TextBlock>
-                                        <Button Content="הסר הגנת PIN" Command="{Binding SettingsVm.RemovePinCommand}"
-                                                Background="#FEE2E2" Foreground="#991B1B" BorderThickness="0" Padding="10,6" Cursor="Hand"/>
+                                        <ui:Button Content="הסר הגנת PIN" Command="{Binding SettingsVm.RemovePinCommand}" Appearance="Danger" Padding="10,6"/>
                                     </StackPanel>
 
                                     <TextBlock Text="{Binding SettingsVm.PinStatusMessage}" Foreground="#B45309" FontSize="11.5" Margin="0,8,0,0"
                                                Visibility="{Binding SettingsVm.PinStatusMessage.Length, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
@@ -336,46 +376,50 @@
                 <!-- Tab: גיבוי וסנכרון (+ תקלות/עדכונים/מחיקת נתונים - אין להם תא נפרד בדוח, שייכים לוגית לכאן) -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE753;" Style="{StaticResource IconGlyphStyle}" Margin="0,0,4,0"/>
-                            <TextBlock Text="גיבוי וסנכרון"/>
+                        <StackPanel Style="{StaticResource TabHeaderStyle}">
+                            <TextBlock Text="גיבוי וסנכרון" Margin="0,0,8,0"/>
+                            <ui:SymbolIcon Symbol="Cloud24"/>
                         </StackPanel>
                     </TabItem.Header>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
 
                             <!-- 5. Local Backup & Restore (JSON) -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="גיבוי ושחזור מקומי (JSON)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="שמירת קובץ גיבוי במחשב או שחזור מגיבוי קודם:" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
 
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Command="{Binding SettingsVm.ExportJsonBackupCommand}"
-                                                Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                Padding="12,6" Margin="0,0,8,0" Cursor="Hand">
-                                            <TextBlock><Run Text="&#xE74E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" ייצוא גיבוי לקובץ"/></TextBlock>
-                                        </Button>
-                                        <Button Command="{Binding SettingsVm.RestoreJsonBackupCommand}"
-                                                Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                Padding="12,6" Cursor="Hand">
-                                            <TextBlock><Run Text="&#xE8E5;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" שחזור מתוך קובץ"/></TextBlock>
-                                        </Button>
+                                        <ui:Button Content="ייצוא גיבוי לקובץ" Command="{Binding SettingsVm.ExportJsonBackupCommand}"
+                                                   Appearance="Secondary" Padding="12,6" Margin="0,0,8,0">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="Save24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
+                                        <ui:Button Content="שחזור מתוך קובץ" Command="{Binding SettingsVm.RestoreJsonBackupCommand}"
+                                                   Appearance="Secondary" Padding="12,6">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="FolderOpen24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
                                     </StackPanel>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 6. Cloud Backup & Sync -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="גיבוי וסנכרון ענן (חשבון Google)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
 
                                     <StackPanel Visibility="{Binding SettingsVm.GoogleConnected, Converter={StaticResource InvBoolToVis}}">
                                         <TextBlock Text="חיבור חשבון Google מאפשר גיבוי אוטומטי לגיליון Sheets וסנכרון תזכורות ליומן." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
-                                        <Button Command="{Binding SettingsVm.ConnectGoogleCommand}"
-                                                Background="#0F172A" Foreground="#FFFFFF" Padding="10,6" Cursor="Hand" HorizontalAlignment="Left">
-                                            <TextBlock><Run Text="&#xE71B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" התחבר לחשבון Google"/></TextBlock>
-                                        </Button>
+                                        <ui:Button Content="התחבר לחשבון Google" Command="{Binding SettingsVm.ConnectGoogleCommand}"
+                                                   Appearance="Primary" Padding="10,6" HorizontalAlignment="Left">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="Link24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
                                     </StackPanel>
 
                                     <StackPanel Visibility="{Binding SettingsVm.GoogleConnected, Converter={StaticResource BoolToVis}}">
@@ -387,12 +431,13 @@
                                         <TextBlock Text="מזהה גיליון Google Sheets:" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
                                         <TextBox Text="{Binding SettingsVm.SheetId, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"/>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="📊 פתח את הגיליון" Command="{Binding SettingsVm.OpenGoogleSheetCommand}"
-                                                    Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                    Padding="10,6" Margin="0,0,8,0" Cursor="Hand"/>
-                                            <Button Content="נתק חשבון" Command="{Binding SettingsVm.DisconnectGoogleCommand}"
-                                                    Background="#FEE2E2" Foreground="#991B1B" BorderThickness="0"
-                                                    Padding="10,6" Cursor="Hand"/>
+                                            <ui:Button Content="פתח את הגיליון" Command="{Binding SettingsVm.OpenGoogleSheetCommand}"
+                                                       Appearance="Secondary" Padding="10,6" Margin="0,0,8,0">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="DataTrending24"/>
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button Content="נתק חשבון" Command="{Binding SettingsVm.DisconnectGoogleCommand}" Appearance="Danger" Padding="10,6"/>
                                         </StackPanel>
 
                                         <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0" Margin="0,14,0,14"/>
@@ -400,23 +445,23 @@
                                         <TextBlock Text="כתובת אימייל לשחזור (מוצגת בגיבוי, לזיהוי בעתיד):" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                             <TextBox Text="{Binding SettingsVm.RecoveryEmail, UpdateSourceTrigger=PropertyChanged}" Padding="6" Width="220" Margin="0,0,8,0"/>
-                                            <Button Content="שמור" Command="{Binding SettingsVm.SaveRecoveryEmailCommand}"
-                                                    Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                    Padding="10,6" Cursor="Hand"/>
+                                            <ui:Button Content="שמור" Command="{Binding SettingsVm.SaveRecoveryEmailCommand}" Appearance="Secondary" Padding="10,6"/>
                                         </StackPanel>
 
                                         <TextBlock Text="הגיבוי לגיליון Sheets אינו אוטומטי בגרסה זו - יש להריץ אותו ידנית, ולשחזר (מיזוג בלבד, בלי למחוק נתונים מקומיים) בעת הצורך:" FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" TextWrapping="Wrap"/>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Command="{Binding SettingsVm.BackupToGoogleNowCommand}"
-                                                    Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                    Padding="10,6" Margin="0,0,8,0" Cursor="Hand">
-                                                <TextBlock><Run Text="&#xE753;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" גבה עכשיו לגוגל"/></TextBlock>
-                                            </Button>
-                                            <Button Command="{Binding SettingsVm.RestoreFromGoogleMergeCommand}"
-                                                    Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                    Padding="10,6" Cursor="Hand">
-                                                <TextBlock><Run Text="&#xE896;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" שחזר ומזג מגוגל"/></TextBlock>
-                                            </Button>
+                                            <ui:Button Content="גבה עכשיו לגוגל" Command="{Binding SettingsVm.BackupToGoogleNowCommand}"
+                                                       Appearance="Secondary" Padding="10,6" Margin="0,0,8,0">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="Cloud24"/>
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button Content="שחזר ומזג מגוגל" Command="{Binding SettingsVm.RestoreFromGoogleMergeCommand}"
+                                                       Appearance="Secondary" Padding="10,6">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="ArrowDownload24"/>
+                                                </ui:Button.Icon>
+                                            </ui:Button>
                                         </StackPanel>
                                         <TextBlock Text="{Binding SettingsVm.GoogleBackupStatusMessage}" Foreground="#0369A1" FontSize="11.5" Margin="0,8,0,0"
                                                    Visibility="{Binding SettingsVm.GoogleBackupStatusMessage.Length, Converter={StaticResource BoolToVis}}" TextWrapping="Wrap"/>
@@ -427,16 +472,16 @@
                                     <TextBlock Text="{Binding SettingsVm.SyncStatusMessage}" Foreground="#0369A1" FontSize="11.5" Margin="0,4,0,0"
                                                Visibility="{Binding SettingsVm.SyncStatusMessage.Length, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 6c. Google Calendar Sync -->
-                            <Border Style="{StaticResource SectionCardStyle}"
+                            <ui:Card Style="{StaticResource SectionCardStyle}"
                                     Visibility="{Binding SettingsVm.GoogleConnected, Converter={StaticResource BoolToVis}}">
                                 <StackPanel>
                                     <TextBlock Text="יומן גוגל והתראות דוא&quot;ל" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="סנכרון תזכורות בדיקות וימי פרישה ליומן ייעודי ונפרד ביומן Google - היומן הראשי שלך לעולם אינו נגע." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
 
-                                    <CheckBox Content="הפעל סנכרון ליומן גוגל" IsChecked="{Binding SettingsVm.CalendarSyncEnabled}" Margin="0,0,0,10" FontSize="12.5"/>
+                                    <ui:ToggleSwitch Content="הפעל סנכרון ליומן גוגל" IsChecked="{Binding SettingsVm.CalendarSyncEnabled}" Margin="0,0,0,12"/>
 
                                     <StackPanel Visibility="{Binding SettingsVm.CalendarSyncEnabled, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="רמת דיסקרטיות בשם האירוע:" FontSize="12" Margin="0,0,0,4"/>
@@ -450,8 +495,8 @@
                                             <TextBox Text="{Binding SettingsVm.CalendarDiscreetPrefix, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,8"/>
                                         </StackPanel>
 
-                                        <CheckBox Content="שלח התראות בדוא&quot;ל" IsChecked="{Binding SettingsVm.CalendarNotifyEmail}" Margin="0,0,0,6" FontSize="12.5"/>
-                                        <CheckBox Content="הצג התראות פופ-אפ ביומן" IsChecked="{Binding SettingsVm.CalendarNotifyPopup}" Margin="0,0,0,8" FontSize="12.5"/>
+                                        <ui:ToggleSwitch Content="שלח התראות בדוא&quot;ל" IsChecked="{Binding SettingsVm.CalendarNotifyEmail}" Margin="0,0,0,8"/>
+                                        <ui:ToggleSwitch Content="הצג התראות פופ-אפ ביומן" IsChecked="{Binding SettingsVm.CalendarNotifyPopup}" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="שעת בדיקת בוקר (HH:MM):" FontSize="12" Margin="0,0,0,4"/>
                                         <TextBox Text="{Binding SettingsVm.CalendarMorningTime, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,8"/>
@@ -464,24 +509,26 @@
                                             <ComboBoxItem Content="120" Tag="120"/>
                                         </ComboBox>
 
-                                        <CheckBox Content="תזכורת בדיקת מוך דחוק" IsChecked="{Binding SettingsVm.CalendarMochDachukEnabled}" Margin="0,0,0,10" FontSize="12.5"/>
+                                        <ui:ToggleSwitch Content="תזכורת בדיקת מוך דחוק" IsChecked="{Binding SettingsVm.CalendarMochDachukEnabled}" Margin="0,0,0,12"/>
 
                                         <TextBlock Text="שים לב: החיבור הקיים לא בהכרח כולל הרשאת יומן - אם הסנכרון נכשל, נתק וחבר מחדש את החשבון."
                                                    FontSize="11" Foreground="#B45309" TextWrapping="Wrap" Margin="0,0,0,10"
                                                    Visibility="{Binding SettingsVm.CalendarHasScope, Converter={StaticResource InvBoolToVis}}"/>
 
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Button Command="{Binding SettingsVm.SyncCalendarNowCommand}"
-                                                    Background="#0F172A" Foreground="#FFFFFF" Padding="10,6" Margin="0,0,8,0" Cursor="Hand">
-                                                <TextBlock><Run Text="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" סנכרן כעת"/></TextBlock>
-                                            </Button>
-                                            <Button Command="{Binding SettingsVm.OpenGoogleCalendarCommand}"
-                                                    Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                    Padding="10,6" Margin="0,0,8,0" Cursor="Hand">
-                                                <TextBlock><Run Text="&#xE787;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" פתח את יומן גוגל"/></TextBlock>
-                                            </Button>
-                                            <Button Content="🧹 נקה תזכורות" Command="{Binding SettingsVm.ClearCalendarEventsCommand}"
-                                                    Background="#FEE2E2" Foreground="#991B1B" BorderThickness="0" Padding="10,6" Cursor="Hand"/>
+                                            <ui:Button Content="סנכרן כעת" Command="{Binding SettingsVm.SyncCalendarNowCommand}"
+                                                       Appearance="Primary" Padding="10,6" Margin="0,0,8,0">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="ArrowSync24"/>
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button Content="פתח את יומן גוגל" Command="{Binding SettingsVm.OpenGoogleCalendarCommand}"
+                                                       Appearance="Secondary" Padding="10,6" Margin="0,0,8,0">
+                                                <ui:Button.Icon>
+                                                    <ui:SymbolIcon Symbol="Calendar24"/>
+                                                </ui:Button.Icon>
+                                            </ui:Button>
+                                            <ui:Button Content="נקה תזכורות" Command="{Binding SettingsVm.ClearCalendarEventsCommand}" Appearance="Danger" Padding="10,6"/>
                                         </StackPanel>
 
                                         <TextBlock Text="{Binding SettingsVm.CalendarLastSyncMessage}" FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
@@ -490,10 +537,10 @@
                                     <TextBlock Text="{Binding SettingsVm.CalendarStatusMessage}" Foreground="#0369A1" FontSize="11.5" Margin="0,4,0,0"
                                                Visibility="{Binding SettingsVm.CalendarStatusMessage.Length, Converter={StaticResource BoolToVis}}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 6b. Error Log -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="יומן תקלות לתמיכה" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10">
@@ -502,20 +549,23 @@
                                         <Run Text="תקלות. ייצוא הקובץ ושליחתו לתמיכה עוזר לאבחן בעיה מרחוק."/>
                                     </TextBlock>
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Content="📄 ייצוא יומן תקלות" Command="{Binding SettingsVm.ExportErrorLogCommand}"
-                                                Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                                Padding="12,6" Margin="0,0,8,0" Cursor="Hand"/>
-                                        <Button Command="{Binding SettingsVm.ClearErrorLogCommand}"
-                                                Background="#FEE2E2" Foreground="#991B1B" BorderThickness="0"
-                                                Padding="12,6" Cursor="Hand">
-                                            <TextBlock><Run Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" נקה יומן"/></TextBlock>
-                                        </Button>
+                                        <ui:Button Content="ייצוא יומן תקלות" Command="{Binding SettingsVm.ExportErrorLogCommand}"
+                                                   Appearance="Secondary" Padding="12,6" Margin="0,0,8,0">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="DocumentBulletList24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
+                                        <ui:Button Content="נקה יומן" Command="{Binding SettingsVm.ClearErrorLogCommand}" Appearance="Danger" Padding="12,6">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="Delete24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
                                     </StackPanel>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 6d. Email Data Export -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="ייצוא נתונים בדוא&quot;ל" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="שליחת ריכוז נתוני הלוח לכתובת דוא&quot;ל שתבחר/י - למשל כדי לשתף עם רב או לשמור עותק חיצוני." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
@@ -527,28 +577,30 @@
                                     <TextBox Text="{Binding SettingsVm.ExportNotes, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10"
                                              AcceptsReturn="True" TextWrapping="Wrap" Height="50"/>
 
-                                    <CheckBox Content="נתוני פרישה עתידיים (וסתות, חששות, בדיקות ממתינות)"
-                                              IsChecked="{Binding SettingsVm.ExportIncludeFuture}" Margin="0,0,0,6" FontSize="12.5"/>
-                                    <CheckBox Content="היסטוריית אירועים מלאה"
-                                              IsChecked="{Binding SettingsVm.ExportIncludeHistory}" Margin="0,0,0,6" FontSize="12.5"/>
-                                    <CheckBox Content="כלול הערות אישיות שנרשמו על אירועים"
-                                              IsChecked="{Binding SettingsVm.ExportIncludeNotes}" Margin="0,0,0,10" FontSize="12.5"/>
+                                    <ui:ToggleSwitch Content="נתוני פרישה עתידיים (וסתות, חששות, בדיקות ממתינות)"
+                                              IsChecked="{Binding SettingsVm.ExportIncludeFuture}" Margin="0,0,0,8"/>
+                                    <ui:ToggleSwitch Content="היסטוריית אירועים מלאה"
+                                              IsChecked="{Binding SettingsVm.ExportIncludeHistory}" Margin="0,0,0,8"/>
+                                    <ui:ToggleSwitch Content="כלול הערות אישיות שנרשמו על אירועים"
+                                              IsChecked="{Binding SettingsVm.ExportIncludeNotes}" Margin="0,0,0,14"/>
 
                                     <TextBlock Text="שים לב: בפעם הראשונה שנשלח לכתובת זו, יש להיכנס למייל וללחוץ על 'Activate' בהודעה מ-FormSubmit.co כדי שהנתונים יתקבלו בפועל."
                                                FontSize="11" Foreground="#B45309" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                                    <Button Command="{Binding SettingsVm.SendEmailExportCommand}"
-                                            Background="#0F172A" Foreground="#FFFFFF" Padding="10,6" Cursor="Hand" HorizontalAlignment="Left">
-                                        <TextBlock><Run Text="&#xE715;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" שלח נתונים בדוא&quot;ל"/></TextBlock>
-                                    </Button>
+                                    <ui:Button Content="שלח נתונים בדוא&quot;ל" Command="{Binding SettingsVm.SendEmailExportCommand}"
+                                               Appearance="Primary" Padding="10,6" HorizontalAlignment="Left">
+                                        <ui:Button.Icon>
+                                            <ui:SymbolIcon Symbol="Mail24"/>
+                                        </ui:Button.Icon>
+                                    </ui:Button>
 
                                     <TextBlock Text="{Binding SettingsVm.ExportStatusMessage}" Foreground="#0369A1" FontSize="11.5" Margin="0,8,0,0"
                                                Visibility="{Binding SettingsVm.ExportStatusMessage.Length, Converter={StaticResource BoolToVis}}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 6e. Danger Zone: Delete All Data -->
-                            <Border Style="{StaticResource SectionCardStyle}" BorderBrush="#FECACA">
+                            <ui:Card Style="{StaticResource SectionCardStyle}" BorderBrush="#FECACA">
                                 <StackPanel>
                                     <TextBlock FontSize="14" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,8">
                                         <Run Text="&#xE7BA;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
@@ -557,55 +609,52 @@
                                     <TextBlock Text="מוחק לצמיתות את כל האירועים, קוד ה-PIN וכל ההגדרות (מנהג, פוריות, מתגי חומרא, יומן וגיבוי ענן). פעולה זו אינה הפיכה." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
 
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Command="{Binding SettingsVm.DeleteAllDataCommand}"
-                                                Background="#FEE2E2" Foreground="#991B1B" BorderThickness="0" Padding="12,6" Margin="0,0,8,0" Cursor="Hand">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Setter Property="Content">
-                                                        <Setter.Value>
-                                                            <TextBlock><Run Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" מחק את כל הנתונים"/></TextBlock>
-                                                        </Setter.Value>
-                                                    </Setter>
+                                        <ui:Button Command="{Binding SettingsVm.DeleteAllDataCommand}" Padding="12,6" Margin="0,0,8,0">
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button">
+                                                    <Setter Property="Appearance" Value="Danger"/>
+                                                    <Setter Property="Content" Value="מחק את כל הנתונים"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding SettingsVm.DeleteAllArmed}" Value="True">
                                                             <Setter Property="Content" Value="לחץ שוב לאישור מחיקה סופית"/>
-                                                            <Setter Property="Background" Value="#991B1B"/>
-                                                            <Setter Property="Foreground" Value="#FFFFFF"/>
                                                             <Setter Property="FontWeight" Value="Bold"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Button.Style>
-                                        </Button>
-                                        <Button Content="ביטול" Command="{Binding SettingsVm.CancelDeleteAllDataCommand}"
-                                                Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextSecondaryBrush}" BorderThickness="0" Padding="12,6" Cursor="Hand"
-                                                Visibility="{Binding SettingsVm.DeleteAllArmed, Converter={StaticResource BoolToVis}}"/>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                        <ui:Button Content="ביטול" Command="{Binding SettingsVm.CancelDeleteAllDataCommand}"
+                                                   Appearance="Secondary" Padding="12,6"
+                                                   Visibility="{Binding SettingsVm.DeleteAllArmed, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
 
                                     <TextBlock Text="{Binding SettingsVm.DeleteAllStatusMessage}" Foreground="#991B1B" FontSize="11.5" Margin="0,8,0,0"
                                                Visibility="{Binding SettingsVm.DeleteAllStatusMessage.Length, Converter={StaticResource BoolToVis}}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                             <!-- 7. Updates -->
-                            <Border Style="{StaticResource SectionCardStyle}">
+                            <ui:Card Style="{StaticResource SectionCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="עדכוני תוכנה" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="{Binding SettingsVm.CurrentVersionDisplay, StringFormat='גרסה נוכחית: v{0}'}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
-                                    <Button Command="{Binding SettingsVm.CheckUpdatesCommand}"
-                                            Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource TextMainBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1"
-                                            Padding="12,6" Cursor="Hand" HorizontalAlignment="Left">
-                                        <TextBlock><Run Text="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" בדוק עדכונים ב-GitHub"/></TextBlock>
-                                    </Button>
+                                    <ui:Button Content="בדוק עדכונים ב-GitHub" Command="{Binding SettingsVm.CheckUpdatesCommand}"
+                                               Appearance="Secondary" Padding="12,6" HorizontalAlignment="Left">
+                                        <ui:Button.Icon>
+                                            <ui:SymbolIcon Symbol="ArrowSync24"/>
+                                        </ui:Button.Icon>
+                                    </ui:Button>
                                     <TextBlock Text="{Binding SettingsVm.UpdateStatusMessage}" Foreground="#047857" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0"
                                                Visibility="{Binding SettingsVm.UpdateStatusMessage.Length, Converter={StaticResource BoolToVis}}"/>
-                                    <Button Command="{Binding SettingsVm.OpenReleaseUrlCommand}"
-                                            Background="#0F172A" Foreground="#FFFFFF" Padding="10,6" Margin="0,8,0,0" Cursor="Hand" HorizontalAlignment="Left"
-                                            Visibility="{Binding SettingsVm.LatestReleaseUrl.Length, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock><Run Text="&#xE896;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/><Run Text=" הורד את הגרסה החדשה"/></TextBlock>
-                                    </Button>
+                                    <ui:Button Content="הורד את הגרסה החדשה" Command="{Binding SettingsVm.OpenReleaseUrlCommand}"
+                                               Appearance="Primary" Padding="10,6" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                               Visibility="{Binding SettingsVm.LatestReleaseUrl.Length, Converter={StaticResource BoolToVis}}">
+                                        <ui:Button.Icon>
+                                            <ui:SymbolIcon Symbol="ArrowDownload24"/>
+                                        </ui:Button.Icon>
+                                    </ui:Button>
                                 </StackPanel>
-                            </Border>
+                            </ui:Card>
 
                         </StackPanel>
                     </ScrollViewer>
@@ -615,19 +664,11 @@
 
             <!-- Footer Save Button -->
             <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
-                <Button Content="שמור שינויים וסגור"
-                        Command="{Binding SettingsVm.SaveSettingsCommand}"
-                        Background="#0F172A" Foreground="#FFFFFF" FontWeight="Bold" FontSize="13.5"
-                        Padding="16,10" Cursor="Hand" HorizontalAlignment="Stretch">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                <ui:Button Content="שמור שינויים וסגור"
+                           Command="{Binding SettingsVm.SaveSettingsCommand}"
+                           Appearance="Primary" FontWeight="Bold" FontSize="13.5"
+                           Padding="16,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
             </Border>
         </Grid>
-    </Border>
+    </ui:Card>
 </UserControl>
