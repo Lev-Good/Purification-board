@@ -1,0 +1,37 @@
+﻿<Application x:Class="Taharah.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Taharah.UI"
+             xmlns:uimkp="clr-namespace:Wpf.Ui.Markup;assembly=Wpf.Ui">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- WPF-UI's own Fluent control templates + theme brushes (ApplicationBackgroundBrush,
+                     TextFillColorPrimaryBrush, CardBackgroundFillColorDefaultBrush, etc.) - required by
+                     every ui:* control used across the app (FluentWindow, Card, Button, ToggleSwitch...).
+                     ApplicationThemeManager.Apply (called from ThemeService.Apply) keeps ThemesDictionary's
+                     active theme in sync with our own Light/DarkTheme.xaml swap below, so both brush sets
+                     always agree on light vs dark. -->
+                <uimkp:ThemesDictionary Theme="Light" />
+                <uimkp:ControlsDictionary />
+                <!-- Our own hand-authored brushes (WindowBgBrush, SurfaceBrush, TextMainBrush, ...) -
+                     still used directly by every non-Fluent Border/TextBlock across the app; kept
+                     alongside rather than replaced, since migrating every one of ~200 existing
+                     DynamicResource references to WPF-UI's own key names is out of scope here. -->
+                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Segoe Fluent Icons (Win11) falling back to Segoe MDL2 Assets (Win10+) - both assign
+                 the same codepoints to the glyphs used here, so this single style covers both OSes.
+                 Replaces color emoji that render as empty "Tofu" boxes on WPF's default text
+                 pipeline (see UI review report, sec. 2.3/8) for the generic/system icons only -
+                 domain-specific glyphs (blood drop, dove, pill, wave...) have no icon-font
+                 equivalent and are intentionally left as emoji. -->
+            <Style x:Key="IconGlyphStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
+

@@ -1,0 +1,138 @@
+﻿<UserControl x:Class="Taharah.UI.Views.AboutDrawerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+             mc:Ignorable="d"
+             d:DesignHeight="900" d:DesignWidth="500"
+             FlowDirection="RightToLeft">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+
+        <Style x:Key="AboutCardStyle" TargetType="ui:Card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
+        </Style>
+        <Style x:Key="AboutHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextMainBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="AboutBodyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1,0,0,0">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <DockPanel>
+                    <ui:Button DockPanel.Dock="Left"
+                               Command="{Binding CloseAboutCommand}"
+                               Appearance="Transparent"
+                               Width="32" Height="32">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Dismiss24"/>
+                        </ui:Button.Icon>
+                    </ui:Button>
+                    <TextBlock Text="אודות והוראות שימוש" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- 1. Usage instructions -->
+                    <ui:Card Style="{StaticResource AboutCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="איך משתמשים ביומן?" Style="{StaticResource AboutHeadingStyle}"/>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="הזנת נתונים: " FontWeight="Bold"/>
+                                <Run Text="לחצו על כל תאריך בלוח השנה כדי לפתוח את תפריט הפעולות ליום זה."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="תחילת מחזור (ראייה): " FontWeight="Bold"/>
+                                <Run Text="סמנו &quot;ראייה&quot; ובחרו אם זה קרה בעונת יום או בעונת לילה. המערכת תחשב מיד את ימי הפרישה העתידיים."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="הבנת התצוגה בלוח (יום מול לילה): " FontWeight="Bold"/>
+                                <Run Text="ביהדות, הלילה קודם ליום. אירועים שחלים בלילה שלפני היום עצמו (כגון טבילה) מסומנים בלוח בהתאם."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="תהליך הטהרה: " FontWeight="Bold"/>
+                                <Run Text="ביום ביצוע &quot;הפסק טהרה&quot; סמנו זאת בלוח. המערכת תציג אוטומטית את שבעת הנקיים ותסמן את צפי הטבילה ללילה הנכון."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}" Margin="0,6,0,0">
+                                <Run Text="לפירוט מלא של כל קיצור וקוד שמופיע בלוח (עו&quot;ב, עו&quot;ה, יו&quot;ח, עוא&quot;ז, עו&quot;מ, וק&quot;ח ועוד), עם מקורות הלכתיים מלאים - ראו את "/>
+                                <Hyperlink Command="{Binding OpenGuideCommand}"><Run Text="המדריך ההלכתי"/></Hyperlink>
+                                <Run Text="."/>
+                            </TextBlock>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 2. Email export -->
+                    <ui:Card Style="{StaticResource AboutCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="שליחת נתונים למייל" Style="{StaticResource AboutHeadingStyle}"/>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}" Text="ניתן לייצא את ריכוז הווסתות וההיסטוריה לכתובת מייל שתבחרו (בהגדרות) - למשל לצורך שיתוף עם רב לייעוץ."/>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="שימו לב (אימות חד-פעמי): " FontWeight="Bold"/>
+                                <Run Text="מטעמי אבטחה ומניעת ספאם, בפעם הראשונה שתשלחו לכתובת דוא&quot;ל מסוימת, תקבלו לתיבה הודעת אימות באנגלית מ-FormSubmit. חובה לפתוח את ההודעה וללחוץ על 'Activate' כדי שהנתונים יתקבלו בפועל."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}" Text="בפעמים הבאות שתשלחו לאותה כתובת, הנתונים יגיעו מיד ללא צורך באישור נוסף."/>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 3. Privacy and backup -->
+                    <ui:Card Style="{StaticResource AboutCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="פרטיות וגיבוי נתונים" Style="{StaticResource AboutHeadingStyle}"/>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="אבטחה מקסימלית: " FontWeight="Bold"/>
+                                <Run Text="כל הנתונים שלכם נשמרים אך ורק על המחשב האישי שלכם. אף נתון לא נשלח לשרת חיצוני, אלא אם תבחרו במפורש לסנכרן ליומן/גיליון Google או לשלוח למייל."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="קוד נעילה (PIN): " FontWeight="Bold"/>
+                                <Run Text="כדי להגן על היומן מעיניים סקרניות, היכנסו להגדרות והגדירו קוד אישי שיידרש בכל פתיחה של האפליקציה - הוא גם מצפין את קובץ בסיס הנתונים עצמו."/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource AboutBodyStyle}">
+                                <Run Text="גיבוי חובה: " FontWeight="Bold"/>
+                                <Run Text="אנו ממליצים בחום לייצא קובץ גיבוי לעיתים קרובות מתוך ההגדרות. את הקובץ תוכלו לטעון מחדש בכל מחשב."/>
+                            </TextBlock>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 4. Credit -->
+                    <ui:Card Style="{StaticResource AboutCardStyle}" HorizontalAlignment="Stretch">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="פותח באהבה ובמחשבה רבה על ידי לב טוב" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMainBrush}" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                            <TextBlock Text="לשאלות, הצעות לשיפור או תמיכה טכנית:" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                            <TextBlock HorizontalAlignment="Center">
+                                <Hyperlink NavigateUri="mailto:myylbwt@gmail.com" RequestNavigate="OnEmailLinkRequestNavigate">
+                                    <Run Text="myylbwt@gmail.com"/>
+                                </Hyperlink>
+                            </TextBlock>
+                        </StackPanel>
+                    </ui:Card>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>
+

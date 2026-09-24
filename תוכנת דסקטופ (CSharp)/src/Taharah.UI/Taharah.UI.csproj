@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Taharah.Core\Taharah.Core.csproj" />
+    <ProjectReference Include="..\Taharah.Infrastructure\Taharah.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- The correct Fluent design library ("WPF-UI" with a hyphen, by lepoco) - the
+         project previously referenced "WPF.UI" (dot), an unrelated legacy net451-only
+         package that only provided a handful of attached properties and had none of
+         FluentWindow/TitleBar/Card/ToggleSwitch/Mica. Swapped for the full design overhaul. -->
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <!-- Local-only Google OAuth client secret (git-ignored via root .gitignore's
+       **/google-oauth.local.json, never committed - see GoogleOAuthService.cs's
+       ReadCredentials). Copied next to the built exe on every build/publish when
+       present on this machine, so it doesn't need to be copied by hand after each
+       rebuild. Absent entirely on a fresh clone or CI - the app degrades gracefully.
+       Deliberately a Target + Copy task, NOT a <None CopyToOutputDirectory> item -
+       the latter propagates transitively into every OTHER project that references
+       this one (Taharah.Core.Tests does, for its WPF ViewModel tests), leaking the
+       real secret into the test build's output too. A Target only runs in this
+       project's own build/publish context, so it writes to this project's own
+       $(OutDir)/$(PublishDir) exclusively. -->
+  <Target Name="CopyLocalOAuthSecretAfterBuild" AfterTargets="Build" Condition="Exists('$(MSBuildProjectDirectory)\..\..\google-oauth.local.json')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\google-oauth.local.json" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyLocalOAuthSecretAfterPublish" AfterTargets="Publish" Condition="Exists('$(MSBuildProjectDirectory)\..\..\google-oauth.local.json')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\google-oauth.local.json" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
+    <!-- No version was ever set here before (defaulted silently to 1.0.0.0), which made
+         UpdateCheckerService.cs always report a false "update available" against the shared
+         GitHub repo's actual releases (package.json is at 3.2.0). Aligned with that instead of
+         inventing a separate C#-only scheme. -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <AssemblyName>Taharah</AssemblyName>
+    <Product>לוח טהרה (הלכות טהרה - הרב עמרם פריד)</Product>
+    <Authors>Lev Good</Authors>
+    <Version>3.2.0</Version>
+    <AssemblyVersion>3.2.0.0</AssemblyVersion>
+    <FileVersion>3.2.0.0</FileVersion>
+  </PropertyGroup>
+
+</Project>

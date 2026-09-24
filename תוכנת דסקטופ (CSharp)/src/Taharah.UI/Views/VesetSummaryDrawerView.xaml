@@ -1,0 +1,164 @@
+﻿<UserControl x:Class="Taharah.UI.Views.VesetSummaryDrawerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+             mc:Ignorable="d"
+             d:DesignHeight="900" d:DesignWidth="900"
+             FlowDirection="RightToLeft">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:BoolToVisibilityConverter x:Key="InvBoolToVis" Invert="True"/>
+
+        <Style x:Key="ColHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1,0,0,0">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <DockPanel>
+                    <ui:Button DockPanel.Dock="Left"
+                               Command="{Binding CloseVesetSummaryCommand}"
+                               Appearance="Transparent"
+                               Width="32" Height="32">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Dismiss24"/>
+                        </ui:Button.Icon>
+                    </ui:Button>
+                    <TextBlock Text="ריכוז חישוב וסתות ותאריכי פרישה" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <ui:Card Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" Padding="10" Margin="0,0,0,10"
+                            Visibility="{Binding HasSilekBanner, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding SilekBannerText}" FontSize="12.5" Foreground="#78350F" TextWrapping="Wrap"/>
+                    </ui:Card>
+
+                    <ui:Card Background="#DCFCE7" BorderBrush="#BBF7D0" BorderThickness="1" Padding="10" Margin="0,0,0,10"
+                            Visibility="{Binding HasFixedVesetBanner, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding FixedVesetBannerText}" FontSize="12.5" Foreground="#166534" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    </ui:Card>
+
+                    <StackPanel HorizontalAlignment="Center" Margin="0,40,0,0"
+                                Visibility="{Binding VesetSummaryRows.Count, Converter={StaticResource InvBoolToVis}}">
+                        <TextBlock Text="אין עדיין רישומי וסתות" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="כאשר תזינו תחילת ראייה בלוח השנה, המערכת תציג כאן את תאריכי הפרישה באופן אוטומטי." FontSize="12.5" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <ui:Card BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            Visibility="{Binding VesetSummaryRows.Count, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Background="{DynamicResource InputBgBrush}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.3*"/>
+                                    <ColumnDefinition Width="0.7*"/>
+                                    <ColumnDefinition Width="1.1*"/>
+                                    <ColumnDefinition Width="1.1*"/>
+                                    <ColumnDefinition Width="0.9*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="תאריך ראייה" Style="{StaticResource ColHeaderStyle}"/>
+                                <TextBlock Grid.Column="1" Text="הפלגה (ימים)" Style="{StaticResource ColHeaderStyle}"/>
+                                <TextBlock Grid.Column="2" Text="עונה בינונית (ל' + ל&quot;א)" Style="{StaticResource ColHeaderStyle}"/>
+                                <TextBlock Grid.Column="3" Text="יום החודש" Style="{StaticResource ColHeaderStyle}"/>
+                                <TextBlock Grid.Column="4" Text="הפלגה עתידית" Style="{StaticResource ColHeaderStyle}"/>
+                            </Grid>
+
+                            <ItemsControl Grid.Row="1" ItemsSource="{Binding VesetSummaryRows}" AlternationCount="2">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{DynamicResource InputBgBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Value="1">
+                                                            <DataTrigger.Binding>
+                                                                <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource AncestorType=ContentPresenter}"/>
+                                                            </DataTrigger.Binding>
+                                                            <Setter Property="Background" Value="{DynamicResource WindowBgBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1.3*"/>
+                                                    <ColumnDefinition Width="0.7*"/>
+                                                    <ColumnDefinition Width="1.1*"/>
+                                                    <ColumnDefinition Width="1.1*"/>
+                                                    <ColumnDefinition Width="0.9*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Grid.Column="0" Margin="8,0">
+                                                    <TextBlock FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextMainBrush}">
+                                                        <Run Text="{Binding DateText, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding OnaText}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
+                                                    <ui:Badge Background="#DCFCE7" Foreground="#166534" Content="✓ נקבעת ממנה הוסת" FontSize="10" FontWeight="Bold" Margin="0,3,0,0" HorizontalAlignment="Left"
+                                                              Visibility="{Binding IsEstablishing, Converter={StaticResource BoolToVis}}"/>
+                                                    <TextBlock Text="{Binding SignNote}" FontSize="10.5" Foreground="#7E22CE" TextWrapping="Wrap"
+                                                               Visibility="{Binding SignNote, Converter={StaticResource BoolToVis}}"/>
+                                                </StackPanel>
+
+                                                <TextBlock Grid.Column="1" Text="{Binding HaflagahText}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" VerticalAlignment="Center"/>
+
+                                                <StackPanel Grid.Column="2" Margin="8,0">
+                                                    <TextBlock Text="{Binding BeinonitDay30Text}" FontSize="12.5"/>
+                                                    <TextBlock Text="{Binding OnaText}" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}"/>
+                                                    <TextBlock FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}">
+                                                        <Run Text="וגם "/>
+                                                        <Run Text="{Binding BeinonitDay31Text, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="3" Margin="8,0">
+                                                    <TextBlock Text="{Binding YomHachodeshText}" FontSize="12.5" TextWrapping="Wrap"/>
+                                                    <ui:Badge Background="#FEF3C7" Foreground="#B45309" FontSize="10" FontWeight="Bold" Margin="0,3,0,0" HorizontalAlignment="Left"
+                                                              Visibility="{Binding YomHachodeshDisputed, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock FontSize="10" FontWeight="Bold" Foreground="#B45309">
+                                                            <Run Text="&#xE7BA;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+                                                            <Run Text=" מחלוקת - יש לשאול רב"/>
+                                                        </TextBlock>
+                                                    </ui:Badge>
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="4" Margin="8,0">
+                                                    <TextBlock Text="{Binding NextHaflagahText}" FontSize="13" FontWeight="Bold"/>
+                                                    <TextBlock Text="{Binding OnaText}" FontSize="10.5" Foreground="{DynamicResource TextMutedBrush}"
+                                                               Visibility="{Binding NextHaflagahText, Converter={StaticResource BoolToVis}}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </ui:Card>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>
+

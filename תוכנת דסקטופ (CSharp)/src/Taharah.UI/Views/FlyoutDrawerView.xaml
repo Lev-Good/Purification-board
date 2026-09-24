@@ -1,0 +1,361 @@
+﻿<UserControl x:Class="Taharah.UI.Views.FlyoutDrawerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="400"
+             FlowDirection="RightToLeft">
+
+    <UserControl.Resources>
+        <converters:BadgeBackgroundConverter x:Key="BadgeBgConv"/>
+        <converters:BadgeForegroundConverter x:Key="BadgeFgConv"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:BoolToVisibilityConverter x:Key="InvBoolToVis" Invert="True"/>
+        <converters:OnaTypeToHebrewConverter x:Key="OnaHe"/>
+
+        <!-- Quick action tiles: real WPF-UI Button, one flat corner radius, generous padding. -->
+        <Style x:Key="ActionBtnStyle" TargetType="ui:Button">
+            <Setter Property="Padding" Value="10,12"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="MinHeight" Value="58"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource SurfaceBrush}" 
+            BorderBrush="{DynamicResource AppBorderBrush}" 
+            BorderThickness="1,0,0,0">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Header -->
+                <RowDefinition Height="*"/>    <!-- Scrollable Content -->
+            </Grid.RowDefinitions>
+
+            <!-- Top Header & Close Button -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding SelectedDay.HebrewDateFormatted}" 
+                               FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}"/>
+                    <TextBlock Text="{Binding SelectedDay.GregorianDate, StringFormat='{}{0:dddd, dd בMMMM yyyy}'}" 
+                               FontSize="13" Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,6"/>
+                    
+                    <!-- Sunrise / Sunset pills -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="{DynamicResource InputBgBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,0">
+                            <TextBlock Text="{Binding SelectedDay.Sunrise, StringFormat='נץ: {0}'}" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </Border>
+                        <Border Background="{DynamicResource InputBgBrush}" CornerRadius="4" Padding="8,3" Margin="0,0,8,0">
+                            <TextBlock Text="{Binding SelectedDay.Sunset, StringFormat='שקיעה: {0}'}" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </Border>
+                        <!-- Status badge color mirrors DetermineDayStatus's own priority (MainViewModel.cs): reiyah > hefsek > mikveh > sheva nekiyim > tehora -->
+                        <ui:Badge Content="{Binding SelectedDay.StatusSummary}" FontSize="11.5" FontWeight="SemiBold">
+                            <ui:Badge.Style>
+                                <Style TargetType="ui:Badge">
+                                    <Setter Property="Background" Value="#ECFDF5"/>
+                                    <Setter Property="Foreground" Value="#047857"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedDay.ShevaNekiyimDayIndex, Converter={StaticResource BoolToVis}}" Value="Visible">
+                                            <Setter Property="Background" Value="#E0F2FE"/>
+                                            <Setter Property="Foreground" Value="#0369A1"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedDay.IsMikvehNight}" Value="True">
+                                            <Setter Property="Background" Value="#D1FAE5"/>
+                                            <Setter Property="Foreground" Value="#047857"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedDay.IsHefsekTaharah}" Value="True">
+                                            <Setter Property="Background" Value="#DCFCE7"/>
+                                            <Setter Property="Foreground" Value="#166534"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedDay.HasReiya}" Value="True">
+                                            <Setter Property="Background" Value="#FEE2E2"/>
+                                            <Setter Property="Foreground" Value="#991B1B"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Badge.Style>
+                        </ui:Badge>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Close Drawer Button -->
+                <ui:Button Grid.Column="1"
+                           Command="{Binding CloseDrawerCommand}"
+                           Appearance="Transparent"
+                           Width="32" Height="32"
+                           VerticalAlignment="Top">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="Dismiss24"/>
+                    </ui:Button.Icon>
+                </ui:Button>
+            </Grid>
+
+            <!-- Scrollable Body -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    
+                    <!-- Active Onot / Halachic Warnings -->
+                    <TextBlock Text="עונות פרישה וחישובים הלכתיים" 
+                               FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,12,0,8"
+                               Visibility="{Binding SelectedDay.ActiveOnot.Count, Converter={StaticResource BoolToVis}}"/>
+
+                    <ItemsControl ItemsSource="{Binding SelectedDay.ActiveOnot}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ui:Card Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1"
+                                         Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <ui:Badge Background="#B45309" Foreground="#FFFFFF"
+                                                      Content="{Binding Ona, Converter={StaticResource OnaHe}, StringFormat='עונת {0}'}"
+                                                      FontSize="11" FontWeight="Bold" DockPanel.Dock="Right"/>
+                                            <TextBlock Text="{Binding Code}" FontSize="13" FontWeight="Bold" Foreground="#78350F"/>
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding Reason}" FontSize="12" Foreground="#92400E" TextWrapping="Wrap" Margin="0,4,0,2"/>
+                                    </StackPanel>
+                                </ui:Card>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Existing Recorded Events -->
+                    <TextBlock Text="רישומים שנשמרו ליום זה" 
+                               FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,12,0,8"
+                               Visibility="{Binding SelectedDay.Events.Count, Converter={StaticResource BoolToVis}}"/>
+
+                    <ItemsControl ItemsSource="{Binding SelectedDay.Events}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ui:Card Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                         Padding="10" Margin="0,0,0,6">
+                                    <DockPanel>
+                                        <ui:Button Command="{Binding DataContext.DeleteEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   CommandParameter="{Binding}"
+                                                   DockPanel.Dock="Left"
+                                                   Appearance="Transparent"
+                                                   Padding="4">
+                                            <ui:Button.Icon>
+                                                <ui:SymbolIcon Symbol="Delete24"/>
+                                            </ui:Button.Icon>
+                                        </ui:Button>
+                                        <StackPanel Margin="0,0,8,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Type}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextMainBrush}"/>
+                                                <TextBlock Text="{Binding Ona, Converter={StaticResource OnaHe}, StringFormat=' (עונת {0})'}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Notes}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"
+                                                       Visibility="{Binding Notes.Length, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </ui:Card>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Quick Action Buttons (shown when form NOT open) -->
+                    <StackPanel Visibility="{Binding IsFormExpanded, Converter={StaticResource InvBoolToVis}}" Margin="0,16,0,0">
+                        <TextBlock Text="פעולות מהירות ליום זה" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,10"/>
+
+                        <UniformGrid Columns="2">
+                            <ui:Button Style="{StaticResource ActionBtnStyle}"
+                                       Content="ראייה חדשה"
+                                       Background="#FEE2E2" BorderBrush="#FECACA" Foreground="#991B1B"
+                                       Command="{Binding ToggleFormCommand}" CommandParameter="ראייה">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Drop24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button Style="{StaticResource ActionBtnStyle}"
+                                       Content="הפסק טהרה"
+                                       Background="#DCFCE7" BorderBrush="#BBF7D0" Foreground="#166534"
+                                       Command="{Binding ToggleFormCommand}" CommandParameter="הפסק טהרה">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Sparkle24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button Style="{StaticResource ActionBtnStyle}"
+                                       Content="בדיקת שבעה נקיים"
+                                       Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource BorderLightBrush}" Foreground="{DynamicResource TextMainBrush}"
+                                       Command="{Binding ToggleFormCommand}" CommandParameter="בדיקה">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Search24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button Style="{StaticResource ActionBtnStyle}"
+                                       Content="טבילה במקווה"
+                                       Background="#CCFBF1" BorderBrush="#99F6E4" Foreground="#115E59"
+                                       Command="{Binding ToggleFormCommand}" CommandParameter="טבילה">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="WeatherRain24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button Style="{StaticResource ActionBtnStyle}"
+                                       Content="סימון / כתם"
+                                       Background="#FEF9C3" BorderBrush="#FEF08A" Foreground="#854D0E"
+                                       Command="{Binding ToggleFormCommand}" CommandParameter="כתם/סימון">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Edit24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+
+                            <ui:Button Style="{StaticResource ActionBtnStyle}"
+                                       Content="מיחוש גופני"
+                                       Background="#F3E8FF" BorderBrush="#E9D5FF" Foreground="#6B21A8"
+                                       Command="{Binding ToggleFormCommand}" CommandParameter="מיחוש">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Pill24"/>
+                                </ui:Button.Icon>
+                            </ui:Button>
+                        </UniformGrid>
+                    </StackPanel>
+
+                    <!-- Inline Entry Form (shown when form IS open) -->
+                    <ui:Card Visibility="{Binding IsFormExpanded, Converter={StaticResource BoolToVis}}"
+                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                             Padding="14" Margin="0,16,0,0">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock Text="{Binding NewEntry.EntryType, StringFormat='הזנת {0}'}" 
+                                           FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}"/>
+                            </DockPanel>
+
+                            <!-- Ona Selection -->
+                            <TextBlock Text="עונה הלכתית:" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <RadioButton Content="עונת יום (מהנץ עד שקיעה)" IsChecked="{Binding NewEntry.IsDayOna, Mode=TwoWay}" 
+                                             GroupName="OnaGroup" Margin="0,0,16,0" FontSize="12.5"/>
+                                <RadioButton Content="עונת לילה (משקיעה עד נץ)" IsChecked="{Binding NewEntry.IsNightOna, Mode=TwoWay}" 
+                                             GroupName="OnaGroup" FontSize="12.5"/>
+                            </StackPanel>
+
+                            <!-- Special options for Sighting -->
+                            <StackPanel Visibility="{Binding NewEntry.IsReiyah, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="גורם הראייה:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <RadioButton Content="רגילה - ללא גורם חיצוני" IsChecked="{Binding NewEntry.IsKindRegular, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,4" FontSize="12.5"/>
+                                <RadioButton GroupName="ReiyahKindGroup" IsChecked="{Binding NewEntry.IsKindOnes, Mode=TwoWay}" Margin="0,0,0,4" FontSize="12.5">
+                                    <TextBlock Text="מחמת אונס - אינה נספרת לקביעת וסת" TextWrapping="Wrap"/>
+                                </RadioButton>
+                                <RadioButton Content="מחמת מאכלים חריפים - נספרת כמו וסת הגוף" IsChecked="{Binding NewEntry.IsKindSharp, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,4" FontSize="12.5"/>
+                                <RadioButton Content="מחמת כדורים" IsChecked="{Binding NewEntry.IsKindPills, Mode=TwoWay}" GroupName="ReiyahKindGroup" Margin="0,0,0,4" FontSize="12.5"/>
+                                <RadioButton GroupName="ReiyahKindGroup" IsChecked="{Binding NewEntry.IsKindKefitza, Mode=TwoWay}" Margin="0,0,0,10" FontSize="12.5">
+                                    <TextBlock Text="מחמת קפיצה - וסת הקפיצות (נספרת לעונה בינונית, ולמסלול קביעה נפרד)" TextWrapping="Wrap"/>
+                                </RadioButton>
+
+                                <CheckBox Content="ספק עונה - איני בטוחה אם הראייה היתה בעונה זו או בקודמתה" IsChecked="{Binding NewEntry.IsSafekOna}" Margin="0,0,0,6" FontSize="12.5"/>
+                                <CheckBox Content="המשך ראייה קודמת (אינו קובע הפלגה)" IsChecked="{Binding NewEntry.ContinuesPrevious}" Margin="0,0,0,6" FontSize="12.5"/>
+
+                                <CheckBox Content="הדימום נמשך יותר מיום אחד" IsChecked="{Binding NewEntry.HasMultiDayBleeding}" Margin="0,0,0,6" FontSize="12.5"/>
+                                <StackPanel Orientation="Horizontal" Visibility="{Binding NewEntry.HasMultiDayBleeding, Converter={StaticResource BoolToVis}}" Margin="0,0,0,10">
+                                    <TextBlock Text="כמה ימים סך הכל נמשך הדימום:" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBox Text="{Binding NewEntry.DurationDays, UpdateSourceTrigger=PropertyChanged}" Width="60" Padding="4"/>
+                                </StackPanel>
+
+                                <TextBlock Text="מיחוש גופני נלווה (וסת הגוף) - אופציונלי:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,4"/>
+                                <WrapPanel Margin="0,0,0,10">
+                                    <CheckBox Content="פיהוק" IsChecked="{Binding NewEntry.SignYawn}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="עיטוש" IsChecked="{Binding NewEntry.SignSneeze}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="כאבי בטן" IsChecked="{Binding NewEntry.SignCramps}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="כובד ראש ואיברים" IsChecked="{Binding NewEntry.SignHeaviness}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="צמרמורות" IsChecked="{Binding NewEntry.SignChills}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="שופעת דם טמא" IsChecked="{Binding NewEntry.SignBlood}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="בחילה או הקאה" IsChecked="{Binding NewEntry.SignNausea}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="חולשה" IsChecked="{Binding NewEntry.SignWeakness}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="פצעים בפנים" IsChecked="{Binding NewEntry.SignFaceSpots}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="מאכל חריף" IsChecked="{Binding NewEntry.SignSharpFood}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="מיחוש אחר" IsChecked="{Binding NewEntry.SignOther}" Margin="0,0,10,4" FontSize="12"/>
+                                </WrapPanel>
+                            </StackPanel>
+<!-- Special options for Hefsek -->
+                            <StackPanel Visibility="{Binding NewEntry.IsHefsek, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                                <CheckBox Content="בדיקת מוך דחוק" IsChecked="{Binding NewEntry.IsMochDachuk}" Margin="0,0,0,6" FontSize="12.5"/>
+                            </StackPanel>
+
+                            <!-- Special options for Check -->
+                            <StackPanel Visibility="{Binding NewEntry.IsCheck, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                                <TextBlock Text="עומק הבדיקה:" FontSize="12" Margin="0,0,0,4"/>
+                                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding NewEntry.CheckDepth}" Margin="0,0,0,6" Padding="4">
+                                    <ComboBoxItem Content="בדיקה כדין (עומק ובחו&quot;ס)" Tag="deep"/>
+                                    <ComboBoxItem Content="קינוח בלבד" Tag="wipe"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Special options for Marks -->
+                            <StackPanel Visibility="{Binding NewEntry.IsMark, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                                <TextBlock Text="סימוני יום (ניתן לסמן כמה בו-זמנית):" FontSize="12" Margin="0,0,0,6"/>
+                                <CheckBox Content="מצאתי כתם" IsChecked="{Binding NewEntry.MarkStain}" Margin="0,0,0,6" FontSize="12.5"/>
+                                <CheckBox Content="פחד פתאום (ביעתותא)" IsChecked="{Binding NewEntry.MarkFright}" Margin="0,0,0,6" FontSize="12.5"/>
+                                <CheckBox Content="חרדה מתמשכת" IsChecked="{Binding NewEntry.MarkAnxiety}" Margin="0,0,0,6" FontSize="12.5"/>
+                                <CheckBox Content="יציאה לדרך / בא מן הדרך" IsChecked="{Binding NewEntry.MarkTravel}" Margin="0,0,0,6" FontSize="12.5"/>
+                                <CheckBox Content="ליל החופה / בעילת מצוה" IsChecked="{Binding NewEntry.MarkChuppah}" Margin="0,0,0,6" FontSize="12.5"/>
+                            </StackPanel>
+
+<!-- Special options for a standalone Sign (מיחוש בלא ראייה) -->
+                            <StackPanel Visibility="{Binding NewEntry.IsSign, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                                <TextBlock Text="המיחוש עצמו הוא האוסר - &quot;משעה שבאו המיחושים אסורה כדין שעת הוסת&quot;. שלש פעמים לאותו מיחוש קובעות וסת הגוף." FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+
+                                <TextBlock Text="סוג המיחוש:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                <WrapPanel Margin="0,0,0,10">
+                                    <CheckBox Content="פיהוק" IsChecked="{Binding NewEntry.SignYawn}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="עיטוש" IsChecked="{Binding NewEntry.SignSneeze}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="כאבי בטן" IsChecked="{Binding NewEntry.SignCramps}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="כובד ראש ואיברים" IsChecked="{Binding NewEntry.SignHeaviness}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="צמרמורות" IsChecked="{Binding NewEntry.SignChills}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="שופעת דם טמא" IsChecked="{Binding NewEntry.SignBlood}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="בחילה או הקאה" IsChecked="{Binding NewEntry.SignNausea}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="חולשה" IsChecked="{Binding NewEntry.SignWeakness}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="פצעים בפנים" IsChecked="{Binding NewEntry.SignFaceSpots}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="מאכל חריף" IsChecked="{Binding NewEntry.SignSharpFood}" Margin="0,0,10,4" FontSize="12"/>
+                                    <CheckBox Content="מיחוש אחר, משונה" IsChecked="{Binding NewEntry.SignOther}" Margin="0,0,10,4" FontSize="12"/>
+                                </WrapPanel>
+
+                                <TextBlock Text="כמה בטוחה שהוסת קרובה?" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                <RadioButton Content="בטוחה שהוסת בא מיד - אסורה עד שתבדוק (ברירת המחדל)" GroupName="SignCertaintyGroup" Margin="0,0,0,4" FontSize="12"
+                                             IsChecked="{Binding NewEntry.IsCertaintyValueCertain, Mode=TwoWay}"/>
+                                <RadioButton Content="סביר שהוסת יבוא בין שעה ליממה - מותרת בינתיים, לבדוק בקרוב" GroupName="SignCertaintyGroup" Margin="0,0,0,4" FontSize="12"
+                                             IsChecked="{Binding NewEntry.IsCertaintyValueLikely, Mode=TwoWay}"/>
+                                <RadioButton Content="מיחוש רחוק / מסופק - מותרת אחרי בדיקת בגד וקינוח חיצוני" GroupName="SignCertaintyGroup" Margin="0,0,0,4" FontSize="12"
+                                             IsChecked="{Binding NewEntry.IsCertaintyValueVague, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                                                        <!-- Notes -->
+                            <TextBlock Text="הערות או פרטים נוספים:" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding NewEntry.Notes, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="60" TextWrapping="Wrap" AcceptsReturn="True"
+                                     Padding="6" FontSize="12.5" Margin="0,0,0,14"/>
+
+                            <!-- Save / Cancel Buttons with Enter/Esc notice -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <ui:Button Content="שמור (Enter)" Command="{Binding SaveEntryCommand}"
+                                           Appearance="Primary" FontWeight="Bold"
+                                           Padding="16,8" Margin="0,0,8,0"/>
+                                <ui:Button Content="ביטול (Esc)" Command="{Binding CancelFormCommand}"
+                                           Appearance="Secondary"
+                                           Padding="14,8"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>
+
+
+
+
+
