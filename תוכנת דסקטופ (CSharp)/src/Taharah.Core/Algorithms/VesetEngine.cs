@@ -98,7 +98,16 @@ public static class VesetEngine
             entries.Add((laterThirtieth.Value, "ל' בחודש שלאחריו", "יו\"ח*"));
         }
 
-        var nextMonthFirst = BuildExactDay(1, next.Month, next.Year);
+        // "א' בחודש הבא בתורת ראש חודש" - the ROSH CHODESH day standing in for the missing
+        // day 30, which is 1st of the month AFTER the deficient one (`next`, e.g. Cheshvan) -
+        // not 1st of the deficient month itself. A 29-day month has no day-30/day-1-of-RC
+        // pair (Rosh Chodesh is a single day), so that single day is 1 Kislev, not 1 Cheshvan.
+        // Found via code review 2026-09-24 (halachic edge-case audit): `next.Month`/`next.Year`
+        // here is still the deficient month, so this previously computed 1 Cheshvan - a date
+        // that comes BEFORE even the 29th-of-the-deficient-month entry above, and holds no
+        // "day 30 surrogate" significance at all `[שט כ"ו | עמ' 27-30]`.
+        var afterDeficient = ShiftHebrewMonth(next.Year, next.Month, 1);
+        var nextMonthFirst = BuildExactDay(1, afterDeficient.Month, afterDeficient.Year);
         if (nextMonthFirst.HasValue)
         {
             entries.Add((nextMonthFirst.Value, "א' בחודש הבא (בתורת ראש חודש)", "יו\"ח*"));
@@ -248,7 +257,10 @@ public static class VesetEngine
                     {
                         entries.Add((later30.Value, veset.Ona, codeOverride != null ? monthCode : "וק\"ח*", $"{label} - יום החודש, מחלוקת בחודש חסר (ל' בחודש שלאחריו, {onaText})"));
                     }
-                    var nextMonth1 = BuildExactDay(1, cur.Month, cur.Year);
+                    // Same fix as GetYomHachodeshInfo above: "א' בחודש הבא בתורת ראש חודש" is
+                    // 1st of the month AFTER the deficient one (cur), not 1st of cur itself.
+                    var afterCur = ShiftHebrewMonth(cur.Year, cur.Month, 1);
+                    var nextMonth1 = BuildExactDay(1, afterCur.Month, afterCur.Year);
                     if (nextMonth1.HasValue && nextMonth1.Value <= horizon && InRange(nextMonth1.Value))
                     {
                         entries.Add((nextMonth1.Value, veset.Ona, codeOverride != null ? monthCode : "וק\"ח*", $"{label} - יום החודש, מחלוקת בחודש חסר (א' בחודש הבא, בתורת ראש חודש, {onaText})"));
