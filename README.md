@@ -57,6 +57,21 @@ dotnet run --project src/Taharah.UI   # הפעלת ממשק הדסקטופ
 
 תיעוד מלא של הפרויקט נמצא בתיקיית [`תיעוד הפרויקט/`](תיעוד%20הפרויקט/). ראו במיוחד `תיעוד הפרויקט/SPEC_DINIM_VESATOT.md` (האפיון ההלכתי המלא) ו-`תיעוד הפרויקט/RABBI_QUESTIONS.md` (שאלות פתוחות לבירור עם פוסק).
 
+## מבנה המאגרים ב-GitHub והפצת מהדורות (Releases)
+
+לצורך הגנה מרבית על קוד המקור והאלגוריתמים, הפרויקט מפוצל לשני מאגרים:
+
+1. **🔒 מאגר הקוד הראשי (פרטי - Private):**  
+   [`Lev-Good/Purification-board`](https://github.com/Lev-Good/Purification-board)  
+   מכיל את כל קוד המקור, מנועי החישוב ההלכתיים, מערך הבדיקות ותיעוד הפרויקט. הגישה למאגר זה מוגנת ופרטית לבעל הפרויקט בלבד.
+
+2. **🌍 מאגר המהדורות הציבורי (ציבורי - Public):**  
+   [`Lev-Good/Purification-board-releases`](https://github.com/Lev-Good/Purification-board-releases)  
+   מאגר ציבורי ללא קוד מקור, המשמש להפצת קובצי ההתקנה והגרסאות הניידות עבור משתמשי קצה.  
+   - 📦 **[להורדת הגרסה העדכנית ביותר (v3.2.0)](https://github.com/Lev-Good/Purification-board-releases/releases/tag/v3.2.0)**
+
+---
+
 ## רישיון
 
 [GPL-2.0-or-later](LICENSE)
