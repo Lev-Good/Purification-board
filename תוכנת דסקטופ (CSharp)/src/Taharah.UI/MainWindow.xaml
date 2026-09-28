@@ -8,11 +8,11 @@
         xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
         mc:Ignorable="d"
         Title="לוח טהרה — מערכת הלכתית מקצועית"
-        Height="850" Width="1280"
-        MinHeight="680" MinWidth="980"
+        Height="880" Width="1340"
+        MinHeight="700" MinWidth="1040"
         WindowStartupLocation="CenterScreen"
         FlowDirection="RightToLeft"
-        FontFamily="Segoe UI Variable Display, Segoe UI, Tahoma, Arial"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Arial Hebrew, Tahoma, Arial"
         Background="{DynamicResource ApplicationBackgroundBrush}"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
@@ -20,21 +20,20 @@
         KeyDown="OnWindowKeyDown">
 
     <ui:FluentWindow.Resources>
-        <converters:BadgeBackgroundConverter x:Key="BadgeBgConv"/>
-        <converters:BadgeForegroundConverter x:Key="BadgeFgConv"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <converters:BoolToVisibilityConverter x:Key="InvBoolToVis" Invert="True"/>
 
-        <Style x:Key="DayHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
+        <!-- כותרת יום בשבוע בשורת הראש -->
+        <Style x:Key="WeekdayHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="AppContextMenuStyle" TargetType="ContextMenu">
-            <Setter Property="Background" Value="{DynamicResource ApplicationBackgroundBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="4"/>
@@ -44,107 +43,155 @@
         <Style x:Key="AppMenuItemStyle" TargetType="MenuItem">
             <Setter Property="Foreground" Value="{DynamicResource TextMainBrush}"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Padding" Value="10,7"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
 
-        <!-- Modern day tile (Card): rounded corners, subtle elevation, gentle hover highlight -
-             same status-driven coloring as before (DataTriggers), now layered on WPF-UI's
-             own Card chrome instead of a hand-rolled Border. -->
-        <Style x:Key="DayCardStyle" TargetType="ui:Card">
-            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <!-- ==================== משבצת יום בלוח החודשי ====================
+             Border ולא ui:Card: למשבצת יש פינות מעוגלות בעצמה, רצועת סטטוס
+             צבעונית בקצה, ורקעים שונים למצב נבחר/היום - ו-Border נותן שליטה
+             מלאה על כולם בלי תלות בתבנית הפנימית של כרטיס Fluent.
+             סדר העדיפויות של רצועת הסטטוס זהה לזה של DetermineDayStatus:
+             ראייה > הפסק טהרה > טבילה > בדיקה. -->
+        <Style x:Key="DayTileStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource DayTileBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DayTileBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="8,7"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource DayTileHoverBrush}"/>
                     <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}"/>
-                    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
                 </Trigger>
                 <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False">
-                    <Setter Property="Opacity" Value="0.4"/>
+                    <Setter Property="Opacity" Value="0.42"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsToday}" Value="True">
-                    <Setter Property="BorderBrush" Value="#3B82F6"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource TodayRingBrush}"/>
                     <Setter Property="BorderThickness" Value="2"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="BorderBrush" Value="#4F46E5"/>
-                    <Setter Property="BorderThickness" Value="2.5"/>
-                    <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource SelectedTintBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource SelectedRingBrush}"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- רצועת הסטטוס בקצה המשבצת -->
+        <Style x:Key="DayAccentBarStyle" TargetType="Border">
+            <Setter Property="Width" Value="3"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasReiya}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SightingFgBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsHefsekTaharah}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource HefsekFgBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsMikvehNight}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource MikvehFgBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasCheck}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource CheckFgBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
     </ui:FluentWindow.Resources>
 
     <Grid>
-        <!-- Main Layout (TitleBar + Toolbar + Calendar Grid + Flyout Drawer) -->
+        <!-- Main Layout (TitleBar + Toolbar + Alerts + Calendar Grid + Day Drawer) -->
         <Grid>
             <Grid.LayoutTransform>
                 <ScaleTransform ScaleX="{Binding ZoomLevel}" ScaleY="{Binding ZoomLevel}"/>
             </Grid.LayoutTransform>
             <Grid.RowDefinitions>
-                <RowDefinition Height="42"/>   <!-- Win11-style TitleBar (system buttons + app name) -->
-                <RowDefinition Height="70"/>   <!-- Toolbar: month nav + action buttons -->
-                <RowDefinition Height="Auto"/> <!-- Day State Panel (fright / Or Zarua exemptions / anxiety) -->
-                <RowDefinition Height="36"/>   <!-- Day Names (Sun-Sat) -->
-                <RowDefinition Height="*"/>    <!-- Calendar Grid -->
+                <RowDefinition Height="42"/>   <!-- Win11 TitleBar -->
+                <RowDefinition Height="72"/>   <!-- Toolbar: 3 zones -->
+                <RowDefinition Height="Auto"/> <!-- Day State Alerts -->
+                <RowDefinition Height="34"/>   <!-- Weekday header -->
+                <RowDefinition Height="*"/>    <!-- Calendar + Day drawer -->
             </Grid.RowDefinitions>
 
-            <!-- 0. Windows 11 TitleBar: draggable region + minimize/maximize/close, integrated per FluentWindow's ExtendsContentIntoTitleBar -->
+            <!-- ==================== 0. TitleBar ==================== -->
             <ui:TitleBar Grid.Row="0" Title="לוח טהרה — הלכות טהרה (הרב עמרם פריד)">
                 <ui:TitleBar.Icon>
                     <ui:SymbolIcon Symbol="CalendarLtr24"/>
                 </ui:TitleBar.Icon>
             </ui:TitleBar>
 
-            <!-- 1. Toolbar -->
-            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="20,0">
+            <!-- ==================== 1. Toolbar (3 zones) ==================== -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,0">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/> <!-- Brand & Month -->
-                        <ColumnDefinition Width="*"/>    <!-- Month Navigator & Jump -->
-                        <ColumnDefinition Width="Auto"/> <!-- Actions: Guide, Insights, Print, Settings, Lock -->
+                        <ColumnDefinition Width="Auto"/> <!-- Zone 1 (start/right): brand + month -->
+                        <ColumnDefinition Width="*"/>    <!-- Zone 2 (center): month nav + view switcher -->
+                        <ColumnDefinition Width="Auto"/> <!-- Zone 3 (end/left): tools + system -->
                     </Grid.ColumnDefinitions>
 
-                    <!-- Title & Month -->
+                    <!-- Zone 1: Brand & current month -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{DynamicResource AccentButtonBackground}" CornerRadius="8" Width="40" Height="40" Margin="0,0,14,0">
-                            <TextBlock Text="ט" FontSize="22" FontWeight="Bold" Foreground="White"
+                        <Border Width="42" Height="42" CornerRadius="10" Margin="0,0,12,0"
+                                Background="{DynamicResource PrimaryBrush}">
+                            <TextBlock Text="ט" FontSize="21" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextOnAccentBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding CurrentHebrewMonthName}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}"/>
-                                <TextBlock Text=" " FontSize="20"/>
-                                <TextBlock Text="{Binding CurrentHebrewYearFormatted}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}"/>
+                                <TextBlock Text="{Binding CurrentHebrewMonthName}" FontSize="19" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextMainBrush}"/>
+                                <TextBlock Text=" " FontSize="19"/>
+                                <TextBlock Text="{Binding CurrentHebrewYearFormatted}" FontSize="17" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Bottom"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding CurrentGregorianHeader}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
+                            <TextBlock Text="{Binding CurrentGregorianHeader}" FontSize="11.5"
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,1,0,0"/>
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Month Navigation & View Switcher -->
+                    <!-- Zone 2: Month navigation + Month/Year segmented control -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <!-- Navigation Buttons: RTL order (right = earlier, left = future) -->
-                        <ui:Button Content="חודש קודם ›" Command="{Binding PreviousMonthCommand}" Appearance="Secondary" Margin="0,0,6,0"/>
-                        <ui:Button Content="היום" Command="{Binding GoToTodayCommand}" Appearance="Secondary" Margin="0,0,6,0"/>
-                        <ui:Button Content="‹ חודש הבא" Command="{Binding NextMonthCommand}" Appearance="Secondary" Margin="0,0,12,0"/>
+                        <!-- RTL: the right-most button moves back in time -->
+                        <ui:Button Command="{Binding PreviousMonthCommand}" Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="חודש קודם (זמן אחורה)">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ChevronRight24"/>
+                            </ui:Button.Icon>
+                        </ui:Button>
+                        <ui:Button Content="היום" Command="{Binding GoToTodayCommand}"
+                                   Style="{StaticResource ToolbarButtonStyle}" Margin="8,0,8,0"
+                                   ToolTip="עבור לחודש הנוכחי"/>
+                        <ui:Button Command="{Binding NextMonthCommand}" Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="חודש הבא (זמן קדימה)">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ChevronLeft24"/>
+                            </ui:Button.Icon>
+                        </ui:Button>
 
-                        <!-- View Switcher: Segmented Control -->
-                        <Border Background="{DynamicResource InputBgBrush}" CornerRadius="6" Padding="3" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1">
+                        <Border Background="{DynamicResource InputBgBrush}" CornerRadius="8" Padding="3"
+                                Margin="14,0,0,0" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1">
                             <StackPanel Orientation="Horizontal">
                                 <ui:Button Command="{Binding ToggleYearlyViewCommand}" Padding="12,5" Margin="0,0,2,0">
                                     <ui:Button.Icon>
                                         <ui:SymbolIcon Symbol="CalendarLtr24"/>
                                     </ui:Button.Icon>
                                     <ui:Button.Style>
-                                        <Style TargetType="ui:Button">
+                                        <Style TargetType="ui:Button" BasedOn="{StaticResource AppButtonStyle}">
                                             <Setter Property="Appearance" Value="Secondary"/>
                                             <Setter Property="Content" Value="חודש"/>
+                                            <Setter Property="Margin" Value="0,0,2,0"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsYearlyView}" Value="False">
                                                     <Setter Property="Appearance" Value="Primary"/>
-                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -155,13 +202,13 @@
                                         <ui:SymbolIcon Symbol="CalendarMonth24"/>
                                     </ui:Button.Icon>
                                     <ui:Button.Style>
-                                        <Style TargetType="ui:Button">
+                                        <Style TargetType="ui:Button" BasedOn="{StaticResource AppButtonStyle}">
                                             <Setter Property="Appearance" Value="Secondary"/>
                                             <Setter Property="Content" Value="שנה"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsYearlyView}" Value="True">
                                                     <Setter Property="Appearance" Value="Primary"/>
-                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -171,126 +218,149 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- Actions: Halachic tools | Divider | System controls -->
+                    <!-- Zone 3: Halachic tools | system controls -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-
-                        <!-- Primary Halachic tools -->
-                        <ui:Button Content="ריכוז וסתות" Command="{Binding OpenVesetSummaryCommand}" Appearance="Secondary" Margin="0,0,6,0">
+                        <ui:Button Content="ריכוז וסתות" Command="{Binding OpenVesetSummaryCommand}"
+                                   Style="{StaticResource ToolbarButtonStyle}">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="DataTrending24"/>
                             </ui:Button.Icon>
                         </ui:Button>
-                        <ui:Button Content="מדריך הלכתי" Command="{Binding OpenGuideCommand}" Appearance="Secondary" Margin="0,0,6,0">
+                        <ui:Button Content="מדריך" Command="{Binding OpenGuideCommand}"
+                                   Style="{StaticResource ToolbarButtonStyle}" ToolTip="מדריך הלכתי ומאגר מקורות">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="BookOpen24"/>
                             </ui:Button.Icon>
                         </ui:Button>
-                        <ui:Button Content="תובנות מחזור" Command="{Binding OpenInsightsCommand}" Appearance="Secondary" Margin="0,0,6,0">
+                        <ui:Button Content="תובנות" Command="{Binding OpenInsightsCommand}"
+                                   Style="{StaticResource ToolbarButtonStyle}" ToolTip="תובנות מחזור וחלון פוריות">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="HeartPulse24"/>
                             </ui:Button.Icon>
                         </ui:Button>
-                        <ui:Button Content="דוח והדפסה" Command="{Binding PrintReportCommand}" Appearance="Primary" Margin="0,0,8,0">
+                        <ui:Button Content="דוח והדפסה" Command="{Binding PrintReportCommand}"
+                                   Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,6,0">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="Print24"/>
                             </ui:Button.Icon>
                         </ui:Button>
 
-                        <!-- Vertical Divider -->
-                        <Border Width="1" Height="26" Background="{DynamicResource AppBorderBrush}" Margin="4,0,8,0"/>
+                        <Border Width="1" Height="26" Background="{DynamicResource AppBorderBrush}" Margin="4,0,10,0"/>
 
-                        <!-- Zoom Menu with explicit DataContext binding -->
-                        <ui:Button Content="{Binding ZoomLabel, StringFormat='🔍 {0}'}" Appearance="Secondary" Margin="0,0,6,0" Click="OnMoreMenuClick" ToolTip="הגדל / הקטן תצוגה">
+                        <ui:Button Content="{Binding ZoomLabel}" Style="{StaticResource ToolbarButtonStyle}"
+                                   Click="OnMoreMenuClick" ToolTip="הגדל / הקטן תצוגה">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="ZoomIn24"/>
+                            </ui:Button.Icon>
                             <ui:Button.ContextMenu>
                                 <ContextMenu Style="{StaticResource AppContextMenuStyle}" Placement="Bottom"
                                              DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                    <MenuItem Header="＋ הגדל תצוגה" Command="{Binding ZoomInCommand}" Style="{StaticResource AppMenuItemStyle}"/>
-                                    <MenuItem Header="－ הקטן תצוגה" Command="{Binding ZoomOutCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Header="הגדל תצוגה" Command="{Binding ZoomInCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Header="הקטן תצוגה" Command="{Binding ZoomOutCommand}" Style="{StaticResource AppMenuItemStyle}"/>
                                     <Separator/>
-                                    <MenuItem Header="⟲ אפס ל-100%" Command="{Binding ZoomResetCommand}" Style="{StaticResource AppMenuItemStyle}"/>
+                                    <MenuItem Header="אפס ל-100%" Command="{Binding ZoomResetCommand}" Style="{StaticResource AppMenuItemStyle}"/>
                                 </ContextMenu>
                             </ui:Button.ContextMenu>
                         </ui:Button>
 
-                        <!-- About Button -->
-                        <ui:Button Command="{Binding OpenAboutCommand}" Appearance="Secondary" Margin="0,0,6,0" ToolTip="אודות והוראות שימוש">
+                        <ui:Button Command="{Binding OpenAboutCommand}" Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="אודות והוראות שימוש">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="Info24"/>
                             </ui:Button.Icon>
                         </ui:Button>
-
-                        <!-- Settings Button -->
-                        <ui:Button Content="הגדרות" Command="{Binding OpenSettingsCommand}" Appearance="Secondary" Margin="0,0,6,0">
+                        <ui:Button Command="{Binding OpenSettingsCommand}" Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="הגדרות מערכת והלכה" Margin="6,0,0,0">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="Settings24"/>
                             </ui:Button.Icon>
                         </ui:Button>
-
-                        <!-- Lock Button -->
-                        <ui:Button Command="{Binding LockAppCommand}" Appearance="Secondary" Margin="0,0,6,0" ToolTip="נעל לוח">
+                        <ui:Button Command="{Binding LockAppCommand}" Style="{StaticResource IconButtonStyle}"
+                                   ToolTip="נעל את הלוח" Margin="6,0,0,0">
                             <ui:Button.Icon>
                                 <ui:SymbolIcon Symbol="LockClosed24"/>
                             </ui:Button.Icon>
                         </ui:Button>
-
-                        <!-- Theme Toggle -->
-                        <ui:Button Content="{Binding ThemeIcon}" Command="{Binding ToggleThemeCommand}" Appearance="Secondary" Padding="9,7" ToolTip="החלף מצב יום/לילה"/>
+                        <ui:Button Command="{Binding ToggleThemeCommand}" Margin="6,0,0,0" ToolTip="החלף מצב יום/לילה">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource IconButtonStyle}">
+                                    <Setter Property="Content" Value="{Binding ThemeIcon}"/>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- 1b. Day State Panel: unresolved fright, Or Zarua exemptions, ongoing anxiety -->
-            <Border Grid.Row="2" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="0,0,0,1" Padding="20,10"
+            <!-- ==================== 2. Day State Alerts ====================
+                 העיקרון המתועד (DECISIONS 2026-09-18): מסקנה הלכתית אינה מוסתרת
+                 מאחורי קליק. שלושת סוגי ההודעות כאן תמיד גלויים כשקיימים. -->
+            <Border Grid.Row="2" Style="{StaticResource AlertPanelBorderStyle}"
                     Visibility="{Binding HasDayStatePanel, Converter={StaticResource BoolToVis}}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4"
                                 Visibility="{Binding HasOpenFright, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="⚠ פחד פתאום (ביעתותא) - טרם נברר: " FontWeight="Bold" FontSize="12.5" Foreground="#991B1B"/>
-                        <TextBlock Text="{Binding OpenFrightText}" FontSize="12.5" Foreground="#7C2D12" TextWrapping="Wrap"/>
+                        <ui:SymbolIcon Symbol="Alert24" FontSize="15" Margin="0,0,7,0"
+                                       Foreground="{DynamicResource DangerFgBrush}"/>
+                        <TextBlock FontSize="12.5" Foreground="{DynamicResource WarningStrongFgBrush}">
+                            <Run Text="פחד פתאום (ביעתותא) — טרם נברר: " FontWeight="Bold"/>
+                            <Run Text="{Binding OpenFrightText, Mode=OneWay}"/>
+                        </TextBlock>
                     </StackPanel>
 
-                    <ItemsControl ItemsSource="{Binding OrZaruaExemptionItems}" Margin="0,0,0,4">
+                    <ItemsControl ItemsSource="{Binding OrZaruaExemptionItems}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock FontSize="12" Foreground="#78350F" TextWrapping="Wrap" Margin="0,1">
-                                    <Run Text="עונת אור זרוע שנפטרה: "/>
-                                    <Run Text="{Binding Text, Mode=OneWay}"/>
-                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <ui:SymbolIcon Symbol="Checkmark24" FontSize="14" Margin="0,0,7,0"
+                                                   Foreground="{DynamicResource SuccessFgBrush}"/>
+                                    <TextBlock FontSize="12" Foreground="{DynamicResource WarningStrongFgBrush}" TextWrapping="Wrap">
+                                        <Run Text="עונת אור זרוע שנפטרה: " FontWeight="SemiBold"/>
+                                        <Run Text="{Binding Text, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <StackPanel Orientation="Horizontal"
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
                                 Visibility="{Binding HasAnxiety, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="ℹ חרדה מתמשכת: " FontWeight="Bold" FontSize="12" Foreground="#78350F"/>
-                        <TextBlock Text="{Binding AnxietyText}" FontSize="12" Foreground="#78350F" TextWrapping="Wrap"/>
+                        <ui:SymbolIcon Symbol="Info24" FontSize="14" Margin="0,0,7,0"
+                                       Foreground="{DynamicResource WarningFgBrush}"/>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource WarningStrongFgBrush}" TextWrapping="Wrap">
+                            <Run Text="חרדה מתמשכת: " FontWeight="SemiBold"/>
+                            <Run Text="{Binding AnxietyText, Mode=OneWay}"/>
+                        </TextBlock>
                     </StackPanel>
                 </StackPanel>
             </Border>
 
-            <!-- 2. Weekday Header Row -->
-            <Border Grid.Row="3" Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"
+            <!-- ==================== 3. Weekday header ==================== -->
+            <Border Grid.Row="3" Background="{DynamicResource InputBgBrush}"
+                    BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1"
                     Visibility="{Binding IsYearlyView, Converter={StaticResource InvBoolToVis}}">
                 <UniformGrid Columns="7">
-                    <TextBlock Text="יום ראשון" Style="{StaticResource DayHeaderStyle}"/>
-                    <TextBlock Text="יום שני" Style="{StaticResource DayHeaderStyle}"/>
-                    <TextBlock Text="יום שלישי" Style="{StaticResource DayHeaderStyle}"/>
-                    <TextBlock Text="יום רביעי" Style="{StaticResource DayHeaderStyle}"/>
-                    <TextBlock Text="יום חמישי" Style="{StaticResource DayHeaderStyle}"/>
-                    <TextBlock Text="יום שישי" Style="{StaticResource DayHeaderStyle}"/>
-                    <TextBlock Text="שבת קודש" Style="{StaticResource DayHeaderStyle}" Foreground="#1E40AF"/>
+                    <TextBlock Text="יום ראשון" Style="{StaticResource WeekdayHeaderStyle}"/>
+                    <TextBlock Text="יום שני" Style="{StaticResource WeekdayHeaderStyle}"/>
+                    <TextBlock Text="יום שלישי" Style="{StaticResource WeekdayHeaderStyle}"/>
+                    <TextBlock Text="יום רביעי" Style="{StaticResource WeekdayHeaderStyle}"/>
+                    <TextBlock Text="יום חמישי" Style="{StaticResource WeekdayHeaderStyle}"/>
+                    <TextBlock Text="יום שישי" Style="{StaticResource WeekdayHeaderStyle}"/>
+                    <TextBlock Text="שבת קודש" Style="{StaticResource WeekdayHeaderStyle}"
+                               Foreground="{DynamicResource PrimaryBrush}"/>
                 </UniformGrid>
             </Border>
 
-            <!-- 3. Calendar Grid -->
+            <!-- ==================== 4. Calendar + Day drawer ==================== -->
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/> <!-- Slide-out Flyout Drawer Column -->
+                    <ColumnDefinition Width="Auto"/> <!-- Day action drawer -->
                 </Grid.ColumnDefinitions>
 
-                <!-- 7x6 Day Cells Grid -->
-                <ItemsControl Grid.Column="0" ItemsSource="{Binding CalendarDays}" Margin="6"
+                <!-- 7x6 Month Grid. PreviewMouseLeftButtonUp (ולא MouseLeftButtonUp) כדי שהלחיצה
+                     תיתפס לפני שתגיות פנימיות בולעות את האירוע. -->
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding CalendarDays}" Margin="6,6,6,8"
                               Visibility="{Binding IsYearlyView, Converter={StaticResource InvBoolToVis}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -299,67 +369,70 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ui:Card x:Name="DayCard"
-                                     Style="{StaticResource DayCardStyle}"
-                                     Margin="3"
-                                     Padding="8,6"
-                                     Cursor="Hand"
-                                     PreviewMouseLeftButtonUp="OnDayCardClicked">
+                            <Border Style="{StaticResource DayTileStyle}" PreviewMouseLeftButtonUp="OnDayCardClicked">
                                 <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/> <!-- Header (Dates & Zmanim) -->
-                                        <RowDefinition Height="*"/>    <!-- Badges Area -->
-                                        <RowDefinition Height="Auto"/> <!-- Status Footer -->
-                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
-                                    <!-- Top Row: Hebrew day, Gregorian day, Sunset -->
-                                    <Grid Grid.Row="0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                    <!-- רצועת סטטוס בקצה -->
+                                    <Border Grid.Column="1" Style="{StaticResource DayAccentBarStyle}" Margin="0,0,-5,0"/>
 
-                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding HebrewDayString}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}"/>
-                                            <TextBlock Text="{Binding DayNumber, StringFormat=' ({0})'}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="4,2,0,0"/>
-                                        </StackPanel>
+                                    <Grid Grid.Column="0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-                                        <TextBlock Grid.Column="1" Text="{Binding Sunset, StringFormat='שק: {0}'}"
-                                                   FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                        <!-- Header: Hebrew day + Gregorian day + sunset -->
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding HebrewDayString}" FontSize="15" FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextMainBrush}"/>
+                                                <TextBlock Text="{Binding DayNumber, StringFormat=' ({0})'}" FontSize="11"
+                                                           Foreground="{DynamicResource TextMutedBrush}"
+                                                           VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Sunset, StringFormat='שק׳ {0}'}"
+                                                       FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Badges -->
+                                        <ItemsControl Grid.Row="1" ItemsSource="{Binding Badges}" Margin="0,4,0,2">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <ui:Badge Style="{StaticResource CategoryBadgeStyle}"
+                                                              Content="{Binding Text}"
+                                                              ToolTip="{Binding Tooltip}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Status summary -->
+                                        <TextBlock Grid.Row="2" Text="{Binding StatusSummary}" FontSize="10"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
                                     </Grid>
-
-                                    <!-- Middle: Badges List (Direct ItemsControl with WrapPanel, no ScrollViewer eating clicks) -->
-                                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Badges}" Margin="0,4,0,2">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel Orientation="Horizontal"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <ui:Badge Background="{Binding Category, Converter={StaticResource BadgeBgConv}}"
-                                                          Foreground="{Binding Category, Converter={StaticResource BadgeFgConv}}"
-                                                          Content="{Binding Text}"
-                                                          FontSize="10"
-                                                          FontWeight="Bold"
-                                                          Margin="0,0,3,3"
-                                                          ToolTip="{Binding Tooltip}"/>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-
-                                    <!-- Bottom: Day Status Summary -->
-                                    <TextBlock Grid.Row="2" Text="{Binding StatusSummary}"
-                                               FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
-                                               TextTrimming="CharacterEllipsis"/>
                                 </Grid>
-                            </ui:Card>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Yearly Overview: 12 mini-months, weekday-aligned grid -->
-                <ScrollViewer Grid.Column="0" Margin="10" VerticalScrollBarVisibility="Auto"
+                <!-- Yearly overview: 12 weekday-aligned mini-months -->
+                <ScrollViewer Grid.Column="0" Margin="10,10,10,12" VerticalScrollBarVisibility="Auto"
                               Visibility="{Binding IsYearlyView, Converter={StaticResource BoolToVis}}">
                     <ItemsControl ItemsSource="{Binding YearlyMonths}">
                         <ItemsControl.ItemsPanel>
@@ -369,21 +442,22 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <ui:Card Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                         Padding="10" Margin="0,0,8,8" Width="270">
+                                <ui:Card Style="{StaticResource AppCardStyle}" Padding="12" Margin="0,0,10,10" Width="286">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding MonthLabel}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{Binding MonthLabel}" FontSize="13.5" FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,8"
+                                                   HorizontalAlignment="Center"/>
 
-                                        <!-- Weekday header: א(ראשון) ... ש(שבת), same order as the monthly grid -->
-                                        <UniformGrid Columns="7" Margin="0,0,0,2">
-                                            <TextBlock Text="א" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
-                                            <TextBlock Text="ב" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
-                                            <TextBlock Text="ג" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
-                                            <TextBlock Text="ד" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
-                                            <TextBlock Text="ה" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
-                                            <TextBlock Text="ו" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextMutedBrush}"/>
-                                            <TextBlock Text="ש" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#1E40AF"/>
+                                        <!-- Weekday letters: same right-to-left order as the monthly grid -->
+                                        <UniformGrid Columns="7" Margin="0,0,0,4">
+                                            <TextBlock Text="א" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"/>
+                                            <TextBlock Text="ב" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"/>
+                                            <TextBlock Text="ג" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"/>
+                                            <TextBlock Text="ד" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"/>
+                                            <TextBlock Text="ה" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"/>
+                                            <TextBlock Text="ו" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"/>
+                                            <TextBlock Text="ש" Style="{StaticResource WeekdayHeaderStyle}" FontSize="10"
+                                                       Foreground="{DynamicResource PrimaryBrush}"/>
                                         </UniformGrid>
 
                                         <ItemsControl ItemsSource="{Binding Days}">
@@ -394,29 +468,32 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Width="34" Height="34" Margin="1" CornerRadius="6" Cursor="Hand"
+                                                    <Border Width="36" Height="36" Margin="1" CornerRadius="8" Cursor="Hand"
                                                             ToolTip="{Binding StatusSummary}"
                                                             PreviewMouseLeftButtonUp="OnDayCardClicked">
                                                         <Border.Style>
                                                             <Style TargetType="Border">
-                                                                <Setter Property="Background" Value="{DynamicResource WindowBgBrush}"/>
-                                                                <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+                                                                <Setter Property="Background" Value="{DynamicResource DayTileBgBrush}"/>
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource DayTileBorderBrush}"/>
                                                                 <Setter Property="BorderThickness" Value="1"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding HasReiya}" Value="True">
-                                                                        <Setter Property="Background" Value="#FECACA"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource SightingBgBrush}"/>
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource SightingFgBrush}"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding IsHefsekTaharah}" Value="True">
-                                                                        <Setter Property="Background" Value="#BBF7D0"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource HefsekBgBrush}"/>
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource HefsekFgBrush}"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding IsMikvehNight}" Value="True">
-                                                                        <Setter Property="Background" Value="#99F6E4"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource MikvehBgBrush}"/>
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource MikvehFgBrush}"/>
                                                                     </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ActiveOnot.Count}" Value="0">
-                                                                        <Setter Property="Background" Value="{DynamicResource WindowBgBrush}"/>
+                                                                    <DataTrigger Binding="{Binding IsShevaNekiyimDay}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource NekiimBgBrush}"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding IsToday}" Value="True">
-                                                                        <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource TodayRingBrush}"/>
                                                                         <Setter Property="BorderThickness" Value="2"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding IsPlaceholder}" Value="True">
@@ -427,7 +504,9 @@
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Border.Style>
-                                                        <TextBlock Text="{Binding HebrewDayString}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextMainBrush}"/>
+                                                        <TextBlock Text="{Binding HebrewDayString}" FontSize="11"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextMainBrush}"/>
                                                     </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
@@ -439,65 +518,64 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- Slide-out Flyout Drawer Panel -->
-                <Border Grid.Column="1" Width="410"
-                        Visibility="{Binding IsDrawerOpen, Converter={StaticResource BoolToVis}}">
+                <!-- Day action drawer -->
+                <Border Grid.Column="1" Width="416" Visibility="{Binding IsDrawerOpen, Converter={StaticResource BoolToVis}}">
                     <views:FlyoutDrawerView DataContext="{Binding}"/>
                 </Border>
             </Grid>
         </Grid>
 
-        <!-- Veset Summary Table Slide-out Drawer Overlay -->
+        <!-- ==================== Overlays (slide-out drawers) ==================== -->
+        <!-- Veset Summary -->
         <Border Visibility="{Binding IsVesetSummaryOpen, Converter={StaticResource BoolToVis}}"
-                Background="#60000000"
+                Background="{DynamicResource ScrimBrush}"
                 PreviewMouseDown="OnOverlayBackgroundMouseDown">
-            <Border HorizontalAlignment="Left" Width="840" Background="{DynamicResource SurfaceBrush}">
+            <Border HorizontalAlignment="Left" Width="880" Background="{DynamicResource SurfaceBrush}">
                 <views:VesetSummaryDrawerView DataContext="{Binding}"/>
             </Border>
         </Border>
 
-        <!-- About Slide-out Drawer Overlay -->
+        <!-- About -->
         <Border Visibility="{Binding IsAboutOpen, Converter={StaticResource BoolToVis}}"
-                Background="#60000000"
+                Background="{DynamicResource ScrimBrush}"
                 PreviewMouseDown="OnOverlayBackgroundMouseDown">
-            <Border HorizontalAlignment="Left" Width="520" Background="{DynamicResource SurfaceBrush}">
+            <Border HorizontalAlignment="Left" Width="540" Background="{DynamicResource SurfaceBrush}">
                 <views:AboutDrawerView DataContext="{Binding}"/>
             </Border>
         </Border>
 
-        <!-- Guide Slide-out Drawer Overlay -->
+        <!-- Halachic guide -->
         <Border Visibility="{Binding IsGuideOpen, Converter={StaticResource BoolToVis}}"
-                Background="#60000000"
+                Background="{DynamicResource ScrimBrush}"
                 PreviewMouseDown="OnOverlayBackgroundMouseDown">
-            <Border HorizontalAlignment="Left" Width="600" Background="{DynamicResource SurfaceBrush}">
+            <Border HorizontalAlignment="Left" Width="620" Background="{DynamicResource SurfaceBrush}">
                 <views:GuideDrawerView DataContext="{Binding}"/>
             </Border>
         </Border>
 
-        <!-- Insights Slide-out Drawer Overlay -->
+        <!-- Cycle insights -->
         <Border Visibility="{Binding IsInsightsOpen, Converter={StaticResource BoolToVis}}"
-                Background="#60000000"
+                Background="{DynamicResource ScrimBrush}"
                 PreviewMouseDown="OnOverlayBackgroundMouseDown">
-            <Border HorizontalAlignment="Left" Width="520" Background="{DynamicResource SurfaceBrush}">
+            <Border HorizontalAlignment="Left" Width="540" Background="{DynamicResource SurfaceBrush}">
                 <views:InsightsDrawerView DataContext="{Binding}"/>
             </Border>
         </Border>
 
-        <!-- Settings Slide-out Drawer Overlay -->
+        <!-- Settings -->
         <Border Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVis}}"
-                Background="#60000000"
+                Background="{DynamicResource ScrimBrush}"
                 PreviewMouseDown="OnOverlayBackgroundMouseDown">
-            <Border HorizontalAlignment="Left" Width="820" Background="{DynamicResource SurfaceBrush}">
+            <Border HorizontalAlignment="Left" Width="900" Background="{DynamicResource SurfaceBrush}">
                 <views:SettingsDrawerView DataContext="{Binding}"/>
             </Border>
         </Border>
 
-        <!-- PIN Lock Screen Overlay -->
+        <!-- PIN lock screen -->
         <views:PinLockOverlayView Visibility="{Binding IsLocked, Converter={StaticResource BoolToVis}}"
                                   DataContext="{Binding}"/>
 
-        <!-- Toast notification host (js/notifications.js's showToast) - floats above everything,
-             bottom-center, wired up in MainWindow.xaml.cs via NotificationService.Initialize. -->
+        <!-- Toast notifications -->
         <ui:SnackbarPresenter x:Name="RootSnackbarPresenter"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               Margin="0,0,0,24"/>

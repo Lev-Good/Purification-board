@@ -45,7 +45,14 @@ public partial class CalendarDayViewModel : ObservableObject
     private string _statusSummary = "טהורה";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsShevaNekiyimDay))]
     private int? _shevaNekiyimDayIndex;
+
+    /// <summary>Display-only helper: the day falls inside the seven clean days. The engine reports the
+    /// specific day index (1-7, or null outside the seven days); the calendar's tiles and the yearly
+    /// mini-months need a single boolean to colour by, and a trigger on a nullable int cannot express
+    /// "greater than zero". Carries no halachic meaning of its own.</summary>
+    public bool IsShevaNekiyimDay => ShevaNekiyimDayIndex is > 0;
 
     [ObservableProperty]
     private bool _isMikvehNight;

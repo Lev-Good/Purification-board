@@ -5,7 +5,7 @@
 ; shortcuts) so both editions install the same way for a non-technical user.
 
 #define MyAppName "לוח טהרה"
-#define MyAppVersion "3.2.0"
+#define MyAppVersion "3.3.0"
 #define MyAppPublisher "Lev Good"
 #define MyAppExeName "Taharah.exe"
 
