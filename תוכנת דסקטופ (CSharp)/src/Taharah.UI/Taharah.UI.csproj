@@ -25,12 +25,12 @@
        real secret into the test build's output too. A Target only runs in this
        project's own build/publish context, so it writes to this project's own
        $(OutDir)/$(PublishDir) exclusively. -->
-  <Target Name="CopyLocalOAuthSecretAfterBuild" AfterTargets="Build" Condition="Exists('$(MSBuildProjectDirectory)\..\..\google-oauth.local.json')">
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\google-oauth.local.json" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  <Target Name="CopyLocalOAuthSecretAfterBuild" AfterTargets="Build" Condition="Exists('$(MSBuildProjectDirectory)\..\..\..\הגדרות ומפתחות\google-oauth.local.json')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\..\הגדרות ומפתחות\google-oauth.local.json" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 
-  <Target Name="CopyLocalOAuthSecretAfterPublish" AfterTargets="Publish" Condition="Exists('$(MSBuildProjectDirectory)\..\..\google-oauth.local.json')">
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\google-oauth.local.json" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  <Target Name="CopyLocalOAuthSecretAfterPublish" AfterTargets="Publish" Condition="Exists('$(MSBuildProjectDirectory)\..\..\..\הגדרות ומפתחות\google-oauth.local.json')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\..\הגדרות ומפתחות\google-oauth.local.json" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <PropertyGroup>

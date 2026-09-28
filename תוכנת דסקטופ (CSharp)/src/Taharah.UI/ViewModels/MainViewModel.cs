@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Taharah.Core.Algorithms;
@@ -272,6 +272,7 @@ public partial class MainViewModel : ObservableObject
 
         _settingsVm = new SettingsViewModel(_repository, _securityService, errorLogService, googleOAuthService);
         _settingsVm.RequestRefreshCalendar += RefreshCalendarAsync;
+        _settingsVm.RequestCloseSettings += () => IsSettingsOpen = false;
         _settingsVm.RequestEmailExport += SendEmailExportAsync;
 
         if (googleOAuthService != null)
@@ -498,7 +499,10 @@ public partial class MainViewModel : ObservableObject
         if (life != null && life.Silek)
         {
             HasSilekBanner = true;
-            SilekBannerText = $"מסולקת דמים ({string.Join(", ", life.SilekLabels)}): החששות המפורטים בטבלה אינם נוהגים לה - " +
+            string labels = (life.SilekLabels != null && life.SilekLabels.Count > 0)
+                ? $" ({string.Join(", ", life.SilekLabels)})"
+                : string.Empty;
+            SilekBannerText = $"מסולקת דמים{labels}: החששות המפורטים בטבלה אינם נוהגים לה - " +
                 "אין חוששין לוסתות שהיו לה קודם שנסתלקה, והיא פטורה מבדיקה. וכלל זה אינו חל על ראייה שתראה בתוך זמן הסילוק.";
         }
         else if (life != null && life.Dormancy.Ended)
@@ -934,6 +938,30 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void CloseAllOverlays()
+    {
+        IsSettingsOpen = false;
+        IsGuideOpen = false;
+        IsInsightsOpen = false;
+        IsAboutOpen = false;
+        IsVesetSummaryOpen = false;
+    }
+
+    [RelayCommand]
+    public async Task NavigateToDayInMonthlyViewAsync(CalendarDayViewModel? day)
+    {
+        if (day == null || day.IsPlaceholder) return;
+        _currentHebrewMonthDate = new HDate(day.AbsoluteDay);
+        IsYearlyView = false;
+        await RefreshCalendarAsync();
+        var match = CalendarDays.FirstOrDefault(d => d.AbsoluteDay == day.AbsoluteDay);
+        if (match != null)
+        {
+            SelectDay(match);
+        }
+    }
+
+    [RelayCommand]
     public void SelectDay(CalendarDayViewModel day)
     {
         foreach (var d in CalendarDays)
@@ -953,6 +981,10 @@ public partial class MainViewModel : ObservableObject
     public void CloseDrawer()
     {
         IsDrawerOpen = false;
+        if (SelectedDay != null)
+        {
+            SelectedDay.IsSelected = false;
+        }
     }
 
     [RelayCommand]
@@ -1111,9 +1143,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void OpenSettings()
+    public async Task OpenSettingsAsync()
     {
         CloseAllPanels();
+        await SettingsVm.LoadSettingsAsync();
         IsSettingsOpen = true;
     }
 
@@ -1121,6 +1154,7 @@ public partial class MainViewModel : ObservableObject
     public async Task CloseSettingsAsync()
     {
         IsSettingsOpen = false;
+        await SettingsVm.LoadSettingsAsync();
         await RefreshCalendarAsync();
     }
 

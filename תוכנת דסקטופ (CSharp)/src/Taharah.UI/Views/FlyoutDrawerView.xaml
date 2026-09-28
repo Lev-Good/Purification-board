@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Taharah.UI.Views.FlyoutDrawerView"
+<UserControl x:Class="Taharah.UI.Views.FlyoutDrawerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -187,7 +187,7 @@
 
                             <ui:Button Style="{StaticResource ActionBtnStyle}"
                                        Content="בדיקת שבעה נקיים"
-                                       Background="{DynamicResource InputBgBrush}" BorderBrush="{DynamicResource BorderLightBrush}" Foreground="{DynamicResource TextMainBrush}"
+                                       Background="#E0F2FE" BorderBrush="#BAE6FD" Foreground="#0369A1"
                                        Command="{Binding ToggleFormCommand}" CommandParameter="בדיקה">
                                 <ui:Button.Icon>
                                     <ui:SymbolIcon Symbol="Search24"/>

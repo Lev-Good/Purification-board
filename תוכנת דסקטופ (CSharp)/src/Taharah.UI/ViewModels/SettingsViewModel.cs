@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -22,6 +22,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly UpdateCheckerService _updateChecker = new();
 
     public event Func<Task>? RequestRefreshCalendar;
+    public event Action? RequestCloseSettings;
 
     /// <summary>Raised by SyncCalendarNowCommand - MainViewModel (which holds the live events/engine state) handles the actual sync and returns its result.</summary>
     public event Func<Task<Taharah.Infrastructure.Backup.CalendarSyncResult>>? RequestCalendarSync;
@@ -562,6 +563,12 @@ public partial class SettingsViewModel : ObservableObject
         await _repository.SaveSettingAsync("calendar_sync_json", JsonSerializer.Serialize(BuildCalendarSyncSettings()));
 
         SyncStatusMessage = "ההגדרות נשמרו בהצלחה!";
+        if (RequestRefreshCalendar != null)
+        {
+            await RequestRefreshCalendar.Invoke();
+        }
+        RequestCloseSettings?.Invoke();
+        NotificationService.ShowSuccess("ההגדרות נשמרו בהצלחה");
     }
 
     [RelayCommand]

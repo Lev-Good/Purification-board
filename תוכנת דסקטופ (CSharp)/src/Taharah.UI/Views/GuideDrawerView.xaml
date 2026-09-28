@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Taharah.UI.Views.GuideDrawerView"
+<UserControl x:Class="Taharah.UI.Views.GuideDrawerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -41,15 +41,10 @@
 
             <!-- Search & Filter -->
             <StackPanel Grid.Row="1" Margin="0,0,0,14">
-                <TextBox Text="{Binding GuideSearchText, UpdateSourceTrigger=PropertyChanged}" 
-                         Padding="10,8" FontSize="13" Margin="0,0,0,10"
-                         BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <!-- Placeholder styling -->
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
+                <ui:TextBox Text="{Binding GuideSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="חיפוש נושא הלכתי, קוד או מילת מפתח..."
+                            ClearButtonEnabled="True"
+                            Padding="10,8" FontSize="13" Margin="0,0,0,10"/>
 
                 <!-- Category Buttons: WrapPanel so tags flow onto a second line instead of a cramped horizontal scrollbar -->
                 <ItemsControl ItemsSource="{Binding GuideCategories}">

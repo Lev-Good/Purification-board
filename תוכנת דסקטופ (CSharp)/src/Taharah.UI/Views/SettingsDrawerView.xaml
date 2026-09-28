@@ -65,7 +65,7 @@
                     <ControlTemplate TargetType="TabControl">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="180"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
@@ -159,7 +159,7 @@
                                                                 <StackPanel>
                                                                     <DockPanel Margin="0,0,0,6">
                                                                         <ui:Button DockPanel.Dock="Left" Appearance="Transparent"
-                                                                                   Command="{Binding DataContext.RemovePillPeriodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                   Command="{Binding DataContext.SettingsVm.RemovePillPeriodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                                    CommandParameter="{Binding}">
                                                                             <ui:Button.Icon>
                                                                                 <ui:SymbolIcon Symbol="Delete24"/>
@@ -169,7 +169,7 @@
                                                                     </DockPanel>
 
                                                                     <TextBlock Text="סוג הכדורים:" FontSize="11.5" Margin="0,0,0,3"/>
-                                                                    <ComboBox ItemsSource="{Binding DataContext.PillTypeOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    <ComboBox ItemsSource="{Binding DataContext.SettingsVm.PillTypeOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                               DisplayMemberPath="Label" SelectedValuePath="Value"
                                                                               SelectedValue="{Binding Type, Mode=TwoWay}" Padding="5" Margin="0,0,0,6"/>
 
@@ -180,7 +180,7 @@
                                                                     <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" Margin="0,0,0,6"/>
 
                                                                     <TextBlock Text="מדוע הפסקתי את הנטילה:" FontSize="11.5" Margin="0,0,0,3"/>
-                                                                    <ComboBox ItemsSource="{Binding DataContext.PillStopReasonOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    <ComboBox ItemsSource="{Binding DataContext.SettingsVm.PillStopReasonOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                               DisplayMemberPath="Label" SelectedValuePath="Value"
                                                                               SelectedValue="{Binding Reason, Mode=TwoWay}" Padding="5"/>
                                                                 </StackPanel>
@@ -253,48 +253,50 @@
                                     <TextBlock Text="חומרות הלכתיות (מחלוקות פוסקים)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" Margin="0,0,0,4"/>
                                     <TextBlock Text="כל מתג כאן הוא מחלוקת אמיתית בספר - ברירת המחדל היא השיטה הפשוטה, וההחמרה היא בחירה מודעת." FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,12" TextWrapping="Wrap"/>
 
-                                    <ui:ToggleSwitch Content="ספק עונה - לחוש לשתי העונות"
-                                              ToolTip="כשראתה ספק סמוך לחילוף העונות - לחוש אף לעונה הקודמת, ולא לעונה המאוחרת בלבד."
-                                              IsChecked="{Binding SettingsVm.SafekOnaBoth}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="וסת הדילוג והסירוג - לחשב חשש"
-                                              ToolTip="כשהתבנית מוכחת - לחשב על פיה את יום החשש; אחרת מוצגת לבירור עם רב בלבד."
-                                              IsChecked="{Binding SettingsVm.Dilug}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="עקירת וסת שאינו קבוע - לדרוש בדיקה"
-                                              ToolTip="כרגע: עבר זמן הוסת ולא ראתה - נעקר מיד. במתג זה: אינו נעקר עד שתיבדק בדיקה כדין."
-                                              IsChecked="{Binding SettingsVm.CheckUprootNonFixed}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="עונת אור זרוע בליל יום הל&quot;א"
-                                              ToolTip="המנהג להוסיף עונת אור זרוע אף לפני עונה בינונית של יום הל&quot;א. מן הדין אין צריך, ולמעשה יש להחמיר."
-                                              IsChecked="{Binding SettingsVm.OrZaruaDay31}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="בדיקה באיחור - מועילה (דעת הב&quot;י)"
-                                              ToolTip="כשעבר זמן הוסת ולא נבדקה בו: כבוי = אינה מועילה, וצריך בדיקה בזמנה דוקא."
-                                              IsChecked="{Binding SettingsVm.LateBedika}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="מניין ההפלגה - מסוף הראייה"
-                                              ToolTip="כשהראייה נמשכה כמה ימים: מניין ברירת המחדל מתחילתה; במתג זה - מסופה."
-                                              IsChecked="{Binding SettingsVm.HaflagahFromEnd}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="פחד פתאום - לדרוש בדיקה"
-                                              ToolTip="דעת החת&quot;ס שאינה צריכה בדיקה, והגר&quot;ש קלוגר סובר שצריכה בדיקה. כבוי = כחת&quot;ס."
-                                              IsChecked="{Binding SettingsVm.FrightBedika}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="כתם - שנחשב עקירת הוסת"
-                                              ToolTip="כרגע: הכתם &quot;כמי שאינו לענין וסתות&quot;. במתג זה: כשערי טוהר - כתם שנמצא בזמן הוסת שלש פעמים נחשב עקירה."
-                                              IsChecked="{Binding SettingsVm.StainUproots}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="צירוף למפרע - הפלגה ארוכה על פני הפלגה אחרת"
-                                              ToolTip="כרגע: וסת ההפלגה נקבעת רק בג' הפלגות רצופות שוות. במתג זה: גם כשבאמצע ראתה בהפלגה קצרה, מצטרפת הווסת הארוכה."
-                                              IsChecked="{Binding SettingsVm.ChiburLemafrea}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="וסת הגוף שאינה קבועה - לדרוש בדיקה כשעבר הזמן"
-                                              ToolTip="דלוק (ברירת מחדל) = כדעת הט&quot;ז, אסורה עד שתבדוק. כבוי = כדעת הש&quot;ך, אין חומרא יתרה."
-                                              IsChecked="{Binding SettingsVm.VesetHagufBedika}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="כרתי ופלתי - עונה בינונית ליממה שלמה"
-                                              ToolTip="מנהג אשכנז: הרחבת עונת הפרישה של יום ל' ליממה שלמה - יום ולילה כאחד."
-                                              IsChecked="{Binding SettingsVm.KaretiUfaletei}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="וסת מעד בדיקה - דם שנמצא בבדיקה נמנה כראייה"
-                                              ToolTip="כרגע: וסת נקבע רק על ידי ראייה כדרכה. במתג זה: גם דם שנמצא בבדיקה (&quot;עד בדיקה&quot;) נמנה כראייה."
-                                              IsChecked="{Binding SettingsVm.VesetFromBedika}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="מאכל חריף - כוסת האונס (לא נספרת לחזקה לבדה)"
-                                              ToolTip="כרגע: ראייה מחמת מאכל חריף נספרת לחזקה כוסת הגוף. במתג זה: דינה כוסת האונס, ואינה קובעת וסת לבדה."
-                                              IsChecked="{Binding SettingsVm.SharpFoodOnes}" Margin="0,0,0,10"/>
-                                    <ui:ToggleSwitch Content="ימי המבוכה - חומרת הרמ&quot;א"
-                                              ToolTip="מנהג אשכנז: שני ימים מתחלפים (ג' פעמים כל אחד) נחשבים וסת קבוע לשניהם. עדות המזרח אינם חוששים לכך כלל - מקושר ל'פרופיל מנהג' למעלה."
-                                              IsChecked="{Binding SettingsVm.MevuchaDays}"/>
+                                    <UniformGrid Columns="2" Margin="0,4,0,0">
+                                        <ui:ToggleSwitch Content="ספק עונה - לחוש לשתי העונות"
+                                                  ToolTip="כשראתה ספק סמוך לחילוף העונות - לחוש אף לעונה הקודמת, ולא לעונה המאוחרת בלבד."
+                                                  IsChecked="{Binding SettingsVm.SafekOnaBoth}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="וסת הדילוג והסירוג - לחשב חשש"
+                                                  ToolTip="כשהתבנית מוכחת - לחשב על פיה את יום החשש; אחרת מוצגת לבירור עם רב בלבד."
+                                                  IsChecked="{Binding SettingsVm.Dilug}" Margin="0,0,0,10"/>
+                                        <ui:ToggleSwitch Content="עקירת וסת שאינו קבוע - לדרוש בדיקה"
+                                                  ToolTip="כרגע: עבר זמן הוסת ולא ראתה - נעקר מיד. במתג זה: אינו נעקר עד שתיבדק בדיקה כדין."
+                                                  IsChecked="{Binding SettingsVm.CheckUprootNonFixed}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="עונת אור זרוע בליל יום הל&quot;א"
+                                                  ToolTip="המנהג להוסיף עונת אור זרוע אף לפני עונה בינונית של יום הל&quot;א. מן הדין אין צריך, ולמעשה יש להחמיר."
+                                                  IsChecked="{Binding SettingsVm.OrZaruaDay31}" Margin="0,0,0,10"/>
+                                        <ui:ToggleSwitch Content="בדיקה באיחור - מועילה (דעת הב&quot;י)"
+                                                  ToolTip="כשעבר זמן הוסת ולא נבדקה בו: כבוי = אינה מועילה, וצריך בדיקה בזמנה דוקא."
+                                                  IsChecked="{Binding SettingsVm.LateBedika}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="מניין ההפלגה - מסוף הראייה"
+                                                  ToolTip="כשהראייה נמשכה כמה ימים: מניין ברירת המחדל מתחילתה; במתג זה - מסופה."
+                                                  IsChecked="{Binding SettingsVm.HaflagahFromEnd}" Margin="0,0,0,10"/>
+                                        <ui:ToggleSwitch Content="פחד פתאום - לדרוש בדיקה"
+                                                  ToolTip="דעת החת&quot;ס שאינה צריכה בדיקה, והגר&quot;ש קלוגר סובר שצריכה בדיקה. כבוי = כחת&quot;ס."
+                                                  IsChecked="{Binding SettingsVm.FrightBedika}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="כתם - שנחשב עקירת הוסת"
+                                                  ToolTip="כרגע: הכתם &quot;כמי שאינו לענין וסתות&quot;. במתג זה: כשערי טוהר - כתם שנמצא בזמן הוסת שלש פעמים נחשב עקירה."
+                                                  IsChecked="{Binding SettingsVm.StainUproots}" Margin="0,0,0,10"/>
+                                        <ui:ToggleSwitch Content="צירוף למפרע - הפלגה ארוכה על פני הפלגה אחרת"
+                                                  ToolTip="כרגע: וסת ההפלגה נקבעת רק בג' הפלגות רצופות שוות. במתג זה: גם כשבאמצע ראתה בהפלגה קצרה, מצטרפת הווסת הארוכה."
+                                                  IsChecked="{Binding SettingsVm.ChiburLemafrea}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="וסת הגוף שאינה קבועה - לדרוש בדיקה כשעבר הזמן"
+                                                  ToolTip="דלוק (ברירת מחדל) = כדעת הט&quot;ז, אסורה עד שתבדוק. כבוי = כדעת הש&quot;ך, אין חומרא יתרה."
+                                                  IsChecked="{Binding SettingsVm.VesetHagufBedika}" Margin="0,0,0,10"/>
+                                        <ui:ToggleSwitch Content="כרתי ופלתי - עונה בינונית ליממה שלמה"
+                                                  ToolTip="מנהג אשכנז: הרחבת עונת הפרישה של יום ל' ליממה שלמה - יום ולילה כאחד."
+                                                  IsChecked="{Binding SettingsVm.KaretiUfaletei}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="וסת מעד בדיקה - דם שנמצא בבדיקה נמנה כראייה"
+                                                  ToolTip="כרגע: וסת נקבע רק על ידי ראייה כדרכה. במתג זה: גם דם שנמצא בבדיקה (&quot;עד בדיקה&quot;) נמנה כראייה."
+                                                  IsChecked="{Binding SettingsVm.VesetFromBedika}" Margin="0,0,0,10"/>
+                                        <ui:ToggleSwitch Content="מאכל חריף - כוסת האונס (לא נספרת לחזקה לבדה)"
+                                                  ToolTip="כרגע: ראייה מחמת מאכל חריף נספרת לחזקה כוסת הגוף. במתג זה: דינה כוסת האונס, ואינה קובעת וסת לבדה."
+                                                  IsChecked="{Binding SettingsVm.SharpFoodOnes}" Margin="0,0,12,10"/>
+                                        <ui:ToggleSwitch Content="ימי המבוכה - חומרת הרמ&quot;א"
+                                                  ToolTip="מנהג אשכנז: שני ימים מתחלפים (ג' פעמים כל אחד) נחשבים וסת קבוע לשניהם. עדות המזרח אינם חוששים לכך כלל - מקושר ל'פרופיל מנהג' למעלה."
+                                                  IsChecked="{Binding SettingsVm.MevuchaDays}" Margin="0,0,0,10"/>
+                                    </UniformGrid>
                                 </StackPanel>
                             </ui:Card>
 
@@ -664,10 +666,20 @@
 
             <!-- Footer Save Button -->
             <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
-                <ui:Button Content="שמור שינויים וסגור"
-                           Command="{Binding SettingsVm.SaveSettingsCommand}"
-                           Appearance="Primary" FontWeight="Bold" FontSize="13.5"
-                           Padding="16,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:Button Grid.Column="0" Content="שמור שינויים וסגור"
+                               Command="{Binding SettingsVm.SaveSettingsCommand}"
+                               Appearance="Primary" FontWeight="Bold" FontSize="13.5"
+                               Padding="16,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                    <ui:Button Grid.Column="1" Content="ביטול"
+                               Command="{Binding CloseSettingsCommand}"
+                               Appearance="Secondary" FontSize="13.5"
+                               Padding="24,10" Margin="10,0,0,0"/>
+                </Grid>
             </Border>
         </Grid>
     </ui:Card>
