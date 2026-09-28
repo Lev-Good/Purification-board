@@ -20,9 +20,10 @@ public static class EmailExportManager
 {
     private static readonly Dictionary<string, string> ReiyahKindLabels = new()
     {
-        ["ones"] = "אונס/קפיצה",
+        ["ones"] = "אונס",
         ["sharp"] = "מאכל חריף",
-        ["pills"] = "כדורים"
+        ["pills"] = "כדורים",
+        ["kefitza"] = "קפיצה"
     };
 
     /// <summary>

@@ -131,6 +131,15 @@ public class GoogleOAuthServiceTests
     }
 
     [Fact]
+    public void HasLocalClientSecret_NoOverrideFileShipped_ReturnsFalse()
+    {
+        // No "google-oauth.local.json" ships next to the test binaries (it's git-ignored,
+        // per-machine only) - this is exactly the condition that otherwise surfaces deep
+        // inside ConnectAsync as Google's raw "client_secret is missing" OAuth error.
+        Assert.False(Taharah.Infrastructure.Backup.GoogleOAuthService.HasLocalClientSecret());
+    }
+
+    [Fact]
     public void DefaultClientId_IsThePubliclyBundledInstalledAppClient()
     {
         // Matches js/main.js's OAUTH_DEFAULT_CLIENT_ID exactly - the same registered

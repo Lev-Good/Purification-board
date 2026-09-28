@@ -38,7 +38,12 @@ public class IntegritySweepTests
             mStart = MonthStartAfter(mStart);
         }
 
-        var disputed = new List<int> { shortLast, nextStart };
+        // "א' בחודש הבא בתורת ראש חודש" is 1st of the month AFTER the deficient one (nextStart),
+        // not 1st of nextStart itself - see VesetEngine.GetYomHachodeshInfo's fix comment
+        // (halachic edge-case audit, 2026-09-24). 1st of the deficient month would fall BEFORE
+        // even the 29th-of-that-month entry, which cannot be a candidate "day 30 surrogate".
+        int afterDeficientStart = MonthStartAfter(nextStart);
+        var disputed = new List<int> { shortLast, afterDeficientStart };
         if (later30.HasValue) disputed.Add(later30.Value);
         disputed.Sort();
         return (null, disputed);

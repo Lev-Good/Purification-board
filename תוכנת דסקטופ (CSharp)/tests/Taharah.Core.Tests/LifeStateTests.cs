@@ -44,6 +44,22 @@ public class LifeStateTests
         Assert.NotNull(verdict.Pregnant);
         Assert.True(verdict.Pregnant.Active);
         Assert.True(verdict.ExemptFromCheck);
+        Assert.Contains("הריון", verdict.SilekLabels);
+    }
+
+    [Fact]
+    public void Nursing_Active_PopulatesSilekLabels()
+    {
+        // SilekLabels used to stay empty even when Silek=true, producing
+        // "מסולקת דמים ():" in the UI banner (MainViewModel.SilekBannerText).
+        var verdict = LifeStateManager.AnalyzeLifeState(
+            new LifeStateModel { Nursing = true, NursingLenient = true },
+            null,
+            10000);
+
+        Assert.True(verdict.Silek);
+        Assert.Single(verdict.SilekLabels);
+        Assert.Contains("הנקה", verdict.SilekLabels);
     }
 
     [Fact]

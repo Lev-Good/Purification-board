@@ -140,6 +140,22 @@ public class EmailExportManagerTests
     }
 
     [Fact]
+    public void HistoryData_KefitzaKindSighting_ShowsItsOwnLabel()
+    {
+        // וסת הקפיצות (VesetKefitzotManager) - a reiyah with Kind == "kefitza" must show its own
+        // label in the export, not silently fall back to no label the way it would if
+        // EmailExportManager.ReiyahKindLabels hadn't been extended for the new kind.
+        int reiyahAbs = new HDate(5, 1, 5786).Abs();
+        var db = Db();
+        db[reiyahAbs] = new VesetEngine.CalendarDayEntry { Type = "reiyah", Ona = OnaType.Day, Kind = "kefitza" };
+        var engine = VesetEngine.CalculateEngine(db, false, new EngineOptions { Today = reiyahAbs });
+
+        var payload = EmailExportManager.BuildExportPayload(db, engine, null, includeFuture: false, includeHistory: true, includeNotes: false);
+
+        Assert.Contains(payload, kv => kv.Value.Contains("ראייה") && kv.Value.Contains("קפיצה"));
+    }
+
+    [Fact]
     public void HistoryData_NotesIncludedOnlyWhenRequested()
     {
         int abs = new HDate(5, 1, 5786).Abs();

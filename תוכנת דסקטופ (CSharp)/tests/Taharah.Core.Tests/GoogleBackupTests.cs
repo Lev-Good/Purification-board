@@ -245,6 +245,27 @@ public class GoogleBackupTests
     }
 
     [Fact]
+    public void Scenario11b_KefitzaKind_SurvivesBackup_AndOldOnesLabelStillRestoresAsOnes()
+    {
+        // וסת הקפיצות (VesetKefitzotManager) - a new Kind added after "ones"/"קפיצה" used to be
+        // one combined label ("אונס / קפיצה"). Two things must both hold: (1) a fresh "kefitza"
+        // entry round-trips through a live backup, and (2) an existing backup written before this
+        // split (label "אונס / קפיצה") still restores as "ones", not silently as "regular".
+        var db = new Dictionary<int, CalendarDayEntry>
+        {
+            [30000] = new CalendarDayEntry { Type = "reiyah", Ona = OnaType.Day, Kind = "kefitza" }
+        };
+
+        var parsed = GoogleBackupManager.ParseBackupRows(GoogleBackupManager.BuildPayload(db, "111111", ""));
+        Assert.Equal("kefitza", parsed.Db[30000].Kind);
+
+        var oldLabelHistory = GoogleBackupManager.ParseHistoryRows([
+            ["2026-01-01T00:00:00.000Z", "30000", "א", "1/1/2026", "ראייה", "יום", "", "נוסף", "אונס / קפיצה", ""]
+        ]);
+        Assert.Equal("ones", oldLabelHistory[0].Entry!.Kind);
+    }
+
+    [Fact]
     public void Scenario12_KindAndDuration_SurviveHistoryTab()
     {
         var kindHistory = GoogleBackupManager.ParseHistoryRows([

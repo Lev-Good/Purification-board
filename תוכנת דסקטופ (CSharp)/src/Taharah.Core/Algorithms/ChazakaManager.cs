@@ -6,11 +6,13 @@ namespace Taharah.Core.Algorithms;
 
 public sealed class EstablishedVeset
 {
-    public string Kind { get; set; } = string.Empty; // "month", "haflagah", "week", "mevucha", "dilug"
+    public string Kind { get; set; } = string.Empty; // "month", "haflagah", "week", "mevucha", "dilug", "sirug"
     public OnaType Ona { get; set; }
     public int? DayOfMonth { get; set; }
     public int? Span { get; set; }
     public int? SpanLabel { get; set; }
+    /// <summary>Kind == "sirug" only: Hebrew months between one sighting and the next (VesetSirugManager.SirugCandidate.MonthInterval).</summary>
+    public int? MonthInterval { get; set; }
     public int? Weekday { get; set; }
     public string? WeekdayLabel { get; set; }
     public List<int> Days { get; set; } = [];
@@ -44,6 +46,12 @@ public sealed class ChazakaResult
 
     /// <summary>Skip-pattern candidates (stringency dilug), always exposed so a rabbi can be consulted even when the toggle is off.</summary>
     public List<DilugCandidate> DilugCandidates { get; set; } = [];
+
+    /// <summary>וסת הקפיצות (VesetKefitzotManager) - always detected from jump-caused sightings (Kind == "kefitza") and exposed for disclosure, regardless of any toggle - הלכות טהרה הר"ע פריד פרק כז חלק ב, עמ' 92-93.</summary>
+    public List<KefitzotCandidate> KefitzotCandidates { get; set; } = [];
+
+    /// <summary>וסת הסירוג (VesetSirugManager) - same day-of-month/ona repeating with a fixed skipped-month interval - הלכות טהרה הר"ע פריד פרק כז חלק ד, עמ' 96.</summary>
+    public List<SirugCandidate> SirugCandidates { get; set; } = [];
 }
 
 public static class ChazakaManager
@@ -121,7 +129,13 @@ public static class ChazakaManager
         return (counted, excluded);
     }
 
-    public static ChazakaResult AnalyzeChazaka(List<ReiyahEvent> reiyot, bool sharpFoodAsOnes = false)
+    /// <summary>
+    /// <paramref name="includeMevucha"/> gates the "ימי המבוכה" construct (stringency mevuchaDays,
+    /// default on = Ashkenaz minhag). "בני עדות המזרח אינם חוששים כלל לימי המבוכה" - הלכות טהרה
+    /// הר"ע פריד פרק כז חלק ו, עמ' 97 סעיף לז. Everything else in the chazaka (month/haflagah/week
+    /// vesatot, mixed-ona, chibur-lemafrea, dilug candidates) is universal and unaffected by this flag.
+    /// </summary>
+    public static ChazakaResult AnalyzeChazaka(List<ReiyahEvent> reiyot, bool sharpFoodAsOnes = false, bool includeMevucha = true)
     {
         var (counted, excluded) = ClassifyReiyot(reiyot, sharpFoodAsOnes);
         var result = new ChazakaResult
@@ -134,13 +148,21 @@ public static class ChazakaManager
 
         var lastCounted = counted[^1];
 
-        // 1. Month Veset: 3 consecutive sightings on same Hebrew day and same onah
+        // 1. Month Veset: 3 consecutive sightings on same Hebrew day, same onah, AND in
+        // consecutive Hebrew months - a same-day/ona run that SKIPS a month is a different
+        // pattern (וסת הסירוג, VesetSirugManager), not a plain month veset. Found via code
+        // review 2026-09-23: without the adjacency check, the book's own sirug example (א'
+        // ניסן, א' סיון, א' אב) also satisfied this loop, co-establishing a contradictory
+        // regular month veset alongside the correct sirug one.
         int monthRun = 0;
+        ReiyahEvent? monthRunNewer = null;
         for (int i = counted.Count - 1; i >= 0; i--)
         {
             var r = counted[i];
             if (r.HDate.Day != lastCounted.HDate.Day || r.Ona != lastCounted.Ona) break;
+            if (monthRunNewer != null && !VesetDilugManager.MonthsAreConsecutive(r.Abs, monthRunNewer.Abs)) break;
             monthRun++;
+            monthRunNewer = r;
         }
 
         if (monthRun >= MonthSightingsNeeded)
@@ -162,7 +184,12 @@ public static class ChazakaManager
             for (int i = counted.Count - 1; i >= 1; i--)
             {
                 if (counted[i].Abs - counted[i - 1].Abs != span) break;
-                if (counted[i].Ona != lastCounted.Ona) break;
+                // Checks counted[i-1] (the OLDER member of this pair being newly folded into the
+                // window), not counted[i] - counted[i] was already validated (or is lastCounted
+                // itself) in a prior iteration. Checking counted[i] instead, as before, left the
+                // single OLDEST sighting in the establishing window never ona-checked at all -
+                // found via code review 2026-09-23.
+                if (counted[i - 1].Ona != lastCounted.Ona) break;
                 spans++;
             }
 
@@ -207,10 +234,13 @@ public static class ChazakaManager
         }
 
         // 4. Mevucha Veset (ימים המתחלפים): 3 sightings on day A and 3 sightings on day B (gap of 2 days, middle day never seen)
-        var mevucha = FindAlternatingDays(counted);
-        if (mevucha != null)
+        if (includeMevucha)
         {
-            result.Established.Add(mevucha);
+            var mevucha = FindAlternatingDays(counted);
+            if (mevucha != null)
+            {
+                result.Established.Add(mevucha);
+            }
         }
 
         // 5. Mixed Ona Change
@@ -222,6 +252,29 @@ public static class ChazakaManager
 
         // 7. Skip-pattern (stringency dilug) - likewise always detected and exposed.
         result.DilugCandidates = VesetDilugManager.DetectDilugCandidates(counted);
+
+        // 8. Veset kefitzot (jump-caused sightings) - always detected and exposed for disclosure
+        // only (never auto-applied to the calendar - see VesetKefitzotManager's own doc comment:
+        // the next occurrence depends on whether she jumps again, not a pure date prediction).
+        result.KefitzotCandidates = VesetKefitzotManager.AnalyzeKefitzot(reiyot);
+
+        // 9. Veset sirug (skipped-month interval, same day-of-month + ona) - הלכות טהרה הר"ע
+        // פריד פרק כז חלק ד, עמ' 96 presents this as plain established din (no machloket/chumra
+        // language, unlike dilug/chibur above), so once the 3x threshold is met it becomes a
+        // real standing veset like month/haflagah/week - added directly to Established.
+        result.SirugCandidates = VesetSirugManager.DetectSirugCandidates(counted);
+        foreach (var s in result.SirugCandidates)
+        {
+            result.Established.Add(new EstablishedVeset
+            {
+                Kind = "sirug",
+                Ona = s.Ona,
+                DayOfMonth = s.Day,
+                MonthInterval = s.MonthInterval,
+                Label = s.Label,
+                EstablishedBy = s.EstablishedBy
+            });
+        }
 
         return result;
     }
@@ -240,7 +293,7 @@ public static class ChazakaManager
         return run;
     }
 
-    /// <summary>Trailing count of consecutive equal haflagah spans at the end of the list, provided the closing ona of each pair matches the last sighting's ona.</summary>
+    /// <summary>Trailing count of consecutive equal haflagah spans at the end of the list, provided EVERY sighting in the window (not just the newer member of each pair - fixed via code review 2026-09-23) shares the last sighting's ona.</summary>
     private static (int Spans, int? Span) TrailingEqualSpans(List<ReiyahEvent> counted)
     {
         if (counted.Count < 2) return (0, null);
@@ -250,7 +303,7 @@ public static class ChazakaManager
         for (int i = counted.Count - 1; i >= 1; i--)
         {
             if (counted[i].Abs - counted[i - 1].Abs != span) break;
-            if (counted[i].Ona != last.Ona) break;
+            if (counted[i - 1].Ona != last.Ona) break;
             spans++;
         }
         return (spans, span);
@@ -430,6 +483,11 @@ public static class ChazakaManager
         {
             var cycle = string.Join(" ← ", (veset.Cycle ?? []).Select(HebDayOfMonth));
             return $"וסת קבוע לדילוג — מחזור {cycle} ({onaText})";
+        }
+        if (veset.Kind == "sirug")
+        {
+            string every = veset.MonthInterval == 2 ? "פעם בחודשיים" : $"פעם ב-{veset.MonthInterval} חודשים";
+            return $"וסת קבוע לסירוג — יום {HebDayOfMonth(veset.DayOfMonth ?? 1)} בחודש, {every} ({onaText})";
         }
         return $"וסת קבוע להפלגת {veset.SpanLabel ?? (veset.Span + 1)} ימים ({onaText})";
     }

@@ -67,13 +67,14 @@ public partial class EventEntryViewModel : ObservableObject
         }
     }
 
-    // "regular" | "ones" | "sharp" | "pills" - Taharah.Core.Algorithms.ReiyahEvent.Kind's own
+    // "regular" | "ones" | "sharp" | "pills" | "kefitza" - Taharah.Core.Algorithms.ReiyahEvent.Kind's own
     // codes. A mutually-exclusive radio group in the UI (js/app.js's reiyah-kind).
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsKindRegular))]
     [NotifyPropertyChangedFor(nameof(IsKindOnes))]
     [NotifyPropertyChangedFor(nameof(IsKindSharp))]
     [NotifyPropertyChangedFor(nameof(IsKindPills))]
+    [NotifyPropertyChangedFor(nameof(IsKindKefitza))]
     private string _reiyahKind = "regular";
 
     public bool IsKindRegular
@@ -95,6 +96,12 @@ public partial class EventEntryViewModel : ObservableObject
     {
         get => ReiyahKind == "pills";
         set { if (value) ReiyahKind = "pills"; }
+    }
+    /// <summary>ראייה שבאה בעקבות קפיצה גופנית - וסת הקפיצות (VesetKefitzotManager), הלכות טהרה הר"ע פריד פרק כז חלק ב.</summary>
+    public bool IsKindKefitza
+    {
+        get => ReiyahKind == "kefitza";
+        set { if (value) ReiyahKind = "kefitza"; }
     }
 
     [ObservableProperty]

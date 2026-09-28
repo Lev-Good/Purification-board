@@ -1,10 +1,13 @@
 using System.Windows;
 using System.Windows.Input;
+using Taharah.UI.Services;
 using Taharah.UI.ViewModels;
+using Wpf.Ui;
+using Wpf.Ui.Controls;
 
 namespace Taharah.UI;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private readonly MainViewModel _viewModel;
 
@@ -14,6 +17,10 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = _viewModel;
 
+        var snackbarService = new SnackbarService();
+        snackbarService.SetSnackbarPresenter(RootSnackbarPresenter);
+        NotificationService.Initialize(snackbarService);
+
         Loaded += async (s, e) =>
         {
             await _viewModel.InitializeAsync();
@@ -22,9 +29,18 @@ public partial class MainWindow : Window
 
     private void OnDayCardClicked(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement fe && fe.DataContext is CalendarDayViewModel day)
+        if (sender is FrameworkElement fe && fe.DataContext is CalendarDayViewModel day && !day.IsPlaceholder)
         {
             _viewModel.SelectDay(day);
+        }
+    }
+
+    private void OnMoreMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.ContextMenu != null)
+        {
+            fe.ContextMenu.PlacementTarget = fe;
+            fe.ContextMenu.IsOpen = true;
         }
     }
 

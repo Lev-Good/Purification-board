@@ -1,5 +1,7 @@
 ﻿using System.Linq;
 using System.Windows;
+using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
 
 namespace Taharah.UI.Services;
 
@@ -33,6 +35,15 @@ public static class ThemeService
         {
             app.Resources.MergedDictionaries.Add(newDict);
         }
+
+        // Keeps WPF-UI's own Fluent controls (FluentWindow's Mica backdrop, Card, Button,
+        // ToggleSwitch, ...) in sync with the same light/dark choice as our own brushes above -
+        // otherwise ui:* controls would stay stuck on whatever ThemesDictionary's initial
+        // Theme="Light" in App.xaml set them to.
+        ApplicationThemeManager.Apply(
+            theme == Dark ? ApplicationTheme.Dark : ApplicationTheme.Light,
+            WindowBackdropType.Mica,
+            updateAccent: true);
     }
 }
 

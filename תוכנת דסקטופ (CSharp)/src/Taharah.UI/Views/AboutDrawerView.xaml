@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:Taharah.UI.Converters"
+             xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="500"
              FlowDirection="RightToLeft">
@@ -11,11 +12,10 @@
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
 
-        <Style x:Key="AboutCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}"/>
+        <Style x:Key="AboutCardStyle" TargetType="ui:Card">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16"/>
             <Setter Property="Margin" Value="0,0,0,14"/>
         </Style>
@@ -42,12 +42,14 @@
 
             <Grid Grid.Row="0" Margin="0,0,0,16">
                 <DockPanel>
-                    <Button DockPanel.Dock="Left"
-                            Command="{Binding CloseAboutCommand}"
-                            Background="Transparent" BorderThickness="0"
-                            Width="32" Height="32" Cursor="Hand">
-                        <TextBlock Text="✕" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
+                    <ui:Button DockPanel.Dock="Left"
+                               Command="{Binding CloseAboutCommand}"
+                               Appearance="Transparent"
+                               Width="32" Height="32">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Dismiss24"/>
+                        </ui:Button.Icon>
+                    </ui:Button>
                     <TextBlock Text="אודות והוראות שימוש" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextMainBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
             </Grid>
@@ -56,7 +58,7 @@
                 <StackPanel>
 
                     <!-- 1. Usage instructions -->
-                    <Border Style="{StaticResource AboutCardStyle}">
+                    <ui:Card Style="{StaticResource AboutCardStyle}">
                         <StackPanel>
                             <TextBlock Text="איך משתמשים ביומן?" Style="{StaticResource AboutHeadingStyle}"/>
                             <TextBlock Style="{StaticResource AboutBodyStyle}">
@@ -81,10 +83,10 @@
                                 <Run Text="."/>
                             </TextBlock>
                         </StackPanel>
-                    </Border>
+                    </ui:Card>
 
                     <!-- 2. Email export -->
-                    <Border Style="{StaticResource AboutCardStyle}">
+                    <ui:Card Style="{StaticResource AboutCardStyle}">
                         <StackPanel>
                             <TextBlock Text="שליחת נתונים למייל" Style="{StaticResource AboutHeadingStyle}"/>
                             <TextBlock Style="{StaticResource AboutBodyStyle}" Text="ניתן לייצא את ריכוז הווסתות וההיסטוריה לכתובת מייל שתבחרו (בהגדרות) - למשל לצורך שיתוף עם רב לייעוץ."/>
@@ -94,10 +96,10 @@
                             </TextBlock>
                             <TextBlock Style="{StaticResource AboutBodyStyle}" Text="בפעמים הבאות שתשלחו לאותה כתובת, הנתונים יגיעו מיד ללא צורך באישור נוסף."/>
                         </StackPanel>
-                    </Border>
+                    </ui:Card>
 
                     <!-- 3. Privacy and backup -->
-                    <Border Style="{StaticResource AboutCardStyle}">
+                    <ui:Card Style="{StaticResource AboutCardStyle}">
                         <StackPanel>
                             <TextBlock Text="פרטיות וגיבוי נתונים" Style="{StaticResource AboutHeadingStyle}"/>
                             <TextBlock Style="{StaticResource AboutBodyStyle}">
@@ -113,10 +115,10 @@
                                 <Run Text="אנו ממליצים בחום לייצא קובץ גיבוי לעיתים קרובות מתוך ההגדרות. את הקובץ תוכלו לטעון מחדש בכל מחשב."/>
                             </TextBlock>
                         </StackPanel>
-                    </Border>
+                    </ui:Card>
 
                     <!-- 4. Credit -->
-                    <Border Style="{StaticResource AboutCardStyle}" HorizontalAlignment="Stretch">
+                    <ui:Card Style="{StaticResource AboutCardStyle}" HorizontalAlignment="Stretch">
                         <StackPanel HorizontalAlignment="Center">
                             <TextBlock Text="פותח באהבה ובמחשבה רבה על ידי לב טוב" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMainBrush}" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                             <TextBlock Text="לשאלות, הצעות לשיפור או תמיכה טכנית:" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,6"/>
@@ -126,7 +128,7 @@
                                 </Hyperlink>
                             </TextBlock>
                         </StackPanel>
-                    </Border>
+                    </ui:Card>
 
                 </StackPanel>
             </ScrollViewer>

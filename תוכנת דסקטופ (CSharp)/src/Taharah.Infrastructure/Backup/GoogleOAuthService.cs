@@ -102,6 +102,9 @@ public sealed class GoogleOAuthService
         _dataStore = new EncryptedRepositoryDataStore(repository, securityService);
     }
 
+    /// <summary>False when "google-oauth.local.json" is missing/empty next to the exe - the exact condition that otherwise surfaces as Google's raw "client_secret is missing" OAuth error deep inside ConnectAsync.</summary>
+    public static bool HasLocalClientSecret() => !string.IsNullOrEmpty(ReadCredentials().ClientSecret);
+
     private static (string ClientId, string ClientSecret) ReadCredentials()
     {
         string clientId = "";
