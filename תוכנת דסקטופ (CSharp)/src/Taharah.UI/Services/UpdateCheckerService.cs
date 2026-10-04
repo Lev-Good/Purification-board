@@ -23,7 +23,7 @@ public class UpdateCheckerService
         HttpClient.DefaultRequestHeaders.Add("User-Agent", "Taharah-Desktop-App");
     }
 
-    public async Task<UpdateCheckResult> CheckForUpdatesAsync(string owner = "Lev-Good", string repo = "Purification-board")
+    public async Task<UpdateCheckResult> CheckForUpdatesAsync(string owner = "Lev-Good", string repo = "Purification-board-releases")
     {
         string currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
         string url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";

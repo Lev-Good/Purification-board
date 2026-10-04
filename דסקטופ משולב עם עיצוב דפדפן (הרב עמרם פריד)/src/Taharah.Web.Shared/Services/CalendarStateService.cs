@@ -1129,7 +1129,7 @@ public sealed class CalendarStateService
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             http.DefaultRequestHeaders.Add("User-Agent", "Taharah-App");
-            var response = await http.GetAsync("https://api.github.com/repos/Lev-Good/Purification-board/releases/latest");
+            var response = await http.GetAsync("https://api.github.com/repos/Lev-Good/Purification-board-releases/releases/latest");
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
