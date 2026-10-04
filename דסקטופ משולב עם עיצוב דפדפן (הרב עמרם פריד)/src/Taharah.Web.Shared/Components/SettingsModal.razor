@@ -1,0 +1,829 @@
+@namespace Taharah.Web.Shared.Components
+@using Taharah.Core.Algorithms
+@using Taharah.Core.Calendar
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (State.IsSettingsOpen)
+{
+  <div class="modal-backdrop-overlay" @onclick="State.CloseSettings">
+    <div class="modal-content-card settings-modal-card" @onclick:stopPropagation="true">
+      
+      <!-- Settings Header -->
+      <div class="modal-card-header">
+        <div>
+          <div class="modal-title-row">
+            <SvgIcon Name="settings" Style="width: 22px; height: 22px; color: var(--primary);" />
+            <h2>הגדרות מערכת והלכה</h2>
+          </div>
+          <div class="modal-subtitle">מנהגים, חומרות, מיקום, אבטחה וגיבוי — כולם נשמרים מקומית במכשיר.</div>
+        </div>
+        <button class="close-btn-circle" title="סגור (Esc)" @onclick="State.CloseSettings">✕</button>
+      </div>
+
+      <!-- Settings Navigation Rail / Tabs -->
+      <div class="settings-tabs-nav">
+        <button class="settings-tab-btn @(State.SettingsTab == "halacha" ? "active" : "")" @onclick='() => State.SetSettingsTab("halacha")'>
+          <SvgIcon Name="scales" Style="width: 16px; height: 16px;" />
+          הלכה ומנהגים
+        </button>
+        <button class="settings-tab-btn @(State.SettingsTab == "location" ? "active" : "")" @onclick='() => State.SetSettingsTab("location")'>
+          <SvgIcon Name="location" Style="width: 16px; height: 16px;" />
+          מיקום וזמנים
+        </button>
+        <button class="settings-tab-btn @(State.SettingsTab == "security" ? "active" : "")" @onclick='() => State.SetSettingsTab("security")'>
+          <SvgIcon Name="shield" Style="width: 16px; height: 16px;" />
+          אבטחה ונעילה
+        </button>
+        <button class="settings-tab-btn @(State.SettingsTab == "backup" ? "active" : "")" @onclick='() => State.SetSettingsTab("backup")'>
+          <SvgIcon Name="cloud" Style="width: 16px; height: 16px;" />
+          גיבוי וסנכרון
+        </button>
+      </div>
+
+      <!-- Settings Body Container -->
+      <div class="modal-card-body settings-scroll-body">
+        
+        <!-- ================= TAB 1: הלכה ומנהגים ================= -->
+        @if (State.SettingsTab == "halacha")
+        {
+          <div class="settings-tab-pane">
+            <!-- פרופיל מנהג -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="scales" Style="width: 16px; height: 16px; color: var(--primary);" />
+                פרופיל מנהגי עדות
+              </div>
+              <div class="settings-group-desc">
+                קביעה מהירה של חמשת מנהגי היסוד (אור זרוע, יום ל״א, כרתי ופלתי, וסת הגוף בדיקה, ימי מבוכה).
+              </div>
+              <div class="choice-pills-row" style="margin-top: 10px;">
+                <button class="choice-chip-btn @(State.MinhagProfile == "ashkenaz" ? "selected" : "")" @onclick='() => State.MinhagProfile = "ashkenaz"'>
+                  מנהג אשכנז (מחמיר באור זרוע ובדיקות)
+                </button>
+                <button class="choice-chip-btn @(State.MinhagProfile == "sepharad" ? "selected" : "")" @onclick='() => State.MinhagProfile = "sepharad"'>
+                  מנהג עדות המזרח (כר״ע יוסף זצוק״ל)
+                </button>
+                <button class="choice-chip-btn @(State.MinhagProfile == "custom" ? "selected" : "")" disabled style="opacity: 0.8;">
+                  @(State.MinhagProfile == "custom" ? "מותאם אישית (פעיל)" : "מותאם אישית")
+                </button>
+              </div>
+            </div>
+
+            <!-- מצב חיים (מסולקת דמים) -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="sparkle" Style="width: 16px; height: 16px; color: var(--primary);" />
+                מצב חיים (מסולקת דמים)
+              </div>
+              <div class="settings-group-desc">
+                מעוברת (לאחר 90 יום), מניקה, זקנה ומסולקת דמים — פטורות מחששות וסת קודמים.
+              </div>
+
+              <div class="setting-switch-row" style="margin-top: 12px;">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">הפעל חישוב מצב חיים</div>
+                  <div class="setting-switch-hint">מתחשב בהריון, הנקה וגיל בחישובי עונות הפרישה.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.LifeEnabled" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              @if (State.LifeEnabled)
+              {
+                <div class="nested-settings-box">
+                  <div class="form-grid-2col">
+                    <div class="form-field">
+                      <label>תאריך תחילת הריון:</label>
+                      <input type="date" value="@(State.LifePregnancyDate?.ToString("yyyy-MM-dd"))" 
+                             @onchange="@(e => State.LifePregnancyDate = string.IsNullOrEmpty(e.Value?.ToString()) ? null : DateTime.Parse(e.Value.ToString()!))" />
+                    </div>
+                    <div class="form-field">
+                      <label>תאריך לידה (לתקופת הנקה):</label>
+                      <input type="date" value="@(State.LifeBirthDate?.ToString("yyyy-MM-dd"))" 
+                             @onchange="@(e => State.LifeBirthDate = string.IsNullOrEmpty(e.Value?.ToString()) ? null : DateTime.Parse(e.Value.ToString()!))" />
+                    </div>
+                  </div>
+
+                  <div class="setting-switch-row">
+                    <div class="setting-switch-info">
+                      <div class="setting-switch-label">מניקה בפועל</div>
+                      <div class="setting-switch-hint">דין מניקה חל כל כ״ד חודש אפילו אם גמלה, אלא אם נפסקה ההנקה.</div>
+                    </div>
+                    <label class="toggle-switch-ui">
+                      <input type="checkbox" @bind="State.LifeNursing" />
+                      <span class="slider-round"></span>
+                    </label>
+                  </div>
+
+                  <div class="form-field" style="margin-top: 10px; max-width: 200px;">
+                    <label>גיל (בשנים — לזקנה שסילקה דמים):</label>
+                    <input type="number" min="12" max="120" @bind="State.LifeAgeYears" placeholder="למשל 55" />
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- 14 חומרות הלכתיות -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="scales" Style="width: 16px; height: 16px; color: var(--primary);" />
+                חומרות ומנהגים בחישוב העונות
+              </div>
+              <div class="settings-group-desc">
+                כל דין שיש בו מחלוקת הפוסקים מוצג כאן עם אפשרות הכרעה ובחירה:
+              </div>
+
+              <!-- Or Zarua -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">עונת אור זרוע (עונה קודמת)</div>
+                  <div class="setting-switch-hint">פרישה גם בעונה שלפני עונת הפרישה העיקרית. (מנהג אשכנז המקובל).</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.OrZarua" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Or Zarua Day 31 -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">עונת אור זרוע ביום ל״א (עונה בינונית)</div>
+                  <div class="setting-switch-hint">חשש אור זרוע גם בעונת ליל יום ל״א לאחר עונה בינונית דיום ל׳.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.OrZaruaDay31" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Safek Ona Both -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">ספק עונה — שתי העונות (רמ״א)</div>
+                  <div class="setting-switch-hint">כשלא ידוע אם ראתה ביום או בלילה, חוששת לשתי העונות להבא.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.SafekOnaBoth" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Dilug -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">וסת הדילוג</div>
+                  <div class="setting-switch-hint">חישוב וקביעת וסת בדילוג ימים עולה או יורד (למשל כ, כא, כב).</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.Dilug" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Check Uproot Non Fixed -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">בדיקה עוקרת וסת שאינו קבוע</div>
+                  <div class="setting-switch-hint">בדיקה נקייה ביום הפרישה עוקרת את החשש לאותו החודש.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.CheckUprootNonFixed" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Late Bedika -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">בדיקה מאוחרת מועילה</div>
+                  <div class="setting-switch-hint">אם שכחה לבדוק בעונת הוסת, בדיקה מיד לאחריה מועילה בדיעבד.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.LateBedika" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Haflagah From End -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">הפלגה מסוף הראייה</div>
+                  <div class="setting-switch-hint">חישוב ימי ההפלגה מסיום הדימום ולא מתחילתו (דעת מיעוט הפוסקים).</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.HaflagahFromEnd" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Fright Bedika -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">פחד פתאום דורש בדיקה כדין (הגר״ש קלוגר)</div>
+                  <div class="setting-switch-hint">בביעתותא חובה לבדוק בעומק ובחו״ס קודם שתותר לבעלה.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.FrightBedika" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Stain Uproots -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">כתם עוקר וסת</div>
+                  <div class="setting-switch-hint">האם מראה כתם טמא עוקר וסת שאינו קבוע שחל באותו יום.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.StainUproots" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Chibur Lemafrea -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">חיבור למפרע (ימי משיכה)</div>
+                  <div class="setting-switch-hint">חיבור ימי ראייה רצופים כראייה אחת למפרע.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.ChiburLemafrea" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Veset Haguf Bedika -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">בדיקה בוסת הגוף (פסיקת הגר״ע פריד שליט״א)</div>
+                  <div class="setting-switch-hint">בדיקה נקייה בעת הופעת המיחוש מתירה מיידית כשהמיחוש עבר.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.VesetHagufBedika" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Kareti Ufaletei -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">כרתי ופלתי — אין עקירה בלא בדיקה</div>
+                  <div class="setting-switch-hint">וסת שאינו קבוע אינו נעקר אם לא נבדקה באותה עונה (מנהג אשכנז).</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.KaretiUfaletei" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Veset From Bedika -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">וסת מתוך בדיקה</div>
+                  <div class="setting-switch-hint">דם שנמצא בעד בדיקה קובע וסת להבא כראייה רגילה.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.VesetFromBedika" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Sharp Food Ones -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">מאכלים חריפים כאונס</div>
+                  <div class="setting-switch-hint">ראייה שבאה מחמת אכילת חריף נחשבת ראיית אונס.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.SharpFoodOnes" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Mevucha Days -->
+              <div class="setting-switch-row">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">ימי מבוכה (ימי ראייה שונים)</div>
+                  <div class="setting-switch-hint">קביעת וסת בימים שונים עם עונות מתחלפות (פסיקת הגר״ע פריד).</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.MevuchaDays" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- הגדרות פוריות -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="sparkle" Style="width: 16px; height: 16px; color: var(--primary);" />
+                הגדרות תובנות פוריות
+              </div>
+              <div class="settings-group-desc">
+                חישוב חלון הפוריות המשוער והתאמתו למועדי הטבילה ההלכתיים.
+              </div>
+
+              <div class="setting-switch-row" style="margin-top: 10px;">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">הצג לשונית תובנות פוריות</div>
+                  <div class="setting-switch-hint">מאפשר מעקב סטטיסטי אחרי אורכי המחזורים וחלון הפוריות.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.ShowFertility" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              @if (State.ShowFertility)
+              {
+                <div class="nested-settings-box">
+                  <div class="form-grid-2col">
+                    <div class="form-field">
+                      <label>שלב לוטאלי (11 עד 16 ימים, ברירת מחדל 14):</label>
+                      <input type="number" min="11" max="16" @bind="State.FertilityLutealPhaseDays" />
+                    </div>
+                    <div class="form-field">
+                      <label>בסיס אורך המחזור:</label>
+                      <select @bind="State.FertilityCycleBasis">
+                        <option value="auto">חישוב אוטומטי (ממוצע הפלגות)</option>
+                        <option value="manual">קבוע ידני (ימים)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  @if (State.FertilityCycleBasis == "manual")
+                  {
+                    <div class="form-field" style="margin-top: 10px; max-width: 200px;">
+                      <label>אורך מחזור קבוע (ימים):</label>
+                      <input type="number" min="20" max="60" @bind="State.FertilityManualCycleDays" />
+                    </div>
+                  }
+
+                  <div class="setting-switch-row" style="margin-top: 10px;">
+                    <div class="setting-switch-info">
+                      <div class="setting-switch-label">התרעת ביוץ לפני טבילה (עקרות הלכתית)</div>
+                      <div class="setting-switch-hint">מתריע כאשר יום הביוץ המשוער חל קודם ליל הטבילה.</div>
+                    </div>
+                    <label class="toggle-switch-ui">
+                      <input type="checkbox" @bind="State.FertilityOvulationConflictAlert" />
+                      <span class="slider-round"></span>
+                    </label>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ================= TAB 2: מיקום וזמנים ================= -->
+        @if (State.SettingsTab == "location")
+        {
+          <div class="settings-tab-pane">
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="location" Style="width: 16px; height: 16px; color: var(--primary);" />
+                עיר מגורים וזמני היום
+              </div>
+              <div class="settings-group-desc">
+                זמני הזריחה (נץ החמה) והשקיעה נקבעים באופן מוחלט ומדויק על פי המיקום הגאוגרפי שנבחר.
+              </div>
+
+              <div class="form-field" style="margin-top: 14px; max-width: 320px;">
+                <label>בחר עיר:</label>
+                <select @bind="State.SelectedCityId">
+                  @foreach (var city in State.AvailableCities)
+                  {
+                    <option value="@city.Id">@city.Label</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Location Preview Box -->
+              <div class="location-preview-box">
+                @{
+                  var loc = State.SelectedLocation;
+                  int todayAbs = State.CurrentTodayAbs();
+                  var t = ZmanimManager.DayTimes(todayAbs, loc);
+                }
+                <div class="loc-head">
+                  <b>@loc.Label</b> — קו רוחב: @loc.Lat.ToString("F2")°, קו אורך: @loc.Long.ToString("F2")°
+                </div>
+                <div class="loc-times-grid">
+                  <div class="loc-time-tile">
+                    <span class="loc-label">נץ החמה להיום:</span>
+                    <span class="loc-val">@(t?.Day.Sunrise ?? "--:--")</span>
+                  </div>
+                  <div class="loc-time-tile">
+                    <span class="loc-label">שקיעת החמה להיום:</span>
+                    <span class="loc-val">@(t?.Day.Sunset ?? "--:--")</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ================= TAB 3: אבטחה ונעילה ================= -->
+        @if (State.SettingsTab == "security")
+        {
+          <div class="settings-tab-pane">
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="shield" Style="width: 16px; height: 16px; color: var(--primary);" />
+                אבטחה והצפנת נתונים
+              </div>
+              <div class="settings-group-desc">
+                הגדרת קוד אישי (PIN) נועלת את האפליקציה בכל הפעלה ומצפינה את כל בסיס הנתונים בהצפנה חזקה (AES-GCM-256).
+              </div>
+
+              <div class="pin-status-pill @(State.HasPin ? "active-pin" : "no-pin")">
+                <SvgIcon Name="@(State.HasPin ? "lock" : "shield")" Style="width: 16px; height: 16px;" />
+                @(State.HasPin ? "קוד PIN פעיל — בסיס הנתונים מוצפן לחלוטין" : "אין קוד PIN מוגדר — הנתונים נשמרים מקומית ללא קוד נעילה")
+              </div>
+
+              @if (!string.IsNullOrEmpty(State.PinStatusMessage))
+              {
+                <div class="status-msg-box" style="margin-top: 10px;">@State.PinStatusMessage</div>
+              }
+
+              <div class="form-grid-2col" style="margin-top: 14px;">
+                <div class="form-field">
+                  <label>קוד PIN חדש (4-8 ספרות):</label>
+                  <input type="password" maxlength="8" @bind="State.NewPin" placeholder="••••" />
+                </div>
+                <div class="form-field">
+                  <label>אימות קוד PIN:</label>
+                  <input type="password" maxlength="8" @bind="State.ConfirmPin" placeholder="••••" />
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 14px;">
+                <button class="hero-action-button" style="padding: 8px 18px;" @onclick="HandleSetPinAsync">
+                  @(State.HasPin ? "שנה קוד PIN" : "הפעל קוד PIN")
+                </button>
+                @if (State.HasPin)
+                {
+                  <button class="danger-outline-btn" @onclick="State.RemovePinAsync">
+                    הסר קוד PIN והצפנה
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ================= TAB 4: גיבוי וסנכרון ================= -->
+        @if (State.SettingsTab == "backup")
+        {
+          <div class="settings-tab-pane">
+            
+            <!-- 1. חשבון Google וגיבוי ענן -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="cloud" Style="width: 16px; height: 16px; color: var(--primary);" />
+                גיבוי וסנכרון ענן (חשבון Google)
+              </div>
+              <div class="settings-group-desc">
+                חיבור לחשבון Google מאפשר גיבוי אוטומטי ומאובטח לגיליון Google Sheets פרטי וסנכרון תזכורות ליומן Google ייעודי.
+              </div>
+
+              @if (!State.GoogleConnected)
+              {
+                <div style="margin-top: 14px;">
+                  @if (!State.HasGoogleOAuthCredentials)
+                  {
+                    <div class="status-msg-box" style="margin-bottom: 12px; background: rgba(234, 88, 12, 0.08); border-color: rgba(234, 88, 12, 0.3); color: #ea580c;">
+                      שים לב: חסר קובץ <code>google-oauth.local.json</code> עם מזהה לקוח וסוד. יש להניחו בתיקיית התוכנה כדי להפעיל חיבור ל-Google.
+                    </div>
+                  }
+                  <button class="hero-action-button" style="padding: 10px 22px;" disabled="@(State.IsGoogleConnecting || !State.HasGoogleOAuthCredentials)" @onclick="State.ConnectGoogleAsync">
+                    <SvgIcon Name="cloud" Style="width: 16px; height: 16px; margin-left: 6px;" />
+                    @(State.IsGoogleConnecting ? "מתחבר לדפדפן..." : "התחבר לחשבון Google")
+                  </button>
+                </div>
+              }
+              else
+              {
+                <div style="margin-top: 14px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: var(--bg-hover, rgba(0,0,0,0.03)); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #16a34a;"></span>
+                      <span style="font-weight: 600; font-size: 13.5px;">מחובר לחשבון:</span>
+                      <span style="font-family: monospace; font-size: 13px; color: var(--primary);">@State.GoogleEmail</span>
+                    </div>
+                    <button class="danger-outline-btn" style="padding: 4px 12px; font-size: 12.5px;" @onclick="State.DisconnectGoogleAsync">
+                      נתק חשבון
+                    </button>
+                  </div>
+
+                  <div class="form-field" style="margin-top: 14px;">
+                    <label>מזהה גיליון גיבוי (Google Sheets):</label>
+                    <div style="display: flex; gap: 8px;">
+                      <input type="text" @bind="State.SheetId" placeholder="נוצר אוטומטית בעת גיבוי ראשון" style="flex: 1;" />
+                      @if (!string.IsNullOrWhiteSpace(State.SheetId))
+                      {
+                        <button class="round-arrow" style="width: auto; padding: 0 14px; font-size: 12.5px;" title="פתח גיליון בדפדפן" @onclick="State.OpenGoogleSheetAsync">
+                          פתח גיליון
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+                    <button class="hero-action-button" style="padding: 9px 18px;" disabled="@State.IsGoogleBackingUp" @onclick="State.BackupToGoogleNowAsync">
+                      <SvgIcon Name="upload" Style="width: 15px; height: 15px; margin-left: 6px;" />
+                      @(State.IsGoogleBackingUp ? "מגבה כעת..." : "גבה עכשיו ל-Google")
+                    </button>
+                    <button class="round-arrow" style="width: auto; padding: 0 16px;" disabled="@(State.IsGoogleRestoring || string.IsNullOrWhiteSpace(State.SheetId))" @onclick="State.RestoreFromGoogleMergeAsync">
+                      <SvgIcon Name="download" Style="width: 15px; height: 15px; margin-left: 6px;" />
+                      @(State.IsGoogleRestoring ? "משחזר כעת..." : "שחזר ומזג מגוגל")
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (!string.IsNullOrEmpty(State.GoogleStatusMessage))
+              {
+                <div class="status-msg-box" style="margin-top: 12px;">@State.GoogleStatusMessage</div>
+              }
+              @if (!string.IsNullOrEmpty(State.GoogleBackupStatusMessage))
+              {
+                <div class="status-msg-box" style="margin-top: 10px; background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.3); color: var(--primary);">@State.GoogleBackupStatusMessage</div>
+              }
+            </div>
+
+            <!-- 2. יומן Google ותזכורות (Google Calendar) -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="calendar" Style="width: 16px; height: 16px; color: var(--primary);" />
+                יומן Google והתראות
+              </div>
+              <div class="settings-group-desc">
+                סנכרון תזכורות בדיקות וימי פרישה ליומן נפרד וייעודי ביומן Google שלך — היומן הראשי והאירועים הקיימים לעולם אינם נפגעים.
+              </div>
+
+              <div class="setting-switch-row" style="margin-top: 14px;">
+                <div class="setting-switch-info">
+                  <div class="setting-switch-label">הפעל סנכרון ליומן Google</div>
+                  <div class="setting-switch-hint">יוצר ומעדכן אוטומטית לוח תזכורות ״לוח טהרה - תזכורות אישיות״.</div>
+                </div>
+                <label class="toggle-switch-ui">
+                  <input type="checkbox" @bind="State.CalendarSyncEnabled" />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              @if (State.CalendarSyncEnabled)
+              {
+                <div class="nested-settings-box">
+                  <div class="form-field">
+                    <label>רמת דיסקרטיות ברישומי היומן:</label>
+                    <div class="choice-pills-row">
+                      <button class="choice-chip-btn @(State.CalendarDiscretion == "subtle" ? "selected" : "")" @onclick='() => State.CalendarDiscretion = "subtle"'>
+                        סולידי (מומלץ)
+                      </button>
+                      <button class="choice-chip-btn @(State.CalendarDiscretion == "detailed" ? "selected" : "")" @onclick='() => State.CalendarDiscretion = "detailed"'>
+                        מפורט (הלכתי מלא)
+                      </button>
+                      <button class="choice-chip-btn @(State.CalendarDiscretion == "discreet" ? "selected" : "")" @onclick='() => State.CalendarDiscretion = "discreet"'>
+                        מוצפן / שמות קוד
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (State.CalendarDiscretion == "discreet")
+                  {
+                    <div class="form-field" style="margin-top: 10px;">
+                      <label>קידומת דיסקרטית לכותרת האירוע:</label>
+                      <input type="text" @bind="State.CalendarDiscreetPrefix" placeholder="תזכורת" />
+                    </div>
+                  }
+
+                  <div class="form-grid-2col" style="margin-top: 12px;">
+                    <div class="form-field">
+                      <label>שעת תזכורת בוקר:</label>
+                      <input type="time" value="@State.CalendarMorningTime" @onchange='(ChangeEventArgs e) => State.CalendarMorningTime = e.Value?.ToString() ?? "08:30"' />
+                    </div>
+                    <div class="form-field">
+                      <label>התראת לפני שקיעה (דקות):</label>
+                      <input type="number" min="15" max="300" step="15" @bind="State.CalendarSunsetLeadMinutes" />
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                      <input type="checkbox" @bind="State.CalendarNotifyPopup" />
+                      הצג התראות קופצות (Pop-up) במסך
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                      <input type="checkbox" @bind="State.CalendarNotifyEmail" />
+                      שלח תזכורת לדוא״ל Google
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                      <input type="checkbox" @bind="State.CalendarMochDachukEnabled" />
+                      כלול תזכורת לבדיקת מוך דחוק
+                    </label>
+                  </div>
+
+                  <div style="margin-top: 14px; font-size: 12.5px; color: var(--text-muted);">
+                    @State.CalendarLastSyncMessage
+                  </div>
+
+                  <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
+                    <button class="hero-action-button" style="padding: 8px 18px;" disabled="@(State.IsCalendarSyncing || !State.GoogleConnected)" @onclick="State.SyncCalendarNowAsync">
+                      <SvgIcon Name="calendar" Style="width: 15px; height: 15px; margin-left: 6px;" />
+                      @(State.IsCalendarSyncing ? "מסנכרן ליומן..." : "סנכרן כעת ליומן")
+                    </button>
+                    <button class="round-arrow" style="width: auto; padding: 0 16px;" @onclick="State.OpenGoogleCalendarAsync">
+                      פתח את יומן Google
+                    </button>
+                    <button class="danger-outline-btn" style="padding: 6px 14px;" disabled="@(State.IsCalendarClearing || !State.GoogleConnected)" @onclick="State.ClearCalendarEventsAsync">
+                      @(State.IsCalendarClearing ? "מוחק תזכורות..." : "נקה תזכורות מהיומן")
+                    </button>
+                  </div>
+
+                  @if (!State.GoogleConnected)
+                  {
+                    <div style="margin-top: 8px; font-size: 12px; color: #ea580c;">
+                      * יש להתחבר תחילה לחשבון Google כדי לבצע סנכרון ליומן.
+                    </div>
+                  }
+
+                  @if (!string.IsNullOrEmpty(State.CalendarStatusMessage))
+                  {
+                    <div class="status-msg-box" style="margin-top: 10px;">@State.CalendarStatusMessage</div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- 3. ייצוא ושחזור גיבוי מקומי (JSON) -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="download" Style="width: 16px; height: 16px; color: var(--primary);" />
+                ייצוא ושחזור גיבוי מקומי (JSON)
+              </div>
+              <div class="settings-group-desc">
+                קובץ גיבוי מכיל את כלל היסטוריית הראיות, הבדיקות וההגדרות שלכם וניתן לשמירה בכל מחשב או כונן נייד.
+              </div>
+
+              @if (!string.IsNullOrEmpty(State.SyncStatusMessage))
+              {
+                <div class="status-msg-box" style="margin-top: 10px;">@State.SyncStatusMessage</div>
+              }
+
+              <div style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;">
+                <button class="hero-action-button" style="padding: 10px 20px;" @onclick="State.ExportBackupJsonAsync">
+                  <SvgIcon Name="download" Style="width: 15px; height: 15px; margin-left: 6px;" />
+                  ייצא קובץ גיבוי למחשב
+                </button>
+
+                <label class="file-upload-btn">
+                  <SvgIcon Name="upload" Style="width: 15px; height: 15px; margin-left: 6px;" />
+                  שחזר מקובץ גיבוי...
+                  <InputFile OnChange="HandleFileSelected" accept=".json" style="display: none;" />
+                </label>
+              </div>
+            </div>
+
+            <!-- 4. ייצוא למייל (לייעוץ רב) -->
+            <div class="settings-group-card">
+              <div class="settings-group-title">
+                <SvgIcon Name="mail" Style="width: 16px; height: 16px; color: var(--primary);" />
+                ייצוא נתונים לדוא״ל (לייעוץ רב)
+              </div>
+              <div class="settings-group-desc">
+                שליחת ריכוז הוסתות וההיסטוריה בצורה מאובטחת לכתובת מייל שתבחרו (למשל לצורך מענה מרב מורה הוראה).
+              </div>
+
+              <div class="form-field" style="margin-top: 12px; max-width: 360px;">
+                <label>כתובת מייל לייצוא:</label>
+                <input type="email" @bind="State.ExportEmail" placeholder="rabbi@example.com" />
+              </div>
+
+              <div class="form-field" style="margin-top: 10px;">
+                <label>הערות או שאלה לרב:</label>
+                <textarea rows="3" @bind="State.ExportNotes" placeholder="כתבו כאן שאלות או הבהרות לרב..."></textarea>
+              </div>
+
+              <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" @bind="State.ExportIncludeFuture" />
+                  כלול עונות פרישה עתידיות
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" @bind="State.ExportIncludeHistory" />
+                  כלול היסטוריית מחזורים ובדיקות
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" @bind="State.ExportIncludeNotes" />
+                  כלול הערות אישיות מהרישומים
+                </label>
+              </div>
+
+              @if (!string.IsNullOrEmpty(State.ExportStatusMessage))
+              {
+                <div class="status-msg-box" style="margin-top: 10px;">@State.ExportStatusMessage</div>
+              }
+
+              <button class="hero-action-button" style="margin-top: 12px; padding: 9px 20px;" disabled="@State.IsEmailExporting" @onclick="State.SendEmailExportAsync">
+                <SvgIcon Name="mail" Style="width: 15px; height: 15px; margin-left: 6px;" />
+                @(State.IsEmailExporting ? "שולח נתונים..." : "שלח נתונים במייל לרב")
+              </button>
+            </div>
+
+            <!-- 5. מחיקת כל הנתונים (איפוס מוחלט) -->
+            <div class="settings-group-card danger-card">
+              <div class="settings-group-title" style="color: var(--danger, #dc2626);">
+                <SvgIcon Name="trash" Style="width: 16px; height: 16px; color: var(--danger, #dc2626);" />
+                מחיקת כל הנתונים (איפוס מוחלט)
+              </div>
+              <div class="settings-group-desc">
+                פעולה זו תמחק לצמיתות את כל הראיות, הבדיקות וההגדרות שנשמרו במכשיר. לא ניתן לבטל פעולה זו!
+              </div>
+
+              @if (!string.IsNullOrEmpty(State.ClearDataStatusMessage))
+              {
+                <div class="status-msg-box" style="margin-top: 10px; color: var(--danger);">@State.ClearDataStatusMessage</div>
+              }
+
+              <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="confirmWipeCheck" @bind="_confirmWipe" />
+                <label for="confirmWipeCheck" style="font-size: 13px; font-weight: 600; cursor: pointer;">
+                  אני מאשרת את מחיקת כל הנתונים לצמיתות
+                </label>
+              </div>
+
+              <button class="danger-btn" style="margin-top: 12px;" disabled="@(!_confirmWipe)" @onclick="State.ClearAllDataAsync">
+                מחק את כל הנתונים עכשיו
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Settings Footer -->
+      <div class="modal-card-footer">
+        <button class="hero-action-button" style="padding: 10px 28px;" @onclick="HandleSaveSettingsAsync">
+          שמור שינויים וסגור
+        </button>
+        <button class="round-arrow" style="width: auto; padding: 0 16px;" @onclick="State.CloseSettings">
+          ביטול
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+@code {
+    private bool _confirmWipe;
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= OnStateChanged;
+    }
+
+    private async Task HandleSaveSettingsAsync()
+    {
+        await State.SaveSettingsAsync();
+        State.CloseSettings();
+    }
+
+    private async Task HandleSetPinAsync()
+    {
+        if (State.NewPin != State.ConfirmPin)
+        {
+            State.PinStatusMessage = "הקודים אינם תואמים. אנא הזינו שנית.";
+            return;
+        }
+
+        await State.SetPinAsync(State.NewPin);
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        using var reader = new System.IO.StreamReader(stream);
+        string json = await reader.ReadToEndAsync();
+        await State.ImportBackupJsonAsync(json);
+    }
+}

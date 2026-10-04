@@ -1,0 +1,154 @@
+@namespace Taharah.Web.Shared.Components
+@using Taharah.Core.Halacha
+
+<div class="view-container active">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h2 style="font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0 0 6px 0;">מדריך הלכתי — פסקי הגר״ע פריד שליט״א</h2>
+      <p style="font-size: 13.5px; color: var(--text-muted); margin: 0;">ביאורי הלכה, שאלות מעשיות ומקורות הלכתיים מפורטים</p>
+    </div>
+    <div style="position: relative; min-width: 260px;">
+      <input type="text" 
+             placeholder="חיפוש נושא, הלכה או מקור..." 
+             @bind="_searchQuery" 
+             @bind:event="oninput" 
+             style="width: 100%; padding: 10px 14px 10px 38px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); background: var(--bg-surface); font-size: 13px; color: var(--text-primary); outline: none;" />
+      <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+        <SvgIcon Name="lens" Size="16" />
+      </span>
+    </div>
+  </div>
+
+  <!-- Category Pills Bar -->
+  <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 24px;">
+    <button class="btn btn-secondary @(_selectedCategory == null ? "active" : "")" 
+            style="border-radius: var(--radius-pill); padding: 6px 16px; font-size: 12.5px; font-weight: 600; white-space: nowrap; @(_selectedCategory == null ? "background: var(--primary); color: white; border-color: var(--primary);" : "")"
+            @onclick="() => _selectedCategory = null">
+      כל הנושאים (@HalachaHelpCatalog.Topics.Count)
+    </button>
+    @foreach (var cat in HalachaHelpCatalog.Categories)
+    {
+      bool isSelected = _selectedCategory == cat;
+      <button class="btn btn-secondary @(isSelected ? "active" : "")" 
+              style="border-radius: var(--radius-pill); padding: 6px 16px; font-size: 12.5px; font-weight: 600; white-space: nowrap; @(isSelected ? "background: var(--primary); color: white; border-color: var(--primary);" : "")"
+              @onclick="() => _selectedCategory = cat">
+        @cat
+      </button>
+    }
+  </div>
+
+  <!-- Topics Accordion List -->
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    @foreach (var topic in FilteredTopics)
+    {
+      bool isExpanded = _expandedTopicIds.Contains(topic.Id);
+      <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; transition: all var(--duration-fast) var(--ease-spring);">
+        <!-- Header -->
+        <div style="padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;"
+             @onclick="() => ToggleTopic(topic.Id)">
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+            <span class="badge-pill" style="background: var(--bg-surface-subtle); color: var(--text-secondary); font-size: 11px;">
+              @topic.Category
+            </span>
+            <div>
+              <h3 style="font-size: 15.5px; font-weight: 700; margin: 0; color: var(--text-primary);">
+                @topic.Title
+              </h3>
+              <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+                @topic.Summary
+              </p>
+            </div>
+          </div>
+          <div style="font-size: 18px; color: var(--text-muted); transform: rotate(@(isExpanded ? "180deg" : "0deg")); transition: transform var(--duration-fast) ease;">
+            ▼
+          </div>
+        </div>
+
+        <!-- Expanded Content -->
+        @if (isExpanded)
+        {
+          <div style="padding: 0 20px 20px 20px; border-top: 1px solid var(--border-subtle); background: var(--bg-surface-subtle);">
+            <!-- Body paragraphs -->
+            <div style="padding-top: 16px; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary);">
+              @foreach (var p in topic.Body)
+              {
+                <p style="margin: 0 0 10px 0;">@p</p>
+              }
+            </div>
+
+            <!-- Bullet Points -->
+            @if (topic.Points.Count > 0)
+            {
+              <div style="margin: 14px 0; background: var(--bg-surface); border-radius: var(--radius-sm); padding: 14px; border: 1px solid var(--border-subtle);">
+                <div style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">עיקרי הדין למעשה:</div>
+                <ul style="margin: 0; padding-right: 20px; font-size: 13px; color: var(--text-primary); line-height: 1.5;">
+                  @foreach (var pt in topic.Points)
+                  {
+                    <li style="margin-bottom: 6px;">@pt</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Halachic Sources -->
+            @if (topic.Sources.Count > 0)
+            {
+              <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">מקורות:</span>
+                @foreach (var s in topic.Sources)
+                {
+                  <span style="font-size: 11.5px; background: rgba(30, 58, 95, 0.08); color: var(--primary); padding: 3px 8px; border-radius: var(--radius-pill); font-weight: 600;">
+                    @s
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (!FilteredTopics.Any())
+    {
+      <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+        לא נמצאו ערכים התואמים את החיפוש "@_searchQuery".
+      </div>
+    }
+  </div>
+</div>
+
+@code {
+  private string? _selectedCategory;
+  private string _searchQuery = string.Empty;
+  private readonly HashSet<string> _expandedTopicIds = new() { "ikaron" };
+
+  private IEnumerable<HalachaTopic> FilteredTopics
+  {
+    get
+    {
+      var q = HalachaHelpCatalog.Topics.AsEnumerable();
+      if (!string.IsNullOrWhiteSpace(_selectedCategory))
+      {
+        q = q.Where(t => t.Category == _selectedCategory);
+      }
+      if (!string.IsNullOrWhiteSpace(_searchQuery))
+      {
+        string sq = _searchQuery.Trim();
+        q = q.Where(t => 
+          t.Title.Contains(sq, StringComparison.OrdinalIgnoreCase) ||
+          t.Summary.Contains(sq, StringComparison.OrdinalIgnoreCase) ||
+          t.Body.Any(b => b.Contains(sq, StringComparison.OrdinalIgnoreCase)) ||
+          t.Sources.Any(s => s.Contains(sq, StringComparison.OrdinalIgnoreCase)));
+      }
+      return q;
+    }
+  }
+
+  private void ToggleTopic(string id)
+  {
+    if (_expandedTopicIds.Contains(id))
+      _expandedTopicIds.Remove(id);
+    else
+      _expandedTopicIds.Add(id);
+  }
+}

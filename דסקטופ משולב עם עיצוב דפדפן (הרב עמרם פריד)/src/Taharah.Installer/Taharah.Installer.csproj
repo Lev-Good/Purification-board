@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>..\Taharah.Desktop\icon.ico</ApplicationIcon>
+    <AssemblyName>התקנת_לוח_טהרה</AssemblyName>
+    <Product>אשף התקנת לוח טהרה</Product>
+    <Authors>Lev Good</Authors>
+    <Version>3.4.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\קבצי הפצה\גרסה ניידת\לוח_טהרה_גרסה_ניידת.zip">
+      <Link>Resources\payload.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Taharah.Desktop\icon.ico">
+      <Link>Resources\icon.ico</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

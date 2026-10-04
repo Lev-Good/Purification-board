@@ -1,0 +1,120 @@
+@namespace Taharah.Web.Shared.Components
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+@implements IDisposable
+
+<div class="navbar-container">
+  <nav class="navbar-island">
+    <div class="brand-combo">
+      <div class="brand-emblem">ט</div>
+      <div class="brand-titles">
+        <h1>לוח טהרה <span class="badge-rabbi">פסקי הגר״ע פריד</span></h1>
+        <div class="tagline">גרסה אחודה דסקטופ ודפדפן · מנוע הלכתי מאומת 100% · ללא ענן</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-switch-track">
+      <button class="nav-tab-btn @(State.ActiveView == "calendar" && !State.IsYearlyView ? "active" : "")" @onclick='() => SetCalendarTab()'>
+        <SvgIcon Name="calendar" Class="" />
+        לוח חודשי
+      </button>
+      <button class="nav-tab-btn @(State.ActiveView == "calendar" && State.IsYearlyView ? "active" : "")" @onclick='() => SetYearlyTab()'>
+        <SvgIcon Name="calendar-year" Class="" />
+        לוח שנתי
+      </button>
+      <button class="nav-tab-btn @(State.ActiveView == "summary" ? "active" : "")" @onclick='() => SetTab("summary")'>
+        <SvgIcon Name="chart" Class="" />
+        ריכוז וסתות
+      </button>
+      <button class="nav-tab-btn @(State.ActiveView == "insights" ? "active" : "")" @onclick='() => SetTab("insights")'>
+        <SvgIcon Name="sparkle" Class="" />
+        תובנות מחזור
+      </button>
+      <button class="nav-tab-btn @(State.ActiveView == "guide" ? "active" : "")" @onclick='() => SetTab("guide")'>
+        <SvgIcon Name="book" Class="" />
+        מדריך הלכתי
+      </button>
+    </div>
+
+    <!-- Action Tools -->
+    <div class="navbar-actions">
+      <!-- Zoom Controls Cluster -->
+      <div class="zoom-cluster-track" title="זום / גודל תצוגה">
+        <button class="zoom-btn" title="הקטן תצוגה (-)" @onclick="State.ZoomOut">
+          <SvgIcon Name="zoom-out" Style="width: 14px; height: 14px;" />
+        </button>
+        <button class="zoom-reset-btn" title="איפוס גודל (100%)" @onclick="State.ResetZoom">
+          @((int)(State.ZoomLevel * 100))%
+        </button>
+        <button class="zoom-btn" title="הגדל תצוגה (+)" @onclick="State.ZoomIn">
+          <SvgIcon Name="zoom-in" Style="width: 14px; height: 14px;" />
+        </button>
+      </div>
+
+      <!-- Settings Button -->
+      <button class="action-circle-btn settings-btn" title="הגדרות מערכת והלכה" @onclick='() => State.OpenSettings("halacha")'>
+        <SvgIcon Name="settings" />
+      </button>
+
+      <!-- About / Guide Button -->
+      <button class="action-circle-btn" title="אודות והוראות שימוש" @onclick="State.OpenAbout">
+        <SvgIcon Name="info" />
+      </button>
+
+      <!-- Theme Toggle -->
+      <button class="action-circle-btn" title="החלף מצב יום / לילה" @onclick="State.ToggleThemeAsync">
+        <SvgIcon Name="@(State.IsDarkTheme ? "sun" : "moon")" />
+      </button>
+
+      <!-- Clean Print -->
+      <button class="action-circle-btn" title="הדפסה נקייה" onclick="window.taharahInterop.printPage()">
+        <SvgIcon Name="print" />
+      </button>
+
+      <!-- Quick PIN Lock -->
+      <button class="action-circle-btn" title="נעילה מיידית ב-PIN" @onclick="State.LockApp">
+        <SvgIcon Name="lock" />
+      </button>
+    </div>
+  </nav>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= OnStateChanged;
+    }
+
+    private void SetTab(string tab)
+    {
+        State.ActiveView = tab;
+    }
+
+    private void SetCalendarTab()
+    {
+        State.ActiveView = "calendar";
+        if (State.IsYearlyView)
+        {
+            State.ToggleYearlyView();
+        }
+    }
+
+    private void SetYearlyTab()
+    {
+        State.ActiveView = "calendar";
+        if (!State.IsYearlyView)
+        {
+            State.ToggleYearlyView();
+        }
+    }
+}

@@ -1,0 +1,49 @@
+@namespace Taharah.Web.Shared.Components
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+@implements IDisposable
+
+<div class="calendar-main-card">
+  <div class="calendar-weekdays-strip">
+    <div>יום ראשון</div>
+    <div>יום שני</div>
+    <div>יום שלישי</div>
+    <div>יום רביעי</div>
+    <div>יום חמישי</div>
+    <div>יום שישי</div>
+    <div class="shabbat-label">שבת קודש</div>
+  </div>
+
+  <div class="calendar-cards-grid">
+    @if (State.DaysGrid != null && State.DaysGrid.Count > 0)
+    {
+      @foreach (var cell in State.DaysGrid)
+      {
+        <DayCellCard Cell="@cell" />
+      }
+    }
+    else
+    {
+      <div style="grid-column: span 7; text-align: center; padding: 48px 16px; color: var(--text-muted); font-size: 14px;">
+        טוען את נתוני הלוח...
+      </div>
+    }
+  </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= OnStateChanged;
+    }
+}
+

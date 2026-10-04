@@ -1,0 +1,42 @@
+@namespace Taharah.Web.Shared.Components
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+
+<div class="day-cell-card @(Cell.IsSelected ? "is-selected-day" : "") @(Cell.IsToday ? "is-today-day" : "") @(!Cell.IsCurrentMonth ? "outside-month" : "")"
+     @onclick="() => State.SelectDay(Cell)">
+  <div class="cell-header-flex">
+    <div class="dates-cluster">
+      <span class="heb-num">@Cell.HebDayGematriya</span>
+      <span class="greg-num">(@Cell.GregDay)</span>
+    </div>
+    @if (!string.IsNullOrEmpty(Cell.SunsetTime))
+    {
+      <span class="sunset-spec">שק׳ @Cell.SunsetTime</span>
+    }
+  </div>
+
+  <div class="cell-sections">
+    <!-- Night layer (עונת לילה שקודמת ליום) -->
+    <div class="halachic-band night-band" title="עונת הלילה">
+      <SvgIcon Name="moon" Style="width: 10px; height: 10px; opacity: 0.65;" />
+      @foreach (var badge in Cell.NightBadges)
+      {
+        <span class="badge-pill @badge.Category" title="@badge.Tooltip">@badge.Text</span>
+      }
+    </div>
+
+    <!-- Day layer (עונת יום) -->
+    <div class="halachic-band" title="עונת היום">
+      <SvgIcon Name="sun" Style="width: 10px; height: 10px; opacity: 0.65;" />
+      @foreach (var badge in Cell.DayBadges)
+      {
+        <span class="badge-pill @badge.Category" title="@badge.Tooltip">@badge.Text</span>
+      }
+    </div>
+  </div>
+
+  <div class="cell-caption-text">@Cell.StatusText</div>
+</div>
+
+@code {
+    [Parameter] public Taharah.Web.Shared.Models.DayCellModel Cell { get; set; } = null!;
+}

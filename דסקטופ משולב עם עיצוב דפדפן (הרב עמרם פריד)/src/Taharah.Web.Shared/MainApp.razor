@@ -1,0 +1,95 @@
+@namespace Taharah.Web.Shared
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="app-shell @(State.IsDarkTheme ? "theme-dark" : "theme-light")" dir="rtl">
+  <!-- Top Floating Navbar -->
+  <Taharah.Web.Shared.Components.Navbar />
+
+  <!-- Main View Container with Zoom Scaling -->
+  <main class="main-content" style="@(State.ZoomLevel != 1.0 ? $"zoom: {State.ZoomLevel.ToString(System.Globalization.CultureInfo.InvariantCulture)};" : "")">
+    @if (State.ActiveView == "calendar")
+    {
+      <Taharah.Web.Shared.Components.MonthBar />
+      <Taharah.Web.Shared.Components.HeroDashboard />
+      <Taharah.Web.Shared.Components.DayStateAlerts />
+
+      @if (State.IsYearlyView)
+      {
+        <Taharah.Web.Shared.Components.YearlyCalendarView />
+      }
+      else
+      {
+        <Taharah.Web.Shared.Components.CalendarGrid />
+      }
+    }
+    else if (State.ActiveView == "summary")
+    {
+      <Taharah.Web.Shared.Components.VesetSummaryView />
+    }
+    else if (State.ActiveView == "insights")
+    {
+      <Taharah.Web.Shared.Components.InsightsView />
+    }
+    else if (State.ActiveView == "guide")
+    {
+      <Taharah.Web.Shared.Components.HalachaGuideView />
+    }
+  </main>
+
+  <!-- Slide-in Halachic Day Drawer -->
+  <Taharah.Web.Shared.Components.DayDrawer />
+
+  <!-- High-Privacy PIN Lock Modal -->
+  <Taharah.Web.Shared.Components.PinLockModal />
+
+  <!-- Comprehensive Settings Modal -->
+  <Taharah.Web.Shared.Components.SettingsModal />
+
+  <!-- About and User Guide Modal -->
+  <Taharah.Web.Shared.Components.AboutModal />
+</div>
+
+<style>
+  .app-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    transition: background-color var(--duration-fast) var(--ease-spring),
+                color var(--duration-fast) var(--ease-spring);
+  }
+  .main-content {
+    flex: 1;
+    max-width: 1320px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px 60px 20px;
+    box-sizing: border-box;
+  }
+  @@media (max-width: 768px) {
+    .main-content {
+      padding: 16px 12px 40px 12px;
+    }
+  }
+</style>
+
+@code {
+  protected override async Task OnInitializedAsync()
+  {
+    State.OnChange += OnStateChanged;
+    await State.InitializeAsync();
+  }
+
+  private void OnStateChanged()
+  {
+    InvokeAsync(StateHasChanged);
+  }
+
+  public void Dispose()
+  {
+    State.OnChange -= OnStateChanged;
+  }
+}

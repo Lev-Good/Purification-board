@@ -4,8 +4,23 @@
 **/package-lock.json
 **/bin/
 **/obj/
+**/קבצי הפצה/
+**/temp_releases/
+**/*.zip
+**/*.exe
+**/*.dll
+**/*.pdb
+**/*.deps.json
+**/*.runtimeconfig.json
+**/*.cache.json
+**/*.styles.css
+**/*.staticwebassets.*
+**/.system_generated/
+**/.gemini/
+**/.claude/
 **/__pycache__/
-*.log
+thread-*.md
+**/*.log
 .DS_Store
 
 # סודות, מפתחות והגדרות פרטיות

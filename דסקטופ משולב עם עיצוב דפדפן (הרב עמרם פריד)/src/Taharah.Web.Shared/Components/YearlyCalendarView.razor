@@ -1,0 +1,128 @@
+@namespace Taharah.Web.Shared.Components
+@using Taharah.Core.Calendar
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+@implements IDisposable
+
+<div class="yearly-view-wrap">
+  <!-- Yearly View Header -->
+  <div class="yearly-header-bar">
+    <div class="yearly-nav-cluster">
+      <button class="round-arrow" title="שנה קודמת" @onclick="() => State.SetYearlyViewYear(-1)">
+        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+      <div class="yearly-title-text">
+        <span class="heb-year-name">שנת @HDate.ToGematriyaYear(State.YearlyViewYear)</span>
+        <span class="year-sub-info">לוח שנתי עברי מלא · @(HDate.IsLeap(State.YearlyViewYear) ? "שנה מעוברת (י״ג חודשים)" : "שנה פשוטה (י״ב חודשים)")</span>
+      </div>
+      <button class="round-arrow" title="שנה הבאה" @onclick="() => State.SetYearlyViewYear(1)">
+        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+    </div>
+
+    <div class="yearly-action-btns">
+      <button class="today-chip" @onclick="State.ToggleYearlyView">
+        <SvgIcon Name="calendar" Style="width: 14px; height: 14px; margin-left: 6px;" />
+        חזרה לתצוגה חודשית
+      </button>
+    </div>
+  </div>
+
+  <!-- 12 / 13 Months Grid -->
+  <div class="yearly-months-grid">
+    @{
+      int monthsCount = HDate.MonthsInYear(State.YearlyViewYear);
+      for (int m = 1; m <= monthsCount; m++)
+      {
+        int monthNum = m;
+        var firstDay = new HDate(1, monthNum, State.YearlyViewYear);
+        int daysInMonth = firstDay.DaysInMonth();
+        int startDow = firstDay.DayOfWeek;
+        string monthName = firstDay.GetMonthName();
+        bool isCurrentActiveMonth = (State.CurrentMonth.Month == monthNum && State.CurrentMonth.Year == State.YearlyViewYear);
+
+        <div class="yearly-month-card @(isCurrentActiveMonth ? "active-month" : "")">
+          <div class="yearly-month-card-header">
+            <span class="yearly-month-name">@monthName</span>
+            <button class="view-month-link" @onclick="() => GoToMonth(monthNum)">צפה בחודש ←</button>
+          </div>
+
+          <!-- Weekday Headers -->
+          <div class="mini-weekdays-row">
+            <span>א</span><span>ב</span><span>ג</span><span>ד</span><span>ה</span><span>ו</span><span>ש</span>
+          </div>
+
+          <!-- Days Grid -->
+          <div class="mini-days-grid">
+            @for (int p = 0; p < startDow; p++)
+            {
+              <div class="mini-day-cell pad"></div>
+            }
+
+            @for (int d = 1; d <= daysInMonth; d++)
+            {
+              int dayNum = d;
+              var curHDate = new HDate(dayNum, monthNum, State.YearlyViewYear);
+              int abs = curHDate.Abs();
+              bool hasEvent = State.AllEvents.TryGetValue(abs, out var entry);
+              bool hasPrishah = State.EngineResult != null && State.EngineResult.Prishot.ContainsKey(abs);
+              bool isNekiyim = State.EngineResult != null && State.EngineResult.Nekiim.Contains(abs);
+              bool isTevilah = State.EngineResult != null && State.EngineResult.Tevilot.Contains(abs);
+
+              string dotClass = "";
+              if (hasEvent)
+              {
+                if (entry!.Type == "reiyah") dotClass = "dot-reiyah";
+                else if (entry.Type == "hefsek") dotClass = "dot-hefsek";
+                else if (entry.Type == "tevilah") dotClass = "dot-tevilah";
+                else dotClass = "dot-entry";
+              }
+              else if (isTevilah) dotClass = "dot-tevilah";
+              else if (hasPrishah) dotClass = "dot-prishah";
+              else if (isNekiyim) dotClass = "dot-nekiyim";
+
+              <div class="mini-day-cell @(string.IsNullOrEmpty(dotClass) ? "" : "has-dot") @dotClass" 
+                   title="@HDate.ToGematriya(dayNum) @monthName"
+                   @onclick="() => GoToDay(monthNum, dayNum)">
+                <span>@dayNum</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= OnStateChanged;
+    }
+
+    private async Task GoToMonth(int month)
+    {
+        await State.NavigateToHebrewMonthAsync(month, State.YearlyViewYear);
+    }
+
+    private async Task GoToDay(int month, int day)
+    {
+        var hd = new HDate(day, month, State.YearlyViewYear);
+        int abs = hd.Abs();
+        await State.NavigateToHebrewMonthAsync(month, State.YearlyViewYear);
+        var targetCell = State.DaysGrid.FirstOrDefault(c => c.Abs == abs);
+        if (targetCell != null)
+        {
+            State.SelectDay(targetCell);
+        }
+    }
+}

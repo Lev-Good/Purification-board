@@ -1,0 +1,411 @@
+@namespace Taharah.Web.Shared.Components
+@using Taharah.Core.Enums
+@using static Taharah.Core.Algorithms.VesetEngine
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+
+<div class="guided-form-accordion @(State.IsGuidedFormOpen ? "open" : "")">
+  <div class="form-header-bar">
+    <div class="form-title-badge">
+      <SvgIcon Name="@GetIconName()" Style="width: 17px; height: 17px;" />
+      <span>@GetTitle()</span>
+    </div>
+    <button class="close-btn-circle" title="ביטול" @onclick="State.CloseGuidedForm">✕</button>
+  </div>
+
+  <div class="form-scrollable-inner">
+    <!-- עונה הלכתית -->
+    <div class="field-section">
+      <label class="field-label">עונה הלכתית:</label>
+      <div class="choice-pills-row">
+        <button class="choice-chip-btn @(_selectedOna == OnaType.Day ? "selected" : "")" @onclick="() => _selectedOna = OnaType.Day">
+          <SvgIcon Name="sun" Style="width: 14px; height: 14px;" />
+          עונת יום (מנץ עד שקיעה)
+        </button>
+        <button class="choice-chip-btn @(_selectedOna == OnaType.Night ? "selected" : "")" @onclick="() => _selectedOna = OnaType.Night">
+          <SvgIcon Name="moon" Style="width: 14px; height: 14px;" />
+          עונת לילה (משקיעה עד נץ)
+        </button>
+      </div>
+    </div>
+
+    <!-- ראייה חדשה -->
+    @if (State.GuidedFormAction is "sighting" or "reiyah")
+    {
+      <div class="field-section">
+        <label class="field-label">גורם הראייה:</label>
+        <div class="radio-options-column">
+          <label class="radio-option-item">
+            <input type="radio" name="reiyahKind" value="regular" checked="@(_reiyahKind == "regular")" @onchange='() => _reiyahKind = "regular"' />
+            <span>רגילה — ללא גורם חיצוני</span>
+          </label>
+          <label class="radio-option-item">
+            <input type="radio" name="reiyahKind" value="ones" checked="@(_reiyahKind == "ones")" @onchange='() => _reiyahKind = "ones"' />
+            <span>מחמת אונס — אינה נספרת לקביעת וסת</span>
+          </label>
+          <label class="radio-option-item">
+            <input type="radio" name="reiyahKind" value="sharp" checked="@(_reiyahKind == "sharp")" @onchange='() => _reiyahKind = "sharp"' />
+            <span>מחמת מאכלים חריפים — נספרת כמו וסת הגוף</span>
+          </label>
+          <label class="radio-option-item">
+            <input type="radio" name="reiyahKind" value="pills" checked="@(_reiyahKind == "pills")" @onchange='() => _reiyahKind = "pills"' />
+            <span>מחמת כדורים</span>
+          </label>
+          <label class="radio-option-item">
+            <input type="radio" name="reiyahKind" value="kefitza" checked="@(_reiyahKind == "kefitza")" @onchange='() => _reiyahKind = "kefitza"' />
+            <span>מחמת קפיצה — וסת הקפיצות (לעונה בינונית ומסלול נפרד)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <div class="checkbox-option-item">
+          <input type="checkbox" id="safekOnaCheck" @bind="_isSafekOna" />
+          <label for="safekOnaCheck">ספק עונה — איני בטוחה אם הראייה הייתה בעונה זו או בקודמתה</label>
+        </div>
+        <div class="checkbox-option-item">
+          <input type="checkbox" id="continuesPrevCheck" @bind="_continuesPrevious" />
+          <label for="continuesPrevCheck">המשך ראייה קודמת (משיכת ראייה — אינו קובע הפלגה)</label>
+        </div>
+        <div class="checkbox-option-item">
+          <input type="checkbox" id="multiDayCheck" @bind="_hasMultiDayBleeding" />
+          <label for="multiDayCheck">הדימום נמשך יותר מיום אחד</label>
+        </div>
+
+        @if (_hasMultiDayBleeding)
+        {
+          <div class="form-field-inline" style="margin-top: 6px;">
+            <span>כמה ימים נמשך הדימום בסך הכל:</span>
+            <input type="number" min="1" max="14" @bind="_durationDays" style="width: 60px;" />
+          </div>
+        }
+      </div>
+
+      <!-- מיחוש גופני נלווה לראייה -->
+      <div class="field-section">
+        <label class="field-label">מיחוש גופני נלווה (וסת הגוף) — אופציונלי:</label>
+        <div class="symptoms-chips-grid">
+          @foreach (var s in _availableSigns)
+          {
+            bool isChecked = _selectedSigns.Contains(s.Key);
+            <button type="button" class="symptom-chip @(isChecked ? "checked" : "")" @onclick="() => ToggleSign(s.Key)">
+              @(isChecked ? "✓ " : "")@s.Value
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- הפסק טהרה -->
+    @if (State.GuidedFormAction is "hefsek")
+    {
+      <div class="field-section">
+        <div class="checkbox-option-item">
+          <input type="checkbox" id="mochDachukCheck" @bind="_isMochDachuk" />
+          <label for="mochDachukCheck">בדיקת מוך דחוק (הונח מעת השקיעה עד צאת הכוכבים)</label>
+        </div>
+      </div>
+    }
+
+    <!-- בדיקת שבעה נקיים -->
+    @if (State.GuidedFormAction is "check")
+    {
+      <div class="field-section">
+        <label class="field-label">אופן ועומק הבדיקה:</label>
+        <div class="choice-pills-row">
+          <button class="choice-chip-btn @(_checkDepth == "deep" ? "selected" : "")" @onclick='() => _checkDepth = "deep"'>
+            בדיקה כדין (בעומק ובחו״ס — מבררת ועוקרת)
+          </button>
+          <button class="choice-chip-btn @(_checkDepth == "wipe" ? "selected" : "")" @onclick='() => _checkDepth = "wipe"'>
+            קינוח בלבד (אינו עוקר)
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- סימוני יום וכתמים -->
+    @if (State.GuidedFormAction is "mark")
+    {
+      <div class="field-section">
+        <label class="field-label">סימוני יום (ניתן לסמן כמה בו-זמנית):</label>
+        <div class="checkboxes-column">
+          <div class="checkbox-option-item">
+            <input type="checkbox" id="markStainCheck" @bind="_markStain" />
+            <label for="markStainCheck">מצאתי כתם (בירור כתם על בגד או מצעים)</label>
+          </div>
+          <div class="checkbox-option-item">
+            <input type="checkbox" id="markFrightCheck" @bind="_markFright" />
+            <label for="markFrightCheck">פחד פתאום (ביעתותא — מחייב שאלת חכם או בדיקה)</label>
+          </div>
+          <div class="checkbox-option-item">
+            <input type="checkbox" id="markAnxietyCheck" @bind="_markAnxiety" />
+            <label for="markAnxietyCheck">חרדה מתמשכת (מסלקת דמים)</label>
+          </div>
+          <div class="checkbox-option-item">
+            <input type="checkbox" id="markTravelCheck" @bind="_markTravel" />
+            <label for="markTravelCheck">יציאה לדרך / בא מן הדרך</label>
+          </div>
+          <div class="checkbox-option-item">
+            <input type="checkbox" id="markChuppahCheck" @bind="_markChuppah" />
+            <label for="markChuppahCheck">ליל החופה / בעילת מצוה</label>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- מיחוש גופני בלא ראייה -->
+    @if (State.GuidedFormAction is "sign")
+    {
+      <div class="field-section">
+        <div class="halacha-note-box">
+          המיחוש עצמו הוא האוסר — ״משעה שבאו המיחושים אסורה כדין שעת הוסת״. שלש פעמים לאותו מיחוש קובעות וסת הגוף.
+        </div>
+
+        <label class="field-label" style="margin-top: 10px;">סוג המיחוש שהורגש:</label>
+        <div class="symptoms-chips-grid">
+          @foreach (var s in _availableSigns)
+          {
+            bool isChecked = _selectedSigns.Contains(s.Key);
+            <button type="button" class="symptom-chip @(isChecked ? "checked" : "")" @onclick="() => ToggleSign(s.Key)">
+              @(isChecked ? "✓ " : "")@s.Value
+            </button>
+          }
+        </div>
+
+        <label class="field-label" style="margin-top: 12px;">רמת הוודאות שהוסת מגיע מיד:</label>
+        <div class="radio-options-column">
+          <label class="radio-option-item">
+            <input type="radio" name="signCertainty" value="certain" checked="@(_signCertainty == "certain")" @onchange='() => _signCertainty = "certain"' />
+            <span>בטוחה שהוסת בא מיד — אסורה עד שתבדוק (ברירת מחדל)</span>
+          </label>
+          <label class="radio-option-item">
+            <input type="radio" name="signCertainty" value="likely" checked="@(_signCertainty == "likely")" @onchange='() => _signCertainty = "likely"' />
+            <span>סביר שהוסת יבוא בין שעה ליממה — מותרת בינתיים, לבדוק בקרוב</span>
+          </label>
+          <label class="radio-option-item">
+            <input type="radio" name="signCertainty" value="vague" checked="@(_signCertainty == "vague")" @onchange='() => _signCertainty = "vague"' />
+            <span>מיחוש רחוק / מסופק — מותרת לאחר בדיקת בגד וקינוח</span>
+          </label>
+        </div>
+      </div>
+    }
+
+    <!-- טבילה במקווה -->
+    @if (State.GuidedFormAction is "tevilah" or "mikveh")
+    {
+      <div class="field-section">
+        <div class="halacha-note-box" style="border-right-color: var(--primary);">
+          טבילה כשרה במקווה טהרה בליל יום שמיני לאחר שבעה נקיים כדין.
+        </div>
+      </div>
+    }
+
+    <!-- הערות או פרטים נוספים -->
+    <div class="field-section">
+      <label class="field-label">הערות ופרטים נוספים:</label>
+      <textarea rows="2" class="form-textarea" placeholder="הוסיפו הערה חופשית אם יש..." @bind="_notes"></textarea>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="form-footer-bar">
+    <button class="hero-action-button" style="flex: 1; justify-content: center; padding: 10px;" @onclick="SubmitFormAsync">
+      @(State.SelectedDay?.SavedEntry != null ? "עדכן רישום והפעל חישוב" : "שמור והפעל מנוע הלכתי")
+    </button>
+    <button class="round-arrow" style="width: auto; padding: 0 16px;" @onclick="State.CloseGuidedForm">
+      ביטול
+    </button>
+  </div>
+</div>
+
+@code {
+    private OnaType _selectedOna = OnaType.Day;
+    private string _reiyahKind = "regular";
+    private bool _isSafekOna = false;
+    private bool _continuesPrevious = false;
+    private bool _hasMultiDayBleeding = false;
+    private int _durationDays = 3;
+    private bool _isMochDachuk = false;
+    private string _checkDepth = "deep";
+    private string _signCertainty = "certain";
+    private string _notes = string.Empty;
+
+    // Marks
+    private bool _markStain = false;
+    private bool _markFright = false;
+    private bool _markAnxiety = false;
+    private bool _markTravel = false;
+    private bool _markChuppah = false;
+
+    // Signs
+    private readonly HashSet<string> _selectedSigns = [];
+    private readonly Dictionary<string, string> _availableSigns = new()
+    {
+        ["yawn"] = "פיהוק",
+        ["sneeze"] = "עיטוש",
+        ["cramps"] = "כאבי בטן",
+        ["heaviness"] = "כובד ראש ואיברים",
+        ["chills"] = "צמרמורות",
+        ["blood"] = "שופעת דם טמא",
+        ["nausea"] = "בחילה או הקאה",
+        ["weakness"] = "חולשה",
+        ["facespots"] = "פצעים בפנים",
+        ["sharpfood"] = "מאכל חריף",
+        ["other"] = "מיחוש אחר"
+    };
+
+    protected override void OnParametersSet()
+    {
+        var entry = State.SelectedDay?.SavedEntry;
+        bool isMatchingEntry = entry != null && (
+            State.GuidedFormAction == entry.Type ||
+            (State.GuidedFormAction == "sighting" && entry.Type == "reiyah") ||
+            (State.GuidedFormAction == "reiyah" && entry.Type == "reiyah") ||
+            (State.GuidedFormAction == "mikveh" && entry.Type == "tevilah") ||
+            (State.GuidedFormAction == "tevilah" && entry.Type == "tevilah")
+        );
+
+        if (isMatchingEntry && entry != null)
+        {
+            _selectedOna = entry.Ona;
+            _notes = entry.Note ?? "";
+
+            if (entry.Type == "reiyah")
+            {
+                _reiyahKind = !string.IsNullOrEmpty(entry.Kind) ? entry.Kind : "regular";
+                _isSafekOna = entry.SafekOna;
+                _continuesPrevious = entry.ClosedFountain == true;
+                _hasMultiDayBleeding = (entry.DurationDays ?? 1) > 1;
+                _durationDays = (entry.DurationDays.HasValue && entry.DurationDays.Value > 0) ? entry.DurationDays.Value : 3;
+                _selectedSigns.Clear();
+                foreach (var s in entry.Signs) _selectedSigns.Add(s);
+            }
+            else if (entry.Type == "hefsek")
+            {
+                _isMochDachuk = entry.CheckParts.Contains("moch");
+            }
+            else if (entry.Type == "check")
+            {
+                _checkDepth = !string.IsNullOrEmpty(entry.Depth) ? entry.Depth : "deep";
+            }
+            else if (entry.Type == "mark")
+            {
+                _markStain = entry.Marks.Contains("stain");
+                _markFright = entry.Marks.Contains("fright");
+                _markAnxiety = entry.Marks.Contains("anxiety");
+                _markTravel = entry.Marks.Contains("travel");
+                _markChuppah = entry.Marks.Contains("chuppah");
+            }
+            else if (entry.Type == "sign")
+            {
+                _selectedSigns.Clear();
+                foreach (var s in entry.Signs) _selectedSigns.Add(s);
+                _signCertainty = !string.IsNullOrEmpty(entry.SignCertainty) ? entry.SignCertainty : "certain";
+            }
+        }
+        else
+        {
+            if (State.GuidedFormAction is "tevilah" or "mikveh")
+            {
+                _selectedOna = OnaType.Night;
+            }
+            else
+            {
+                _selectedOna = OnaType.Day;
+            }
+
+            _reiyahKind = "regular";
+            _isSafekOna = false;
+            _continuesPrevious = false;
+            _hasMultiDayBleeding = false;
+            _durationDays = 3;
+            _isMochDachuk = false;
+            _checkDepth = "deep";
+            _signCertainty = "certain";
+            _markStain = false;
+            _markFright = false;
+            _markAnxiety = false;
+            _markTravel = false;
+            _markChuppah = false;
+            _selectedSigns.Clear();
+            _notes = string.Empty;
+        }
+    }
+
+    private void ToggleSign(string key)
+    {
+        if (_selectedSigns.Contains(key)) _selectedSigns.Remove(key);
+        else _selectedSigns.Add(key);
+    }
+
+    private string GetTitle() => State.GuidedFormAction switch
+    {
+        "sighting" or "reiyah" => "הזנת תחילת מחזור (ראייה)",
+        "hefsek" => "הזנת הפסק טהרה",
+        "check" => "הזנת בדיקת נקיים",
+        "tevilah" or "mikveh" => "הזנת טבילה במקווה",
+        "mark" => "הזנת סימון / כתם",
+        "sign" => "הזנת מיחוש גופני",
+        _ => "הזנת נתונים"
+    };
+
+    private string GetIconName() => State.GuidedFormAction switch
+    {
+        "sighting" or "reiyah" => "cycle",
+        "hefsek" => "leaf",
+        "check" => "lens",
+        "tevilah" or "mikveh" => "waves",
+        "mark" => "mark",
+        "sign" => "sign",
+        _ => "calendar"
+    };
+
+    private async Task SubmitFormAsync()
+    {
+        string entryType = State.GuidedFormAction switch
+        {
+            "sighting" => "reiyah",
+            "mikveh" => "tevilah",
+            _ => State.GuidedFormAction
+        };
+
+        var entry = new CalendarDayEntry
+        {
+            Type = entryType,
+            Ona = _selectedOna,
+            Note = _notes
+        };
+
+        if (entryType == "reiyah")
+        {
+            entry.Kind = _reiyahKind;
+            entry.SafekOna = _isSafekOna;
+            entry.ClosedFountain = _continuesPrevious;
+            entry.DurationDays = _hasMultiDayBleeding ? _durationDays : 1;
+            entry.Signs = [.. _selectedSigns];
+        }
+        else if (entryType == "hefsek")
+        {
+            if (_isMochDachuk) entry.CheckParts.Add("moch");
+        }
+        else if (entryType == "check")
+        {
+            entry.Depth = _checkDepth;
+        }
+        else if (entryType == "mark")
+        {
+            if (_markStain) entry.Marks.Add("stain");
+            if (_markFright) entry.Marks.Add("fright");
+            if (_markAnxiety) entry.Marks.Add("anxiety");
+            if (_markTravel) entry.Marks.Add("travel");
+            if (_markChuppah) entry.Marks.Add("chuppah");
+        }
+        else if (entryType == "sign")
+        {
+            entry.StandaloneSign = true;
+            entry.Signs = [.. _selectedSigns];
+            entry.SignCertainty = _signCertainty;
+        }
+
+        await State.SaveDayEventAsync(entry);
+    }
+}

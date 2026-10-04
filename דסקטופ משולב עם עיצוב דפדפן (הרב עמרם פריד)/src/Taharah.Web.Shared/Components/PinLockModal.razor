@@ -1,0 +1,268 @@
+@namespace Taharah.Web.Shared.Components
+@inject Taharah.Web.Shared.Services.CalendarStateService State
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (State.IsLocked)
+{
+  <div class="pin-modal-overlay">
+    <div class="pin-modal-card @(_hasError ? "shake" : "")">
+      <div class="pin-lock-icon">
+        <SvgIcon Name="lock" Size="32" />
+      </div>
+
+      <h3 style="font-size: 20px; font-weight: 800; margin: 0 0 6px 0; color: var(--text-primary);">
+        נעילת אבטחה ופרטיות
+      </h3>
+      <p style="font-size: 13.5px; color: var(--text-muted); margin: 0 0 24px 0;">
+        @(_isSettingMode ? "הזיני קוד PIN חדש בן 4 ספרות" : "הזיני קוד PIN לשחרור נעילת הלוח")
+      </p>
+
+      <!-- Pin Dots -->
+      <div class="pin-dots-container">
+        @for (int i = 0; i < 4; i++)
+        {
+          bool isFilled = i < _enteredPin.Length;
+          <div class="pin-dot @(isFilled ? "filled" : "")"></div>
+        }
+      </div>
+
+      @if (!string.IsNullOrEmpty(_errorMessage))
+      {
+        <div style="color: var(--accent-cycle); font-size: 12.5px; font-weight: 600; margin-bottom: 16px;">
+          @_errorMessage
+        </div>
+      }
+
+      <!-- Number Pad -->
+      <div class="pin-numpad">
+        @for (int digit = 1; digit <= 9; digit++)
+        {
+          int d = digit;
+          <button type="button" class="pin-btn" @onclick="() => AppendDigit(d)">
+            @d
+          </button>
+        }
+        <button type="button" class="pin-btn pin-btn-action" @onclick="Clear">
+          נקה
+        </button>
+        <button type="button" class="pin-btn" @onclick="() => AppendDigit(0)">
+          0
+        </button>
+        <button type="button" class="pin-btn pin-btn-action" @onclick="Backspace">
+          ⌫
+        </button>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: center; gap: 16px;">
+        @if (!_hasConfiguredPin && !_isSettingMode)
+        {
+          <button type="button" class="btn btn-secondary" style="font-size: 12.5px;" @onclick="BypassFirstTime">
+            כניסה ללא קוד (ראשונית)
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<style>
+  .pin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.25s ease-out;
+  }
+  .pin-modal-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 360px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .pin-lock-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: rgba(30, 58, 95, 0.08);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pin-dots-container {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .pin-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border-subtle);
+    background: transparent;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .pin-dot.filled {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.15);
+  }
+  .pin-numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 260px;
+    margin: 0 auto;
+  }
+  .pin-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-surface-subtle);
+    color: var(--text-primary);
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: all 0.15s ease;
+  }
+  .pin-btn:hover {
+    background: rgba(30, 58, 95, 0.08);
+    transform: scale(1.05);
+  }
+  .pin-btn:active {
+    transform: scale(0.95);
+  }
+  .pin-btn-action {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  @@keyframes shakeAnim {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  .shake {
+    animation: shakeAnim 0.4s ease;
+  }
+</style>
+
+@code {
+  private string _enteredPin = string.Empty;
+  private string? _errorMessage;
+  private bool _hasError;
+  private bool _hasConfiguredPin;
+  private bool _isSettingMode;
+
+  protected override async Task OnInitializedAsync()
+  {
+    State.OnChange += OnStateChanged;
+    _hasConfiguredPin = State.HasPin;
+    if (!_hasConfiguredPin)
+    {
+      try
+      {
+        var hash = await JS.InvokeAsync<string?>("taharahInterop.getPinHash");
+        _hasConfiguredPin = !string.IsNullOrEmpty(hash);
+      }
+      catch { }
+    }
+  }
+
+  private void OnStateChanged()
+  {
+    _hasConfiguredPin = State.HasPin;
+    InvokeAsync(StateHasChanged);
+  }
+
+  public void Dispose()
+  {
+    State.OnChange -= OnStateChanged;
+  }
+
+  private async Task AppendDigit(int digit)
+  {
+    if (_enteredPin.Length >= 4) return;
+    _enteredPin += digit.ToString();
+    _errorMessage = null;
+    _hasError = false;
+
+    if (_enteredPin.Length == 4)
+    {
+      await VerifyOrSetAsync();
+    }
+  }
+
+  private void Backspace()
+  {
+    if (_enteredPin.Length > 0)
+    {
+      _enteredPin = _enteredPin[..^1];
+      _errorMessage = null;
+      _hasError = false;
+    }
+  }
+
+  private void Clear()
+  {
+    _enteredPin = string.Empty;
+    _errorMessage = null;
+    _hasError = false;
+  }
+
+  private async Task VerifyOrSetAsync()
+  {
+    if (_isSettingMode)
+    {
+      await State.SetPinAsync(_enteredPin);
+      _hasConfiguredPin = true;
+      _isSettingMode = false;
+      _enteredPin = string.Empty;
+      State.SetLockState(false);
+      return;
+    }
+
+    if (!_hasConfiguredPin && !State.HasPin)
+    {
+      State.SetLockState(false);
+      _enteredPin = string.Empty;
+      return;
+    }
+
+    bool valid = await State.UnlockWithPinAsync(_enteredPin);
+    if (valid)
+    {
+      _enteredPin = string.Empty;
+      _errorMessage = null;
+    }
+    else
+    {
+      _hasError = true;
+      _errorMessage = "קוד PIN שגוי. נסי שוב.";
+      _enteredPin = string.Empty;
+    }
+  }
+
+  private void BypassFirstTime()
+  {
+    State.SetLockState(false);
+  }
+}

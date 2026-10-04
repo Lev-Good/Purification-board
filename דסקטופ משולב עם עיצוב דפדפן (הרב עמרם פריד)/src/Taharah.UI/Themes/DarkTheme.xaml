@@ -1,0 +1,95 @@
+<!-- ============================================================================
+     ערכת מצב לילה — סט הטוקנים הסמנטיים של המערכת (2026-09-28)
+     ============================================================================
+     אותם מפתחות בדיוק כמו LightTheme.xaml, בערכי לילה. הכלל שמכתיב את
+     הערכים: טקסט על רקע כהה חייב להגיע לניגודיות קריאה (AA ומעלה), ולכן
+     צבעי המצב כאן הם בהירים-מרוככים ולא אותם גוונים כמו במצב היום.
+     ============================================================================ -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ==================== משטחים וטקסט ==================== -->
+    <SolidColorBrush x:Key="WindowBgBrush" Color="#0D1117"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#161B22"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#1B222C"/>
+    <SolidColorBrush x:Key="TextMainBrush" Color="#F0F3F7"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C9D1D9"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#9AA4B0"/>
+    <SolidColorBrush x:Key="AppBorderBrush" Color="#232C38"/>
+    <SolidColorBrush x:Key="BorderLightBrush" Color="#37414F"/>
+    <SolidColorBrush x:Key="DividerBrush" Color="#202832"/>
+    <SolidColorBrush x:Key="InputBgBrush" Color="#10151C"/>
+
+    <!-- ==================== מיתוג ==================== -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#818CF8"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#A5B4FC"/>
+    <SolidColorBrush x:Key="PrimarySubtleBrush" Color="#232752"/>
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#10131A"/>
+
+    <!-- ==================== אינטראקציה ==================== -->
+    <SolidColorBrush x:Key="HoverTintBrush" Color="#1E2732"/>
+    <SolidColorBrush x:Key="SelectedTintBrush" Color="#232752"/>
+    <SolidColorBrush x:Key="ScrimBrush" Color="#99000000"/>
+
+    <!-- ==================== סמנטי כללי ==================== -->
+    <SolidColorBrush x:Key="DangerFgBrush" Color="#FCA5A5"/>
+    <SolidColorBrush x:Key="DangerBgBrush" Color="#3A1417"/>
+    <SolidColorBrush x:Key="DangerBorderBrush" Color="#6B2426"/>
+    <SolidColorBrush x:Key="SuccessFgBrush" Color="#6EE7B7"/>
+    <SolidColorBrush x:Key="SuccessBgBrush" Color="#0E2E22"/>
+    <SolidColorBrush x:Key="SuccessBorderBrush" Color="#1E5240"/>
+    <SolidColorBrush x:Key="WarningFgBrush" Color="#FCD34D"/>
+    <SolidColorBrush x:Key="WarningStrongFgBrush" Color="#FDE68A"/>
+    <SolidColorBrush x:Key="WarningBgBrush" Color="#33280A"/>
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="#5C4A12"/>
+    <SolidColorBrush x:Key="InfoFgBrush" Color="#7DD3FC"/>
+    <SolidColorBrush x:Key="InfoBgBrush" Color="#0C2839"/>
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="#1B4A66"/>
+
+    <!-- ==================== משבצת יום בלוח ==================== -->
+    <SolidColorBrush x:Key="DayTileBgBrush" Color="#161B22"/>
+    <SolidColorBrush x:Key="DayTileBorderBrush" Color="#232C38"/>
+    <SolidColorBrush x:Key="DayTileHoverBrush" Color="#1E2732"/>
+    <SolidColorBrush x:Key="MutedDayBgBrush" Color="#12171E"/>
+    <SolidColorBrush x:Key="TodayRingBrush" Color="#60A5FA"/>
+    <SolidColorBrush x:Key="SelectedRingBrush" Color="#8B94F5"/>
+
+    <!-- ==================== תגיות לפי סוג ==================== -->
+    <!-- ראייה (דם) -->
+    <SolidColorBrush x:Key="SightingBgBrush" Color="#4A1717"/>
+    <SolidColorBrush x:Key="SightingFgBrush" Color="#FCA5A5"/>
+    <!-- עונת פרישה - יום -->
+    <SolidColorBrush x:Key="PrishaDayBgBrush" Color="#43310A"/>
+    <SolidColorBrush x:Key="PrishaDayFgBrush" Color="#FCD34D"/>
+    <!-- עונת פרישה - לילה -->
+    <SolidColorBrush x:Key="PrishaNightBgBrush" Color="#232752"/>
+    <SolidColorBrush x:Key="PrishaNightFgBrush" Color="#B4BDFB"/>
+    <!-- עונת אור זרוע -->
+    <SolidColorBrush x:Key="OrZaruaBgBrush" Color="#232C38"/>
+    <SolidColorBrush x:Key="OrZaruaFgBrush" Color="#C9D1D9"/>
+    <!-- הפסק טהרה -->
+    <SolidColorBrush x:Key="HefsekBgBrush" Color="#10321F"/>
+    <SolidColorBrush x:Key="HefsekFgBrush" Color="#86EFAC"/>
+    <!-- שבעה נקיים -->
+    <SolidColorBrush x:Key="NekiimBgBrush" Color="#0B2C40"/>
+    <SolidColorBrush x:Key="NekiimFgBrush" Color="#7DD3FC"/>
+    <!-- טבילה -->
+    <SolidColorBrush x:Key="MikvehBgBrush" Color="#0B2F2B"/>
+    <SolidColorBrush x:Key="MikvehFgBrush" Color="#5EEAD4"/>
+    <!-- בדיקה -->
+    <SolidColorBrush x:Key="CheckBgBrush" Color="#1C242E"/>
+    <SolidColorBrush x:Key="CheckFgBrush" Color="#B9C3CF"/>
+    <!-- סימון יום / כתם -->
+    <SolidColorBrush x:Key="MarkBgBrush" Color="#3B3108"/>
+    <SolidColorBrush x:Key="MarkFgBrush" Color="#FDE68A"/>
+    <!-- חלון פוריות -->
+    <SolidColorBrush x:Key="FertilityBgBrush" Color="#0B2B29"/>
+    <SolidColorBrush x:Key="FertilityFgBrush" Color="#5EEAD4"/>
+    <!-- יום ביוץ משוער -->
+    <SolidColorBrush x:Key="OvulationBgBrush" Color="#114E48"/>
+    <SolidColorBrush x:Key="OvulationFgBrush" Color="#99F6E4"/>
+    <!-- נטרלי -->
+    <SolidColorBrush x:Key="NeutralBadgeBgBrush" Color="#1C242E"/>
+    <SolidColorBrush x:Key="NeutralBadgeFgBrush" Color="#B9C3CF"/>
+
+</ResourceDictionary>
