@@ -68,7 +68,7 @@ dotnet run --project src/Taharah.UI   # הפעלת ממשק הדסקטופ
 2. **🌍 מאגר המהדורות הציבורי (ציבורי - Public):**  
    [`Lev-Good/Purification-board-releases`](https://github.com/Lev-Good/Purification-board-releases)  
    מאגר ציבורי ללא קוד מקור, המשמש להפצת קובצי ההתקנה והגרסאות הניידות עבור משתמשי קצה.  
-   - 📦 **[להורדת הגרסה העדכנית ביותר (v3.2.0)](https://github.com/Lev-Good/Purification-board-releases/releases/tag/v3.2.0)**
+   - 📦 **[להורדת הגרסה העדכנית ביותר (v3.4.1)](https://github.com/Lev-Good/Purification-board-releases/releases/tag/v3.4.1)**
 
 ---
 
