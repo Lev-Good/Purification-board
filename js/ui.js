@@ -9,7 +9,7 @@ import { DAY_MARKS, DAY_MARK_RULES, marksOf } from './dayMarks.js';
 import { ICONS } from './icons.js';
 import { getSavedLocation } from './storage.js';
 import { locationById, halachicTodayAbs, elapsedOnotOf } from './zmanim.js';
-import { FERTILITY_DISCLAIMER } from './fertility.js';
+import { FERTILITY_DISCLAIMER } from './cycleHelper.js';
 import { renderTrendGraphSVG } from './insights.js';
 
 /**
