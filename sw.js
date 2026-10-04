@@ -12,7 +12,7 @@
  * Bump CACHE_NAME on every deploy that changes any precached file, so old
  * clients pick up the new version instead of being stuck on a stale cache.
  */
-const CACHE_NAME = 'taharah-shell-v2';
+const CACHE_NAME = 'taharah-shell-v3';
 
 const APP_SHELL = [
     './',
@@ -24,7 +24,6 @@ const APP_SHELL = [
     './js/app.js',
     './js/calculations.js',
     './js/chazaka.js',
-    './js/cycleHelper.js',
     './js/dayMarks.js',
     './js/googleBackup.js',
     './js/halachaHelp.js',

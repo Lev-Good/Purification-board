@@ -1,7 +1,6 @@
 import { HDate } from '../hebcal.js';
-import { calculateEngine, getMonthsInYear, shiftHebrewMonth, getYomHachodeshInfo } from './calculations.js';
+import { calculateEngine, getMonthsInYear, shiftHebrewMonth, getYomHachodeshInfo, calculateFertilityWindow, normalizeFertilitySettings } from './calculations.js';
 import { describeVeset } from './chazaka.js';
-import { calculateFertilityWindow, normalizeFertilitySettings } from './cycleHelper.js';
 import { calculateCycleInsights } from './insights.js';
 import { BODY_SIGNS, BODY_VESET_RULES, bodySignLabel, bodyReminder } from './vesetGuf.js';
 import { CHECK_DEPTH_LABELS, isCheckPart, checkPartsOf, checkPartLabel } from './akira.js';
